@@ -162,7 +162,14 @@ export const inventoryService = {
         const data = doc.data();
         return {
           id: doc.id,
-          ...data,
+          name: data.name || '',
+          category: data.category || '',
+          currentStock: data.currentStock || 0,
+          unit: data.unit || '',
+          reorderLevel: data.reorderLevel || 0,
+          supplier: data.supplier,
+          brand: data.brand,
+          expiryDate: data.expiryDate,
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date()
         } as InventoryItem;
@@ -179,7 +186,16 @@ export const inventoryService = {
         const data = doc.data();
         return {
           id: doc.id,
-          ...data,
+          itemId: data.itemId || '',
+          itemName: data.itemName || '',
+          type: data.type || 'stock_in',
+          quantity: data.quantity || 0,
+          remainingStock: data.remainingStock || 0,
+          performedBy: data.performedBy || '',
+          reason: data.reason || '',
+          supplier: data.supplier,
+          brand: data.brand,
+          expiryDate: data.expiryDate,
           createdAt: data.createdAt?.toDate() || new Date()
         } as StockMovement;
       });
