@@ -59,7 +59,7 @@ const DoctorTreatmentView: React.FC = () => {
   const totalTreatments = doctorTreatments.length;
   
   // For revenue calculation, we'll use a simple estimation since we don't have actual pricing in notes
-  const estimatedRevenue = doctorTreatments.length * 500000; // Average treatment cost
+  const estimatedRevenue = doctorTreatments.length * 30,000; // Average treatment cost
 
   console.log('DoctorTreatmentView: Stats - Total treatments:', totalTreatments, 'Estimated revenue:', estimatedRevenue);
   console.log('=== End DoctorTreatmentView Debug ===');
