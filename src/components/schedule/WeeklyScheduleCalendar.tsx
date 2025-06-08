@@ -4,9 +4,13 @@ import { WeeklySchedule } from '../../types/schedule';
 
 interface WeeklyScheduleCalendarProps {
   doctorSchedules: WeeklySchedule[];
+  userRole?: 'admin' | 'doctor' | 'staff';
 }
 
-const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({ doctorSchedules }) => {
+const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({ 
+  doctorSchedules, 
+  userRole = 'staff' 
+}) => {
   const timeSlots = [
     '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'
   ];
@@ -48,10 +52,20 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({ doctorS
     });
   };
 
+  const getCalendarTitle = () => {
+    if (userRole === 'doctor') {
+      return doctorSchedules.length > 0 ? `${doctorSchedules[0].doctorName} - Weekly Schedule` : 'My Weekly Schedule';
+    }
+    return 'Weekly Schedule';
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="p-6 border-b">
-        <h2 className="text-xl font-semibold text-gray-900">Weekly Schedule</h2>
+        <h2 className="text-xl font-semibold text-gray-900">{getCalendarTitle()}</h2>
+        {userRole === 'doctor' && doctorSchedules.length > 0 && (
+          <p className="text-sm text-gray-600 mt-1">Your personal schedule</p>
+        )}
       </div>
       
       <div className="overflow-x-auto">
@@ -83,7 +97,9 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({ doctorS
                           key={`${doctor.doctorName}-${day.short}-${timeSlot}`}
                           className={`text-xs p-2 rounded border ${getDoctorColor(doctor.doctorName)} cursor-pointer hover:opacity-80 transition-opacity`}
                         >
-                          <div className="font-medium">{doctor.doctorName}</div>
+                          <div className="font-medium">
+                            {userRole === 'doctor' ? 'Available' : doctor.doctorName}
+                          </div>
                           <div className="opacity-75">
                             {doctor.schedule[day.full]?.startTime} - {doctor.schedule[day.full]?.endTime}
                           </div>
