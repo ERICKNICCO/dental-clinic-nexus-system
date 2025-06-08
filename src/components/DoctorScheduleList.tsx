@@ -4,12 +4,18 @@ import DoctorScheduleCard from './schedule/DoctorScheduleCard';
 import WeeklyScheduleCalendar from './schedule/WeeklyScheduleCalendar';
 import { getWeeklyScheduleByDoctor } from './schedule/scheduleUtils';
 import { useAuth } from '../contexts/AuthContext';
+import { useAppointments } from '../hooks/useAppointments';
 import { Calendar, Grid3X3 } from 'lucide-react';
 
 const DoctorScheduleList: React.FC = () => {
   const [viewMode, setViewMode] = useState<'calendar' | 'cards'>('calendar');
   const { userProfile } = useAuth();
-  const allDoctorSchedules = getWeeklyScheduleByDoctor();
+  const { appointments, loading } = useAppointments();
+
+  // Generate schedules with real appointment data
+  const allDoctorSchedules = React.useMemo(() => {
+    return getWeeklyScheduleByDoctor(appointments);
+  }, [appointments]);
 
   // Filter schedules based on user role
   const doctorSchedules = React.useMemo(() => {
@@ -32,8 +38,6 @@ const DoctorScheduleList: React.FC = () => {
       const isDoctorNameMatch = (scheduleName: string, userName: string) => {
         const normalizedScheduleName = normalizeDoctorName(scheduleName);
         const normalizedUserName = normalizeDoctorName(userName);
-        
-        console.log('Comparing schedule doctor:', normalizedScheduleName, 'with user:', normalizedUserName);
         
         // Exact match
         if (normalizedScheduleName === normalizedUserName) {
@@ -62,10 +66,6 @@ const DoctorScheduleList: React.FC = () => {
         isDoctorNameMatch(schedule.doctorName, doctorName)
       );
 
-      console.log('Doctor filtering - User:', doctorName);
-      console.log('Doctor filtering - Available schedules:', allDoctorSchedules.map(s => s.doctorName));
-      console.log('Doctor filtering - Filtered schedules:', filteredSchedules.map(s => s.doctorName));
-
       return filteredSchedules;
     }
 
@@ -74,19 +74,25 @@ const DoctorScheduleList: React.FC = () => {
   }, [allDoctorSchedules, userProfile]);
 
   // Get title based on user role
-  const getPageTitle = () => {
-    if (userProfile?.role === 'doctor') {
-      return 'My Schedule';
-    }
-    return 'Doctor Schedules';
-  };
-
   const getScheduleTitle = () => {
     if (userProfile?.role === 'doctor') {
       return 'My Weekly Schedule';
     }
     return 'Doctor Schedules';
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-dental-600"></div>
+            <span className="ml-2">Loading schedules...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -174,6 +180,9 @@ const DoctorScheduleList: React.FC = () => {
       {userProfile?.role === 'doctor' && doctorSchedules.length > 0 && (
         <div className="text-sm text-gray-600 bg-white rounded-lg shadow-sm p-4">
           Showing schedule for: <span className="font-medium">{userProfile.name}</span>
+          <div className="text-xs text-gray-500 mt-1">
+            Working hours: 9:00 AM - 5:00 PM (Monday - Friday)
+          </div>
         </div>
       )}
     </div>

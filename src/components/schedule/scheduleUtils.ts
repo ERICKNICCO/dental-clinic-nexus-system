@@ -1,70 +1,85 @@
 
-import { DoctorSchedule, WeeklySchedule } from '../../types/schedule';
+import { Appointment } from '../../types/appointment';
 
-export const scheduleData: DoctorSchedule[] = [
-  // Dr. Shabbir
-  { id: 1, doctorName: 'Dr. Shabbir', doctorImage: 'https://randomuser.me/api/portraits/men/32.jpg', dayOfWeek: 'Monday', startTime: '08:00', endTime: '17:00', isAvailable: true },
-  { id: 2, doctorName: 'Dr. Shabbir', doctorImage: 'https://randomuser.me/api/portraits/men/32.jpg', dayOfWeek: 'Tuesday', startTime: '08:00', endTime: '17:00', isAvailable: true },
-  { id: 3, doctorName: 'Dr. Shabbir', doctorImage: 'https://randomuser.me/api/portraits/men/32.jpg', dayOfWeek: 'Wednesday', startTime: '08:00', endTime: '17:00', isAvailable: true },
-  { id: 4, doctorName: 'Dr. Shabbir', doctorImage: 'https://randomuser.me/api/portraits/men/32.jpg', dayOfWeek: 'Thursday', startTime: '08:00', endTime: '17:00', isAvailable: true },
-  { id: 5, doctorName: 'Dr. Shabbir', doctorImage: 'https://randomuser.me/api/portraits/men/32.jpg', dayOfWeek: 'Friday', startTime: '08:00', endTime: '17:00', isAvailable: true },
-  { id: 6, doctorName: 'Dr. Shabbir', doctorImage: 'https://randomuser.me/api/portraits/men/32.jpg', dayOfWeek: 'Saturday', startTime: '09:00', endTime: '13:00', isAvailable: true },
-  { id: 7, doctorName: 'Dr. Shabbir', doctorImage: 'https://randomuser.me/api/portraits/men/32.jpg', dayOfWeek: 'Sunday', startTime: '', endTime: '', isAvailable: false, specialNotes: 'Day Off' },
+export interface DaySchedule {
+  isAvailable: boolean;
+  startTime: string;
+  endTime: string;
+  specialNotes?: string;
+  appointments?: Appointment[];
+}
 
-  // Dr. Israel
-  { id: 8, doctorName: 'Dr. Israel', doctorImage: 'https://randomuser.me/api/portraits/women/44.jpg', dayOfWeek: 'Monday', startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { id: 9, doctorName: 'Dr. Israel', doctorImage: 'https://randomuser.me/api/portraits/women/44.jpg', dayOfWeek: 'Tuesday', startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { id: 10, doctorName: 'Dr. Israel', doctorImage: 'https://randomuser.me/api/portraits/women/44.jpg', dayOfWeek: 'Wednesday', startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { id: 11, doctorName: 'Dr. Israel', doctorImage: 'https://randomuser.me/api/portraits/women/44.jpg', dayOfWeek: 'Thursday', startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { id: 12, doctorName: 'Dr. Israel', doctorImage: 'https://randomuser.me/api/portraits/women/44.jpg', dayOfWeek: 'Friday', startTime: '', endTime: '', isAvailable: false, specialNotes: 'Day Off' },
-  { id: 13, doctorName: 'Dr. Israel', doctorImage: 'https://randomuser.me/api/portraits/women/44.jpg', dayOfWeek: 'Saturday', startTime: '08:00', endTime: '14:00', isAvailable: true },
-  { id: 14, doctorName: 'Dr. Israel', doctorImage: 'https://randomuser.me/api/portraits/women/44.jpg', dayOfWeek: 'Sunday', startTime: '', endTime: '', isAvailable: false, specialNotes: 'Day Off' },
+export interface WeeklySchedule {
+  doctorName: string;
+  doctorImage: string;
+  schedule: {
+    [key: string]: DaySchedule;
+  };
+}
 
-  // Dr. Rashid
-  { id: 15, doctorName: 'Dr. Rashid', doctorImage: 'https://randomuser.me/api/portraits/men/75.jpg', dayOfWeek: 'Monday', startTime: '07:30', endTime: '16:30', isAvailable: true },
-  { id: 16, doctorName: 'Dr. Rashid', doctorImage: 'https://randomuser.me/api/portraits/men/75.jpg', dayOfWeek: 'Tuesday', startTime: '07:30', endTime: '16:30', isAvailable: true },
-  { id: 17, doctorName: 'Dr. Rashid', doctorImage: 'https://randomuser.me/api/portraits/men/75.jpg', dayOfWeek: 'Wednesday', startTime: '07:30', endTime: '16:30', isAvailable: true },
-  { id: 18, doctorName: 'Dr. Rashid', doctorImage: 'https://randomuser.me/api/portraits/men/75.jpg', dayOfWeek: 'Thursday', startTime: '', endTime: '', isAvailable: false, specialNotes: 'Day Off' },
-  { id: 19, doctorName: 'Dr. Rashid', doctorImage: 'https://randomuser.me/api/portraits/men/75.jpg', dayOfWeek: 'Friday', startTime: '07:30', endTime: '16:30', isAvailable: true },
-  { id: 20, doctorName: 'Dr. Rashid', doctorImage: 'https://randomuser.me/api/portraits/men/75.jpg', dayOfWeek: 'Saturday', startTime: '08:00', endTime: '12:00', isAvailable: true },
-  { id: 21, doctorName: 'Dr. Rashid', doctorImage: 'https://randomuser.me/api/portraits/men/75.jpg', dayOfWeek: 'Sunday', startTime: '', endTime: '', isAvailable: false, specialNotes: 'Day Off' },
+// Updated working hours: 9:00-17:00
+const WORKING_HOURS = {
+  start: '09:00',
+  end: '17:00'
+};
 
-  // Dr. Nyaki
-  { id: 22, doctorName: 'Dr. Nyaki', doctorImage: 'https://randomuser.me/api/portraits/women/63.jpg', dayOfWeek: 'Monday', startTime: '10:00', endTime: '19:00', isAvailable: true },
-  { id: 23, doctorName: 'Dr. Nyaki', doctorImage: 'https://randomuser.me/api/portraits/women/63.jpg', dayOfWeek: 'Tuesday', startTime: '10:00', endTime: '19:00', isAvailable: true },
-  { id: 24, doctorName: 'Dr. Nyaki', doctorImage: 'https://randomuser.me/api/portraits/women/63.jpg', dayOfWeek: 'Wednesday', startTime: '', endTime: '', isAvailable: false, specialNotes: 'Day Off' },
-  { id: 25, doctorName: 'Dr. Nyaki', doctorImage: 'https://randomuser.me/api/portraits/women/63.jpg', dayOfWeek: 'Thursday', startTime: '10:00', endTime: '19:00', isAvailable: true },
-  { id: 26, doctorName: 'Dr. Nyaki', doctorImage: 'https://randomuser.me/api/portraits/women/63.jpg', dayOfWeek: 'Friday', startTime: '10:00', endTime: '19:00', isAvailable: true },
-  { id: 27, doctorName: 'Dr. Nyaki', doctorImage: 'https://randomuser.me/api/portraits/women/63.jpg', dayOfWeek: 'Saturday', startTime: '09:00', endTime: '15:00', isAvailable: true },
-  { id: 28, doctorName: 'Dr. Nyaki', doctorImage: 'https://randomuser.me/api/portraits/women/63.jpg', dayOfWeek: 'Sunday', startTime: '', endTime: '', isAvailable: false, specialNotes: 'Day Off' },
-];
-
-export const getWeeklyScheduleByDoctor = (): WeeklySchedule[] => {
-  const doctors = ['Dr. Shabbir', 'Dr. Israel', 'Dr. Rashid', 'Dr. Nyaki'];
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+// Generate appointments for a doctor on a specific day
+const generateAppointmentsForDay = (doctorName: string, appointments: Appointment[], dayName: string): Appointment[] => {
+  const today = new Date();
+  const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(dayName);
   
-  return doctors.map(doctorName => {
-    const doctorSchedules = scheduleData.filter(schedule => schedule.doctorName === doctorName);
-    const doctorImage = doctorSchedules[0]?.doctorImage || '';
-    
-    const schedule: WeeklySchedule['schedule'] = {};
+  // Calculate the date for this day of the week
+  const dayDate = new Date(today);
+  const currentDay = today.getDay();
+  const daysToAdd = (dayIndex - currentDay + 7) % 7;
+  dayDate.setDate(today.getDate() + daysToAdd);
+  
+  const dateString = dayDate.toISOString().split('T')[0];
+  
+  // Filter appointments for this doctor and this specific date
+  return appointments.filter(appointment => 
+    appointment.dentist === doctorName && 
+    appointment.date === dateString
+  );
+};
+
+export const getWeeklyScheduleByDoctor = (appointments: Appointment[] = []): WeeklySchedule[] => {
+  const doctors = [
+    { name: 'Dr. Shabbir', image: '/placeholder.svg' },
+    { name: 'Dr. Israel', image: '/placeholder.svg' },
+    { name: 'Dr. Rashid', image: '/placeholder.svg' },
+    { name: 'Dr. Nyaki', image: '/placeholder.svg' }
+  ];
+
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  return doctors.map(doctor => {
+    const schedule: { [key: string]: DaySchedule } = {};
     
     daysOfWeek.forEach(day => {
-      const daySchedule = doctorSchedules.find(s => s.dayOfWeek === day);
-      if (daySchedule) {
-        schedule[day] = {
-          startTime: daySchedule.startTime,
-          endTime: daySchedule.endTime,
-          isAvailable: daySchedule.isAvailable,
-          specialNotes: daySchedule.specialNotes
-        };
-      }
+      const dayAppointments = generateAppointmentsForDay(doctor.name, appointments, day);
+      
+      // Doctors are available Monday-Friday, 9:00-17:00
+      const isWorkingDay = !['Saturday', 'Sunday'].includes(day);
+      
+      schedule[day] = {
+        isAvailable: isWorkingDay,
+        startTime: isWorkingDay ? WORKING_HOURS.start : '',
+        endTime: isWorkingDay ? WORKING_HOURS.end : '',
+        specialNotes: isWorkingDay ? undefined : 'Weekend',
+        appointments: dayAppointments
+      };
     });
-    
+
     return {
-      doctorName,
-      doctorImage,
+      doctorName: doctor.name,
+      doctorImage: doctor.image,
       schedule
     };
   });
+};
+
+export const getDoctorSchedule = (doctorName: string, appointments: Appointment[] = []): WeeklySchedule | null => {
+  const allSchedules = getWeeklyScheduleByDoctor(appointments);
+  return allSchedules.find(schedule => schedule.doctorName === doctorName) || null;
 };

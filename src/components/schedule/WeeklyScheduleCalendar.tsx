@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { WeeklySchedule } from '../../types/schedule';
+import { Appointment } from '../../types/appointment';
 
 interface WeeklyScheduleCalendarProps {
   doctorSchedules: WeeklySchedule[];
@@ -11,18 +12,19 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   doctorSchedules, 
   userRole = 'staff' 
 }) => {
+  // Updated time slots for 9:00-17:00 working hours
   const timeSlots = [
-    '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'
+    '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'
   ];
   
   const daysOfWeek = [
-    { short: 'Tue', full: 'Tuesday', date: 'Jun 3' },
-    { short: 'Wed', full: 'Wednesday', date: 'Jun 4' },
-    { short: 'Thu', full: 'Thursday', date: 'Jun 5' },
-    { short: 'Fri', full: 'Friday', date: 'Jun 6' },
-    { short: 'Sat', full: 'Saturday', date: 'Jun 7' },
-    { short: 'Sun', full: 'Sunday', date: 'Jun 8' },
-    { short: 'Mon', full: 'Monday', date: 'Jun 9' }
+    { short: 'Mon', full: 'Monday', date: 'Jun 9' },
+    { short: 'Tue', full: 'Tuesday', date: 'Jun 10' },
+    { short: 'Wed', full: 'Wednesday', date: 'Jun 11' },
+    { short: 'Thu', full: 'Thursday', date: 'Jun 12' },
+    { short: 'Fri', full: 'Friday', date: 'Jun 13' },
+    { short: 'Sat', full: 'Saturday', date: 'Jun 14' },
+    { short: 'Sun', full: 'Sunday', date: 'Jun 15' }
   ];
 
   const getDoctorColor = (doctorName: string) => {
@@ -52,6 +54,24 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
     });
   };
 
+  const getAppointmentsForSlot = (day: string, timeSlot: string): Appointment[] => {
+    const appointments: Appointment[] = [];
+    
+    doctorSchedules.forEach(doctor => {
+      const daySchedule = doctor.schedule[day];
+      if (daySchedule?.appointments) {
+        const slotAppointments = daySchedule.appointments.filter(appointment => {
+          const appointmentHour = parseInt(appointment.time.split(':')[0]);
+          const slotHour = parseInt(timeSlot.split(':')[0]);
+          return appointmentHour === slotHour;
+        });
+        appointments.push(...slotAppointments);
+      }
+    });
+    
+    return appointments;
+  };
+
   const getCalendarTitle = () => {
     if (userRole === 'doctor') {
       return doctorSchedules.length > 0 ? `${doctorSchedules[0].doctorName} - Weekly Schedule` : 'My Weekly Schedule';
@@ -64,8 +84,9 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
       <div className="p-6 border-b">
         <h2 className="text-xl font-semibold text-gray-900">{getCalendarTitle()}</h2>
         {userRole === 'doctor' && doctorSchedules.length > 0 && (
-          <p className="text-sm text-gray-600 mt-1">Your personal schedule</p>
+          <p className="text-sm text-gray-600 mt-1">Your personal schedule with appointments</p>
         )}
+        <p className="text-sm text-gray-500 mt-1">Working hours: 9:00 AM - 5:00 PM</p>
       </div>
       
       <div className="overflow-x-auto">
@@ -89,10 +110,28 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
               </div>
               {daysOfWeek.map(day => {
                 const availableDoctors = getAvailableDoctors(day.full, timeSlot);
+                const appointments = getAppointmentsForSlot(day.full, timeSlot);
+                
                 return (
                   <div key={`${day.short}-${timeSlot}`} className="p-2 border-r last:border-r-0 min-h-[60px]">
                     <div className="space-y-1">
-                      {availableDoctors.map(doctor => (
+                      {/* Show appointments if any */}
+                      {appointments.map(appointment => (
+                        <div
+                          key={`${appointment.id}-${day.short}-${timeSlot}`}
+                          className="text-xs p-2 rounded border bg-red-100 text-red-800 border-red-300"
+                        >
+                          <div className="font-medium">
+                            {userRole === 'doctor' ? 'Appointment' : `${appointment.dentist} - ${appointment.patient.name}`}
+                          </div>
+                          <div className="opacity-75">
+                            {appointment.treatment}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Show available doctors if no appointments */}
+                      {appointments.length === 0 && availableDoctors.map(doctor => (
                         <div
                           key={`${doctor.doctorName}-${day.short}-${timeSlot}`}
                           className={`text-xs p-2 rounded border ${getDoctorColor(doctor.doctorName)} cursor-pointer hover:opacity-80 transition-opacity`}
