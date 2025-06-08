@@ -68,7 +68,14 @@ export const inventoryService = {
         const data = doc.data();
         return {
           id: doc.id,
-          ...data,
+          name: (data.name as string) || '',
+          category: (data.category as string) || '',
+          currentStock: (data.currentStock as number) || 0,
+          unit: (data.unit as string) || '',
+          reorderLevel: (data.reorderLevel as number) || 0,
+          supplier: data.supplier as string | undefined,
+          brand: data.brand as string | undefined,
+          expiryDate: data.expiryDate as string | undefined,
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date()
         } as InventoryItem;
@@ -144,7 +151,16 @@ export const inventoryService = {
         const data = doc.data();
         return {
           id: doc.id,
-          ...data,
+          itemId: (data.itemId as string) || '',
+          itemName: (data.itemName as string) || '',
+          type: (data.type as 'stock_in' | 'stock_out' | 'stock_take') || 'stock_in',
+          quantity: (data.quantity as number) || 0,
+          remainingStock: (data.remainingStock as number) || 0,
+          performedBy: (data.performedBy as string) || '',
+          reason: (data.reason as string) || '',
+          supplier: data.supplier as string | undefined,
+          brand: data.brand as string | undefined,
+          expiryDate: data.expiryDate as string | undefined,
           createdAt: data.createdAt?.toDate() || new Date()
         } as StockMovement;
       });
