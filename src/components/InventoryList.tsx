@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -13,32 +13,45 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Edit, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Mock inventory data
-const mockInventory = [
-  { id: 1, name: "Dental Filling Material", category: "Materials", stock: 48, unit: "packs", reorderLevel: 10 },
-  { id: 2, name: "Anesthetic Solution", category: "Medications", stock: 35, unit: "vials", reorderLevel: 8 },
-  { id: 3, name: "Dental Probes", category: "Instruments", stock: 12, unit: "units", reorderLevel: 5 },
-  { id: 4, name: "Examination Gloves", category: "PPE", stock: 200, unit: "boxes", reorderLevel: 20 },
-  { id: 5, name: "Dental Masks", category: "PPE", stock: 150, unit: "boxes", reorderLevel: 15 },
-  { id: 6, name: "Dental Burs", category: "Instruments", stock: 86, unit: "packs", reorderLevel: 10 },
-  { id: 7, name: "Impression Material", category: "Materials", stock: 28, unit: "sets", reorderLevel: 6 },
-  { id: 8, name: "Sterilization Pouches", category: "Supplies", stock: 120, unit: "boxes", reorderLevel: 15 },
-];
+import { inventoryService, InventoryItem } from '../services/inventoryService';
 
 const categories = ["All", "Materials", "Medications", "Instruments", "PPE", "Supplies"];
 
 const InventoryList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredInventory = mockInventory.filter(item => {
+  useEffect(() => {
+    const unsubscribe = inventoryService.subscribeToInventory((items) => {
+      setInventory(items);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = activeCategory === "All" || item.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const lowStockItems = mockInventory.filter(item => item.stock <= item.reorderLevel);
+  const lowStockItems = inventory.filter(item => item.currentStock <= item.reorderLevel);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-md shadow p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-dental-600"></div>
+            <span className="ml-2">Loading inventory...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -61,7 +74,7 @@ const InventoryList = () => {
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="all">All Items</TabsTrigger>
-          <TabsTrigger value="low-stock">Low Stock</TabsTrigger>
+          <TabsTrigger value="low-stock">Low Stock ({lowStockItems.length})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="all" className="space-y-4">
@@ -87,35 +100,47 @@ const InventoryList = () => {
                   <TableHead>Stock</TableHead>
                   <TableHead>Unit</TableHead>
                   <TableHead>Reorder Level</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Brand</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInventory.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.category}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        item.stock <= item.reorderLevel ? 'bg-red-100 text-red-800' : 
-                        item.stock <= item.reorderLevel * 1.5 ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {item.stock}
-                      </span>
-                    </TableCell>
-                    <TableCell>{item.unit}</TableCell>
-                    <TableCell>{item.reorderLevel}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                {filteredInventory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                      No inventory items found
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredInventory.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.currentStock <= item.reorderLevel ? 'bg-red-100 text-red-800' : 
+                          item.currentStock <= item.reorderLevel * 1.5 ? 'bg-yellow-100 text-yellow-800' : 
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {item.currentStock}
+                        </span>
+                      </TableCell>
+                      <TableCell>{item.unit}</TableCell>
+                      <TableCell>{item.reorderLevel}</TableCell>
+                      <TableCell>{item.supplier || '-'}</TableCell>
+                      <TableCell>{item.brand || '-'}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -131,27 +156,37 @@ const InventoryList = () => {
                   <TableHead>Category</TableHead>
                   <TableHead>Current Stock</TableHead>
                   <TableHead>Reorder Level</TableHead>
+                  <TableHead>Supplier</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lowStockItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.category}</TableCell>
-                    <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        {item.stock}
-                      </span>
-                    </TableCell>
-                    <TableCell>{item.reorderLevel}</TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                        Reorder
-                      </Button>
+                {lowStockItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      No low stock items
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  lowStockItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          {item.currentStock}
+                        </span>
+                      </TableCell>
+                      <TableCell>{item.reorderLevel}</TableCell>
+                      <TableCell>{item.supplier || '-'}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                          Reorder
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

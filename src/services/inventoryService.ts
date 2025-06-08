@@ -64,12 +64,15 @@ export const inventoryService = {
     try {
       const q = query(collection(db, 'inventory'), orderBy('name', 'asc'));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
-      })) as InventoryItem[];
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        } as InventoryItem;
+      });
     } catch (error) {
       console.error('Error fetching inventory items:', error);
       throw error;
@@ -137,11 +140,14 @@ export const inventoryService = {
       }
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date()
-      })) as StockMovement[];
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date()
+        } as StockMovement;
+      });
     } catch (error) {
       console.error('Error fetching stock movements:', error);
       throw error;
@@ -152,12 +158,15 @@ export const inventoryService = {
   subscribeToInventory(callback: (items: InventoryItem[]) => void) {
     const q = query(collection(db, 'inventory'), orderBy('name', 'asc'));
     return onSnapshot(q, (querySnapshot) => {
-      const items = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
-      })) as InventoryItem[];
+      const items = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        } as InventoryItem;
+      });
       callback(items);
     });
   },
@@ -166,11 +175,14 @@ export const inventoryService = {
   subscribeToStockMovements(callback: (movements: StockMovement[]) => void) {
     const q = query(collection(db, 'stock_movements'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (querySnapshot) => {
-      const movements = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date()
-      })) as StockMovement[];
+      const movements = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date()
+        } as StockMovement;
+      });
       callback(movements);
     });
   }
