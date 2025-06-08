@@ -1,21 +1,6 @@
 
 import { Appointment } from '../../types/appointment';
-
-export interface DaySchedule {
-  isAvailable: boolean;
-  startTime: string;
-  endTime: string;
-  specialNotes?: string;
-  appointments?: Appointment[];
-}
-
-export interface WeeklySchedule {
-  doctorName: string;
-  doctorImage: string;
-  schedule: {
-    [key: string]: DaySchedule;
-  };
-}
+import { DaySchedule, WeeklySchedule } from '../../types/schedule';
 
 // Updated working hours: 9:00-17:00
 const WORKING_HOURS = {
