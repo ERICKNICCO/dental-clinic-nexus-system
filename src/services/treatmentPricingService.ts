@@ -6,80 +6,221 @@ export interface TreatmentPrice {
   basePrice: number;
   category: string;
   duration: string;
+  remarks?: string;
 }
 
-// Sample treatment pricing data - in a real system this would come from a database
+// Updated treatment pricing data based on the actual price list
 const treatmentPrices: TreatmentPrice[] = [
   {
-    id: '0',
-    name: 'Consultation',
-    description: 'General medical consultation and examination',
-    basePrice: 30000,
-    category: 'Preventive',
-    duration: '30 mins'
-  },
-  {
     id: '1',
-    name: 'Dental Cleaning',
-    description: 'Professional cleaning to remove plaque and tartar',
-    basePrice: 180000,
+    name: 'Consultation',
+    description: 'General dental consultation and examination',
+    basePrice: 15000,
     category: 'Preventive',
-    duration: '30 mins'
+    duration: '30 mins',
+    remarks: 'Per person'
   },
   {
     id: '2',
-    name: 'Root Canal',
-    description: 'Treatment for infected pulp in the root of a tooth',
-    basePrice: 1800000,
+    name: 'JM Ready Made Metal/Gold Crown',
+    description: 'Pre-fabricated metal or gold crown',
+    basePrice: 65000,
     category: 'Restorative',
-    duration: '90 mins'
+    duration: '60 mins',
+    remarks: 'Per crown'
   },
   {
     id: '3',
-    name: 'Teeth Whitening',
-    description: 'Professional whitening treatment',
-    basePrice: 800000,
+    name: 'Acrylic Crown',
+    description: 'Acrylic crown restoration',
+    basePrice: 100000,
+    category: 'Restorative',
+    duration: '60 mins',
+    remarks: 'Per crown'
+  },
+  {
+    id: '4',
+    name: 'Apiectomy',
+    description: 'Surgical removal of tooth root tip',
+    basePrice: 400000,
+    category: 'Surgical',
+    duration: '90 mins'
+  },
+  {
+    id: '5',
+    name: 'Bleaching',
+    description: 'Professional teeth whitening treatment',
+    basePrice: 120000,
     category: 'Cosmetic',
     duration: '60 mins'
   },
   {
-    id: '4',
-    name: 'Dental Implant',
-    description: 'Artificial tooth root placed into the jaw',
-    basePrice: 3400000,
-    category: 'Restorative',
-    duration: '120 mins'
-  },
-  {
-    id: '5',
-    name: 'Braces Adjustment',
-    description: 'Regular adjustment of dental braces',
-    basePrice: 450000,
-    category: 'Orthodontic',
-    duration: '45 mins'
-  },
-  {
     id: '6',
-    name: 'Filling',
-    description: 'Dental restoration using composite or amalgam',
-    basePrice: 340000,
+    name: 'Ceramic Crown',
+    description: 'High-quality ceramic crown restoration',
+    basePrice: 400000,
     category: 'Restorative',
-    duration: '45 mins'
+    duration: '90 mins'
   },
   {
     id: '7',
-    name: 'Extraction',
-    description: 'Tooth removal procedure',
-    basePrice: 270000,
+    name: 'Children Extraction',
+    description: 'Tooth extraction for pediatric patients',
+    basePrice: 45000,
+    category: 'Surgical',
+    duration: '30 mins',
+    remarks: 'Per tooth'
+  },
+  {
+    id: '8',
+    name: 'Denture First Tooth',
+    description: 'First tooth for denture construction',
+    basePrice: 60000,
+    category: 'Restorative',
+    duration: '45 mins'
+  },
+  {
+    id: '9',
+    name: 'Denture Relining',
+    description: 'Adjustment and relining of existing dentures',
+    basePrice: 60000,
+    category: 'Restorative',
+    duration: '45 mins',
+    remarks: 'Avoid relining'
+  },
+  {
+    id: '10',
+    name: 'Denture Repairs with Impression',
+    description: 'Complete denture repair with new impression',
+    basePrice: 50000,
+    category: 'Restorative',
+    duration: '60 mins'
+  },
+  {
+    id: '11',
+    name: 'Denture Repairs without Impression',
+    description: 'Simple denture repair without impression',
+    basePrice: 35000,
+    category: 'Restorative',
+    duration: '30 mins'
+  },
+  {
+    id: '12',
+    name: 'Dressing',
+    description: 'Wound dressing and post-operative care',
+    basePrice: 0,
+    category: 'Preventive',
+    duration: '15 mins',
+    remarks: 'No charges'
+  },
+  {
+    id: '13',
+    name: 'Extraction Difficult',
+    description: 'Complex surgical tooth extraction',
+    basePrice: 200000,
+    category: 'Surgical',
+    duration: '60 mins',
+    remarks: 'Surgical gloves included'
+  },
+  {
+    id: '14',
+    name: 'Extraction Normal',
+    description: 'Standard tooth extraction',
+    basePrice: 80000,
     category: 'Surgical',
     duration: '30 mins'
   },
   {
-    id: '8',
-    name: 'Checkup',
-    description: 'Regular dental examination',
-    basePrice: 135000,
+    id: '15',
+    name: 'Filling Redo',
+    description: 'Replacement of existing dental filling',
+    basePrice: 60000,
+    category: 'Restorative',
+    duration: '45 mins'
+  },
+  {
+    id: '16',
+    name: 'Filling Without Post',
+    description: 'Standard dental filling without post',
+    basePrice: 60000,
+    category: 'Restorative',
+    duration: '45 mins'
+  },
+  {
+    id: '17',
+    name: 'Permanent Filling',
+    description: 'Permanent dental restoration',
+    basePrice: 60000,
+    category: 'Restorative',
+    duration: '45 mins',
+    remarks: 'Per tooth'
+  },
+  {
+    id: '18',
+    name: 'Refix Crown',
+    description: 'Re-cementation of existing crown',
+    basePrice: 60000,
+    category: 'Restorative',
+    duration: '30 mins',
+    remarks: 'Per coping'
+  },
+  {
+    id: '19',
+    name: 'Scaling & Polishing',
+    description: 'Professional teeth cleaning and polishing',
+    basePrice: 80000,
     category: 'Preventive',
+    duration: '45 mins',
+    remarks: 'U/L arch'
+  },
+  {
+    id: '20',
+    name: 'Sedation',
+    description: 'Conscious sedation for dental procedures',
+    basePrice: 150000,
+    category: 'Anesthesia',
+    duration: '30 mins'
+  },
+  {
+    id: '21',
+    name: 'Surfacing',
+    description: 'Tooth surface treatment and preparation',
+    basePrice: 100000,
+    category: 'Restorative',
+    duration: '30 mins',
+    remarks: 'Per tooth'
+  },
+  {
+    id: '22',
+    name: 'Surgical Extraction',
+    description: 'Complex surgical tooth removal',
+    basePrice: 400000,
+    category: 'Surgical',
+    duration: '90 mins'
+  },
+  {
+    id: '23',
+    name: 'Temporary Filling',
+    description: 'Temporary dental restoration',
+    basePrice: 45000,
+    category: 'Restorative',
+    duration: '30 mins',
+    remarks: 'Per tooth'
+  },
+  {
+    id: '24',
+    name: 'X-Ray Periapical',
+    description: 'Single tooth X-ray examination',
+    basePrice: 25000,
+    category: 'Diagnostic',
+    duration: '15 mins'
+  },
+  {
+    id: '25',
+    name: 'OPG X-Ray',
+    description: 'Panoramic dental X-ray',
+    basePrice: 70000,
+    category: 'Diagnostic',
     duration: '20 mins'
   }
 ];
@@ -97,6 +238,11 @@ export const treatmentPricingService = {
     );
   },
 
+  // Get treatment by ID
+  getTreatmentById(id: string): TreatmentPrice | undefined {
+    return treatmentPrices.find(treatment => treatment.id === id);
+  },
+
   // Search treatments by name or category
   searchTreatments(query: string): TreatmentPrice[] {
     const lowerQuery = query.toLowerCase();
@@ -107,8 +253,24 @@ export const treatmentPricingService = {
     );
   },
 
+  // Get treatments by category
+  getTreatmentsByCategory(category: string): TreatmentPrice[] {
+    return treatmentPrices.filter(treatment => 
+      treatment.category.toLowerCase() === category.toLowerCase()
+    );
+  },
+
+  // Get all categories
+  getCategories(): string[] {
+    const categories = treatmentPrices.map(treatment => treatment.category);
+    return [...new Set(categories)].sort();
+  },
+
   // Format price for display in Tsh
   formatPrice(price: number): string {
-    return `${(price / 1000).toFixed(2)} Tsh`;
+    if (price === 0) {
+      return 'No charge';
+    }
+    return `${(price / 1000).toFixed(0)},000 Tsh`;
   }
 };
