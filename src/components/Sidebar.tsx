@@ -7,7 +7,7 @@ import {
   User,
   FileText,
   DollarSign,
-  Boxes,
+  CreditCard,
   BarChart2,
   Users,
   Pill,
@@ -26,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
   
   // Define which routes each role can access
   const rolePermissions = {
-    admin: ['/', '/appointments', '/schedule', '/patients', '/treatments', '/inventory', '/reports'],
+    admin: ['/', '/appointments', '/schedule', '/patients', '/treatments', '/payments', '/reports'],
     doctor: ['/', '/patients', '/schedule', '/treatments'],
     staff: ['/', '/appointments', '/patients', '/treatments']
   };
@@ -40,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
     { path: '/schedule', icon: Clock, label: 'Doctor Schedule' },
     { path: '/patients', icon: User, label: 'Patients' },
     { path: '/treatments', icon: Pill, label: 'Treatments' },
-    { path: '/inventory', icon: Boxes, label: 'Inventory' },
+    { path: '/payments', icon: CreditCard, label: 'Payments' },
     { path: '/reports', icon: BarChart2, label: 'Reports' }
   ];
 

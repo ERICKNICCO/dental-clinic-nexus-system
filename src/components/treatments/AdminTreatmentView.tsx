@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Calendar, User, DollarSign, Loader2, FileText } from 'lucide-react';
-import { treatmentPricingService } from '../../services/treatmentPricingService';
+import { treatmentPricingFirebaseService } from '../../services/treatmentPricingFirebaseService';
 import { useAllTreatmentNotes } from '../../hooks/useAllTreatmentNotes';
 
 const AdminTreatmentView: React.FC = () => {
@@ -16,10 +16,25 @@ const AdminTreatmentView: React.FC = () => {
   });
 
   const { allNotes, loading, error } = useAllTreatmentNotes();
+  const [treatmentPricing, setTreatmentPricing] = useState([]);
 
   console.log('AdminTreatmentView: All treatment notes:', allNotes);
   console.log('AdminTreatmentView: Loading state:', loading);
   console.log('AdminTreatmentView: Error state:', error);
+
+  // Load treatment pricing from Firebase
+  useEffect(() => {
+    const loadTreatmentPricing = async () => {
+      try {
+        const pricing = await treatmentPricingFirebaseService.getAllTreatmentPricing();
+        setTreatmentPricing(pricing);
+      } catch (error) {
+        console.error('Error loading treatment pricing:', error);
+      }
+    };
+
+    loadTreatmentPricing();
+  }, []);
 
   // Filter treatments by selected month
   const filteredTreatments = allNotes.filter(treatment => {
@@ -29,9 +44,9 @@ const AdminTreatmentView: React.FC = () => {
   });
 
   const totalRevenue = filteredTreatments.reduce((sum, treatment) => {
-    // Try to get actual price from treatment pricing service
-    const treatmentPrice = treatmentPricingService.getTreatmentByName(treatment.procedure);
-    return sum + (treatmentPrice?.basePrice || 500000); // fallback to average price
+    // Try to get actual price from Firebase treatment pricing
+    const pricingData = treatmentPricing.find(p => p.name.toLowerCase() === treatment.procedure.toLowerCase());
+    return sum + (pricingData?.price || 500000); // fallback to average price
   }, 0);
   const totalTreatments = filteredTreatments.length;
 
@@ -94,7 +109,7 @@ const AdminTreatmentView: React.FC = () => {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {treatmentPricingService.formatPrice(totalRevenue)}
+                  {treatmentPricingFirebaseService.formatPrice(totalRevenue)}
                 </div>
                 <div className="text-sm text-gray-500">Total Revenue</div>
               </div>
@@ -129,13 +144,13 @@ const AdminTreatmentView: React.FC = () => {
                   <TableHead>Doctor</TableHead>
                   <TableHead>Treatment</TableHead>
                   <TableHead>Notes</TableHead>
-                  <TableHead className="text-right">Estimated Cost</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTreatments.map((treatment) => {
-                  const treatmentPrice = treatmentPricingService.getTreatmentByName(treatment.procedure);
-                  const cost = treatmentPrice?.basePrice || 500000;
+                  const pricingData = treatmentPricing.find(p => p.name.toLowerCase() === treatment.procedure.toLowerCase());
+                  const cost = pricingData?.price || 500000;
                   
                   return (
                     <TableRow key={treatment.id}>
@@ -162,7 +177,7 @@ const AdminTreatmentView: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {treatmentPricingService.formatPrice(cost)}
+                        {treatmentPricingFirebaseService.formatPrice(cost)}
                       </TableCell>
                     </TableRow>
                   );
