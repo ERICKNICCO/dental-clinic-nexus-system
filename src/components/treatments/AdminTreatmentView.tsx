@@ -49,12 +49,54 @@ const AdminTreatmentView: React.FC = () => {
     return treatmentMonth === selectedMonth;
   });
 
+  // Helper function to find pricing with better matching
+  const findTreatmentPrice = (procedureName) => {
+    console.log('Finding price for procedure:', procedureName);
+    console.log('Available pricing options:', treatmentPricing.map(p => ({ name: p.name, price: p.price })));
+    
+    // Try exact match first
+    let pricingData = treatmentPricing.find(p => p.name === procedureName);
+    if (pricingData) {
+      console.log('Found exact match:', pricingData);
+      return pricingData.price;
+    }
+    
+    // Try case-insensitive match
+    pricingData = treatmentPricing.find(p => p.name.toLowerCase() === procedureName.toLowerCase());
+    if (pricingData) {
+      console.log('Found case-insensitive match:', pricingData);
+      return pricingData.price;
+    }
+    
+    // Try partial match (contains)
+    pricingData = treatmentPricing.find(p => 
+      p.name.toLowerCase().includes(procedureName.toLowerCase()) ||
+      procedureName.toLowerCase().includes(p.name.toLowerCase())
+    );
+    if (pricingData) {
+      console.log('Found partial match:', pricingData);
+      return pricingData.price;
+    }
+    
+    // Try matching without special characters and spaces
+    const cleanProcedure = procedureName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    pricingData = treatmentPricing.find(p => {
+      const cleanPrice = p.name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      return cleanPrice === cleanProcedure;
+    });
+    if (pricingData) {
+      console.log('Found clean match:', pricingData);
+      return pricingData.price;
+    }
+    
+    console.log('No pricing found for:', procedureName);
+    return 0;
+  };
+
   // Calculate total revenue using Firebase pricing
   const totalRevenue = filteredTreatments.reduce((sum, treatment) => {
-    // Try to get actual price from Firebase treatment pricing
-    const pricingData = treatmentPricing.find(p => p.name.toLowerCase() === treatment.procedure.toLowerCase());
-    const price = pricingData?.price || 0; // Use 0 if no pricing found
-    console.log(`AdminTreatmentView: Treatment "${treatment.procedure}" - Found pricing:`, pricingData, 'Price:', price);
+    const price = findTreatmentPrice(treatment.procedure);
+    console.log(`AdminTreatmentView: Treatment "${treatment.procedure}" - Price: ${price}`);
     return sum + price;
   }, 0);
   
@@ -162,8 +204,7 @@ const AdminTreatmentView: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {filteredTreatments.map((treatment) => {
-                  const pricingData = treatmentPricing.find(p => p.name.toLowerCase() === treatment.procedure.toLowerCase());
-                  const cost = pricingData?.price || 0;
+                  const cost = findTreatmentPrice(treatment.procedure);
                   
                   return (
                     <TableRow key={treatment.id}>
@@ -204,6 +245,31 @@ const AdminTreatmentView: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      
+      {/* Debug Info */}
+      {filteredTreatments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Debug Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <p><strong>Available Pricing:</strong></p>
+              {treatmentPricing.map((pricing, index) => (
+                <div key={index} className="text-sm">
+                  "{pricing.name}" - {treatmentPricingFirebaseService.formatPrice(pricing.price)}
+                </div>
+              ))}
+              <p><strong>Treatment Procedures:</strong></p>
+              {filteredTreatments.map((treatment, index) => (
+                <div key={index} className="text-sm">
+                  "{treatment.procedure}" - {findTreatmentPrice(treatment.procedure) > 0 ? 'MATCHED' : 'NO MATCH'}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
