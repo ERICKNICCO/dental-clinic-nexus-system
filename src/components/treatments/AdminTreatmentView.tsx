@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
@@ -245,31 +244,6 @@ const AdminTreatmentView: React.FC = () => {
           )}
         </CardContent>
       </Card>
-      
-      {/* Debug Info */}
-      {filteredTreatments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Debug Info</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p><strong>Available Pricing:</strong></p>
-              {treatmentPricing.map((pricing, index) => (
-                <div key={index} className="text-sm">
-                  "{pricing.name}" - {treatmentPricingFirebaseService.formatPrice(pricing.price)}
-                </div>
-              ))}
-              <p><strong>Treatment Procedures:</strong></p>
-              {filteredTreatments.map((treatment, index) => (
-                <div key={index} className="text-sm">
-                  "{treatment.procedure}" - {findTreatmentPrice(treatment.procedure) > 0 ? 'MATCHED' : 'NO MATCH'}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
