@@ -17,6 +17,7 @@ const AdminTreatmentView: React.FC = () => {
 
   const { allNotes, loading, error } = useAllTreatmentNotes();
   const [treatmentPricing, setTreatmentPricing] = useState([]);
+  const [pricingLoading, setPricingLoading] = useState(true);
 
   console.log('AdminTreatmentView: All treatment notes:', allNotes);
   console.log('AdminTreatmentView: Loading state:', loading);
@@ -26,10 +27,15 @@ const AdminTreatmentView: React.FC = () => {
   useEffect(() => {
     const loadTreatmentPricing = async () => {
       try {
+        setPricingLoading(true);
+        console.log('AdminTreatmentView: Loading treatment pricing from Firebase...');
         const pricing = await treatmentPricingFirebaseService.getAllTreatmentPricing();
+        console.log('AdminTreatmentView: Loaded pricing data:', pricing);
         setTreatmentPricing(pricing);
       } catch (error) {
-        console.error('Error loading treatment pricing:', error);
+        console.error('AdminTreatmentView: Error loading treatment pricing:', error);
+      } finally {
+        setPricingLoading(false);
       }
     };
 
@@ -43,21 +49,28 @@ const AdminTreatmentView: React.FC = () => {
     return treatmentMonth === selectedMonth;
   });
 
+  // Calculate total revenue using Firebase pricing
   const totalRevenue = filteredTreatments.reduce((sum, treatment) => {
     // Try to get actual price from Firebase treatment pricing
     const pricingData = treatmentPricing.find(p => p.name.toLowerCase() === treatment.procedure.toLowerCase());
-    return sum + (pricingData?.price || 500000); // fallback to average price
+    const price = pricingData?.price || 0; // Use 0 if no pricing found
+    console.log(`AdminTreatmentView: Treatment "${treatment.procedure}" - Found pricing:`, pricingData, 'Price:', price);
+    return sum + price;
   }, 0);
+  
   const totalTreatments = filteredTreatments.length;
 
-  if (loading) {
+  console.log('AdminTreatmentView: Total revenue calculated:', totalRevenue);
+  console.log('AdminTreatmentView: Available pricing data:', treatmentPricing);
+
+  if (loading || pricingLoading) {
     return (
       <div className="space-y-6">
         <Card>
           <CardContent className="flex items-center justify-center py-12">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-500">Loading treatment records...</p>
+              <p className="text-gray-500">Loading treatment records and pricing...</p>
             </div>
           </CardContent>
         </Card>
@@ -150,7 +163,7 @@ const AdminTreatmentView: React.FC = () => {
               <TableBody>
                 {filteredTreatments.map((treatment) => {
                   const pricingData = treatmentPricing.find(p => p.name.toLowerCase() === treatment.procedure.toLowerCase());
-                  const cost = pricingData?.price || 500000;
+                  const cost = pricingData?.price || 0;
                   
                   return (
                     <TableRow key={treatment.id}>
@@ -177,7 +190,11 @@ const AdminTreatmentView: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {treatmentPricingFirebaseService.formatPrice(cost)}
+                        {cost > 0 ? (
+                          treatmentPricingFirebaseService.formatPrice(cost)
+                        ) : (
+                          <span className="text-gray-400">No pricing set</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

@@ -148,19 +148,19 @@ export const inventoryService = {
       
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         return {
           id: doc.id,
-          itemId: (data.itemId as string) || '',
-          itemName: (data.itemName as string) || '',
-          type: (data.type as 'stock_in' | 'stock_out' | 'stock_take') || 'stock_in',
-          quantity: (data.quantity as number) || 0,
-          remainingStock: (data.remainingStock as number) || 0,
-          performedBy: (data.performedBy as string) || '',
-          reason: (data.reason as string) || '',
-          supplier: data.supplier as string | undefined,
-          brand: data.brand as string | undefined,
-          expiryDate: data.expiryDate as string | undefined,
+          itemId: data.itemId || '',
+          itemName: data.itemName || '',
+          type: data.type || 'stock_in',
+          quantity: data.quantity || 0,
+          remainingStock: data.remainingStock || 0,
+          performedBy: data.performedBy || '',
+          reason: data.reason || '',
+          supplier: data.supplier,
+          brand: data.brand,
+          expiryDate: data.expiryDate,
           createdAt: data.createdAt?.toDate() || new Date()
         } as StockMovement;
       });
@@ -199,19 +199,19 @@ export const inventoryService = {
     const q = query(collection(db, 'stock_movements'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (querySnapshot) => {
       const movements = querySnapshot.docs.map(doc => {
-        const data = doc.data();
+        const data = doc.data() as any;
         return {
           id: doc.id,
-          itemId: (data.itemId as string) || '',
-          itemName: (data.itemName as string) || '',
-          type: (data.type as 'stock_in' | 'stock_out' | 'stock_take') || 'stock_in',
-          quantity: (data.quantity as number) || 0,
-          remainingStock: (data.remainingStock as number) || 0,
-          performedBy: (data.performedBy as string) || '',
-          reason: (data.reason as string) || '',
-          supplier: data.supplier as string | undefined,
-          brand: data.brand as string | undefined,
-          expiryDate: data.expiryDate as string | undefined,
+          itemId: data.itemId || '',
+          itemName: data.itemName || '',
+          type: data.type || 'stock_in',
+          quantity: data.quantity || 0,
+          remainingStock: data.remainingStock || 0,
+          performedBy: data.performedBy || '',
+          reason: data.reason || '',
+          supplier: data.supplier,
+          brand: data.brand,
+          expiryDate: data.expiryDate,
           createdAt: data.createdAt?.toDate() || new Date()
         } as StockMovement;
       });
