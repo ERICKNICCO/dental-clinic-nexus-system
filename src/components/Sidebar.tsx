@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
   );
   
   return (
-    <div className={`sidebar bg-sidebar text-white h-full fixed ${isCollapsed ? 'collapsed' : 'w-64'}`}>
+    <div className={`sidebar bg-sidebar text-white h-full fixed left-0 top-0 z-50 ${isCollapsed ? 'collapsed w-[70px]' : 'w-64'}`}>
       <div className="p-4 flex items-center justify-center">
         {isCollapsed ? (
           <img 
