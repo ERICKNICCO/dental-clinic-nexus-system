@@ -12,10 +12,10 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden w-full">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
       
-      <div className={`flex-1 flex flex-col overflow-hidden ${isSidebarCollapsed ? 'ml-[70px]' : 'ml-64'}`}>
+      <div className={`main-content flex-1 flex flex-col overflow-hidden ${isSidebarCollapsed ? 'expanded ml-[70px]' : 'ml-64'}`}>
         <Header toggleSidebar={toggleSidebar} />
         <Dashboard />
       </div>

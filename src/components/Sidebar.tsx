@@ -11,8 +11,7 @@ import {
   BarChart2,
   Users,
   Pill,
-  Clock,
-  Settings
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -27,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
   
   // Define which routes each role can access
   const rolePermissions = {
-    admin: ['/', '/appointments', '/schedule', '/patients', '/treatments', '/payments', '/reports', '/pricing'],
+    admin: ['/', '/appointments', '/schedule', '/patients', '/treatments', '/payments', '/reports'],
     doctor: ['/', '/patients', '/schedule', '/treatments'],
     staff: ['/', '/appointments', '/patients', '/treatments']
   };
@@ -42,7 +41,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
     { path: '/patients', icon: User, label: 'Patients' },
     { path: '/treatments', icon: Pill, label: 'Treatments' },
     { path: '/payments', icon: CreditCard, label: 'Payments' },
-    { path: '/pricing', icon: DollarSign, label: 'Treatment Pricing' },
     { path: '/reports', icon: BarChart2, label: 'Reports' }
   ];
 
@@ -51,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
   );
   
   return (
-    <div className={`sidebar bg-sidebar text-white h-full fixed left-0 top-0 z-50 ${isCollapsed ? 'collapsed w-[70px]' : 'w-64'}`}>
+    <div className={`sidebar bg-sidebar text-white h-full fixed ${isCollapsed ? 'collapsed' : 'w-64'}`}>
       <div className="p-4 flex items-center justify-center">
         {isCollapsed ? (
           <img 
