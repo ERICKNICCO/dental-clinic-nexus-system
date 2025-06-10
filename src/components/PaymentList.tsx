@@ -15,52 +15,121 @@ import { Search, Plus, CreditCard, Filter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
-// Mock payment data - this would normally come from a service
-const mockPayments = [
-  {
-    id: '1',
-    patientName: 'John Doe',
-    treatmentName: 'Dental Cleaning',
-    amount: 120000,
-    amountPaid: 120000,
-    paymentStatus: 'paid',
-    paymentMethod: 'cash',
-    date: '2025-01-15',
-    notes: 'Full payment received'
-  },
-  {
-    id: '2',
-    patientName: 'Jane Smith',
-    treatmentName: 'Root Canal',
-    amount: 500000,
-    amountPaid: 300000,
-    paymentStatus: 'partial',
-    paymentMethod: 'card',
-    date: '2025-01-14',
-    notes: 'Partial payment, balance pending'
-  },
-  {
-    id: '3',
-    patientName: 'Bob Johnson',
-    treatmentName: 'Crown Placement',
-    amount: 400000,
-    amountPaid: 0,
-    paymentStatus: 'pending',
-    paymentMethod: '',
-    date: '2025-01-13',
-    notes: 'Payment pending'
-  }
-];
+import { useAllTreatmentNotes } from '../hooks/useAllTreatmentNotes';
+import { usePatients } from '../hooks/usePatients';
+import { treatmentPricingFirebaseService } from '../services/treatmentPricingFirebaseService';
 
 const paymentStatuses = ["All", "Paid", "Partial", "Pending"];
 const paymentMethods = ["All", "Cash", "Card", "Bank Transfer"];
+
+interface Payment {
+  id: string;
+  patientName: string;
+  treatmentName: string;
+  amount: number;
+  amountPaid: number;
+  paymentStatus: 'paid' | 'partial' | 'pending';
+  paymentMethod: string;
+  date: string;
+  notes: string;
+}
 
 const PaymentList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedMethod, setSelectedMethod] = useState("All");
-  const [payments, setPayments] = useState(mockPayments);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [treatmentPricing, setTreatmentPricing] = useState([]);
+  const [pricingLoading, setPricingLoading] = useState(true);
+
+  const { allNotes, loading: notesLoading } = useAllTreatmentNotes();
+  const { patients, loading: patientsLoading } = usePatients();
+
+  // Load treatment pricing from Firebase
+  useEffect(() => {
+    const loadTreatmentPricing = async () => {
+      try {
+        setPricingLoading(true);
+        const pricing = await treatmentPricingFirebaseService.getAllTreatmentPricing();
+        setTreatmentPricing(pricing);
+      } catch (error) {
+        console.error('Error loading treatment pricing:', error);
+      } finally {
+        setPricingLoading(false);
+      }
+    };
+
+    loadTreatmentPricing();
+  }, []);
+
+  // Helper function to find treatment price
+  const findTreatmentPrice = (procedureName: string) => {
+    // Try exact match first
+    let pricingData = treatmentPricing.find(p => p.name === procedureName);
+    if (pricingData) {
+      return pricingData.price;
+    }
+    
+    // Try case-insensitive match
+    pricingData = treatmentPricing.find(p => p.name.toLowerCase() === procedureName.toLowerCase());
+    if (pricingData) {
+      return pricingData.price;
+    }
+    
+    // Try partial match
+    pricingData = treatmentPricing.find(p => 
+      p.name.toLowerCase().includes(procedureName.toLowerCase()) ||
+      procedureName.toLowerCase().includes(p.name.toLowerCase())
+    );
+    if (pricingData) {
+      return pricingData.price;
+    }
+    
+    return 0;
+  };
+
+  // Helper function to find patient name by ID
+  const findPatientName = (patientId: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    return patient ? patient.name : 'Unknown Patient';
+  };
+
+  // Convert treatment notes to payments
+  useEffect(() => {
+    if (!notesLoading && !patientsLoading && !pricingLoading) {
+      const paymentsFromTreatments = allNotes.map(note => {
+        const amount = findTreatmentPrice(note.procedure);
+        const patientName = findPatientName(note.patientId);
+        
+        // For demo purposes, randomly assign payment status
+        const statuses: ('paid' | 'partial' | 'pending')[] = ['paid', 'partial', 'pending'];
+        const methods = ['cash', 'card', ''];
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+        const randomMethod = methods[Math.floor(Math.random() * methods.length)];
+        
+        let amountPaid = 0;
+        if (randomStatus === 'paid') {
+          amountPaid = amount;
+        } else if (randomStatus === 'partial') {
+          amountPaid = Math.floor(amount * 0.5); // 50% paid
+        }
+
+        return {
+          id: note.id,
+          patientName: patientName,
+          treatmentName: note.procedure,
+          amount: amount,
+          amountPaid: amountPaid,
+          paymentStatus: randomStatus,
+          paymentMethod: randomMethod,
+          date: note.date,
+          notes: note.notes || 'Treatment completed'
+        };
+      });
+
+      setPayments(paymentsFromTreatments);
+    }
+  }, [allNotes, patients, treatmentPricing, notesLoading, patientsLoading, pricingLoading]);
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -88,8 +157,18 @@ const PaymentList = () => {
     if (price === 0) {
       return 'No charge';
     }
-    return `${(price / 1000).toFixed(0)},000 Tsh`;
+    return treatmentPricingFirebaseService.formatPrice(price);
   };
+
+  if (notesLoading || patientsLoading || pricingLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="flex items-center justify-center h-64">
+          <span className="ml-2">Loading payment data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

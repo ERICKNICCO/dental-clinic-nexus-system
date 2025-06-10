@@ -84,15 +84,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
           })}
         </nav>
       </div>
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center">
-          <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" className="w-8 h-8 rounded-full mr-3" />
-          <div>
-            <div className="nav-text font-medium">{userProfile?.name || 'User'}</div>
-            <div className="nav-text text-xs text-blue-200 capitalize">{userProfile?.role || 'Doctor'}</div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
