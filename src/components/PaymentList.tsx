@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -18,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAllTreatmentNotes } from '../hooks/useAllTreatmentNotes';
 import { usePatients } from '../hooks/usePatients';
 import { treatmentPricingFirebaseService } from '../services/treatmentPricingFirebaseService';
+import RecordPaymentModal from './payments/RecordPaymentModal';
 
 const paymentStatuses = ["All", "Paid", "Partial", "Pending"];
 const paymentMethods = ["All", "Cash", "Card", "Bank Transfer"];
@@ -41,6 +41,7 @@ const PaymentList = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [treatmentPricing, setTreatmentPricing] = useState([]);
   const [pricingLoading, setPricingLoading] = useState(true);
+  const [isRecordPaymentModalOpen, setIsRecordPaymentModalOpen] = useState(false);
 
   const { allNotes, loading: notesLoading } = useAllTreatmentNotes();
   const { patients, loading: patientsLoading } = usePatients();
@@ -160,6 +161,11 @@ const PaymentList = () => {
     return treatmentPricingFirebaseService.formatPrice(price);
   };
 
+  const handlePaymentRecorded = () => {
+    // Refresh the payments data
+    // In a real app, you would refetch from the database
+  };
+
   if (notesLoading || patientsLoading || pricingLoading) {
     return (
       <div className="bg-white rounded-lg shadow">
@@ -211,7 +217,10 @@ const PaymentList = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button className="bg-green-600 hover:bg-green-700">
+        <Button 
+          className="bg-green-600 hover:bg-green-700"
+          onClick={() => setIsRecordPaymentModalOpen(true)}
+        >
           <Plus className="mr-2 h-4 w-4" /> Record Payment
         </Button>
       </div>
@@ -359,6 +368,13 @@ const PaymentList = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <RecordPaymentModal
+        isOpen={isRecordPaymentModalOpen}
+        onClose={() => setIsRecordPaymentModalOpen(false)}
+        payments={payments}
+        onPaymentRecorded={handlePaymentRecorded}
+      />
     </div>
   );
 };

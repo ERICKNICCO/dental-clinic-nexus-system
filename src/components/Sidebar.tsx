@@ -11,7 +11,8 @@ import {
   BarChart2,
   Users,
   Pill,
-  Clock
+  Clock,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -26,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
   
   // Define which routes each role can access
   const rolePermissions = {
-    admin: ['/', '/appointments', '/schedule', '/patients', '/treatments', '/payments', '/reports'],
+    admin: ['/', '/appointments', '/schedule', '/patients', '/treatments', '/payments', '/reports', '/pricing'],
     doctor: ['/', '/patients', '/schedule', '/treatments'],
     staff: ['/', '/appointments', '/patients', '/treatments']
   };
@@ -41,6 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
     { path: '/patients', icon: User, label: 'Patients' },
     { path: '/treatments', icon: Pill, label: 'Treatments' },
     { path: '/payments', icon: CreditCard, label: 'Payments' },
+    { path: '/pricing', icon: DollarSign, label: 'Treatment Pricing' },
     { path: '/reports', icon: BarChart2, label: 'Reports' }
   ];
 
