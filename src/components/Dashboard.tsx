@@ -18,7 +18,7 @@ const Dashboard: React.FC = () => {
   const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
 
   return (
-    <main className="flex-1 overflow-y-auto p-6 bg-gray-100">
+    <main className="flex-1 overflow-y-auto p-6 bg-gray-100 w-full">
       {/* Stats Cards */}
       <div className={`grid grid-cols-1 md:grid-cols-2 ${isDoctor ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6 mb-6`}>
         <StatsCard 
