@@ -1,22 +1,23 @@
 
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from './components/ui/toaster';
-import ProtectedRoute from './components/ProtectedRoute';
-import RoleBasedRoute from './components/RoleBasedRoute';
-import LoginPage from './pages/LoginPage';
 import Index from './pages/Index';
+import LoginPage from './pages/LoginPage';
+import AppointmentPage from './pages/AppointmentPage';
 import PatientPage from './pages/PatientPage';
 import PatientFilePage from './pages/PatientFilePage';
-import AppointmentPage from './pages/AppointmentPage';
 import TreatmentPage from './pages/TreatmentPage';
 import PaymentPage from './pages/PaymentPage';
-import ReportPage from './pages/ReportPage';
-import InventoryPage from './pages/InventoryPage';
-import SchedulePage from './pages/SchedulePage';
 import TreatmentPricingPage from './pages/TreatmentPricingPage';
+import ReportPage from './pages/ReportPage';
+import SchedulePage from './pages/SchedulePage';
+import InventoryPage from './pages/InventoryPage';
 import NotFound from './pages/NotFound';
+import ProtectedRoute from './components/ProtectedRoute';
+import RoleBasedRoute from './components/RoleBasedRoute';
 import './App.css';
 
 const queryClient = new QueryClient();
@@ -34,24 +35,28 @@ function App() {
                   <Index />
                 </ProtectedRoute>
               } />
+              <Route path="/appointments" element={
+                <ProtectedRoute>
+                  <RoleBasedRoute allowedRoles={['admin', 'staff']}>
+                    <AppointmentPage />
+                  </RoleBasedRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/schedule" element={
+                <ProtectedRoute>
+                  <RoleBasedRoute allowedRoles={['admin', 'doctor']}>
+                    <SchedulePage />
+                  </RoleBasedRoute>
+                </ProtectedRoute>
+              } />
               <Route path="/patients" element={
                 <ProtectedRoute>
                   <PatientPage />
                 </ProtectedRoute>
               } />
-              <Route path="/patient/:patientId/file" element={
+              <Route path="/patients/:patientId" element={
                 <ProtectedRoute>
                   <PatientFilePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/patients/:patientId/file" element={
-                <ProtectedRoute>
-                  <PatientFilePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/appointments" element={
-                <ProtectedRoute>
-                  <AppointmentPage />
                 </ProtectedRoute>
               } />
               <Route path="/treatments" element={
@@ -61,7 +66,16 @@ function App() {
               } />
               <Route path="/payments" element={
                 <ProtectedRoute>
-                  <PaymentPage />
+                  <RoleBasedRoute allowedRoles={['admin']}>
+                    <PaymentPage />
+                  </RoleBasedRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/pricing" element={
+                <ProtectedRoute>
+                  <RoleBasedRoute allowedRoles={['admin']}>
+                    <TreatmentPricingPage />
+                  </RoleBasedRoute>
                 </ProtectedRoute>
               } />
               <Route path="/reports" element={
@@ -78,23 +92,11 @@ function App() {
                   </RoleBasedRoute>
                 </ProtectedRoute>
               } />
-              <Route path="/schedule" element={
-                <ProtectedRoute>
-                  <SchedulePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/treatment-pricing" element={
-                <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['admin']}>
-                    <TreatmentPricingPage />
-                  </RoleBasedRoute>
-                </ProtectedRoute>
-              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
-          <Toaster />
         </Router>
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );

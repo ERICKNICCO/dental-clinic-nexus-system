@@ -216,7 +216,7 @@ const PatientList: React.FC = () => {
                   : 'Not scheduled'}
               </TableCell>
               <TableCell className="text-right">
-                <Link to={`/patient/${patient.id}/file`}>
+                <Link to={`/patients/${patient.id}/file`}>
                   <Button variant="ghost" size="sm">
                     <FileText className="w-4 h-4 mr-1" />
                     File
