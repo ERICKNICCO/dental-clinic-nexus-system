@@ -8,6 +8,8 @@ import EditPatientModal from './patient/EditPatientModal';
 import { usePatients } from '../hooks/usePatients';
 import { useAuth } from '../contexts/AuthContext';
 import { useDoctorAppointments } from '../hooks/useDoctorAppointments';
+import { useAppointments } from '../hooks/useAppointments';
+import { usePatientAutoCreation } from '../hooks/usePatientAutoCreation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,6 +62,10 @@ const PatientList: React.FC = () => {
   const { patients, loading, error, addPatient, updatePatient, deletePatient } = usePatients();
   const { userProfile } = useAuth();
   const { todaysAppointments, loading: appointmentsLoading } = useDoctorAppointments(userProfile?.name || '');
+  const { appointments } = useAppointments();
+  
+  // Use the auto-creation hook
+  usePatientAutoCreation(appointments);
 
   // Filter patients to show only those assigned to the current doctor
   const getFilteredPatientsByDoctor = () => {
