@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -82,8 +81,8 @@ const PaymentList = () => {
           try {
             await addPatient({
               name: patientName,
-              email: appointment.patient_email || '',
-              phone: appointment.patient.phone || appointment.patient_phone || '',
+              email: appointment.patient.email || '',
+              phone: appointment.patient.phone || '',
               dateOfBirth: new Date().toISOString().split('T')[0], // Default date
               gender: 'Not specified',
               address: '',
@@ -157,7 +156,7 @@ const PaymentList = () => {
           insuranceProvider = patientInfo.insuranceProvider || 'NHIF';
           paymentMethod = insuranceProvider;
         } else {
-          paymentMethod = 'cash';
+          paymentMethod = 'Cash';
         }
         
         // For demo purposes, randomly assign payment status
@@ -340,7 +339,7 @@ const PaymentList = () => {
                       </TableCell>
                       <TableCell>
                         <Badge className={getInsuranceProviderColor(payment.paymentMethod)}>
-                          {payment.paymentMethod === 'cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
+                          {payment.paymentMethod === 'Cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
                         </Badge>
                       </TableCell>
                       <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
@@ -389,7 +388,7 @@ const PaymentList = () => {
                       <TableCell className="font-semibold text-red-600">{formatPrice(payment.amount)}</TableCell>
                       <TableCell>
                         <Badge className={getInsuranceProviderColor(payment.paymentMethod)}>
-                          {payment.paymentMethod === 'cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
+                          {payment.paymentMethod === 'Cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
                         </Badge>
                       </TableCell>
                       <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
@@ -437,7 +436,7 @@ const PaymentList = () => {
                       <TableCell className="font-semibold text-red-600">{formatPrice(payment.amount - payment.amountPaid)}</TableCell>
                       <TableCell>
                         <Badge className={getInsuranceProviderColor(payment.paymentMethod)}>
-                          {payment.paymentMethod === 'cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
+                          {payment.paymentMethod === 'Cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
                         </Badge>
                       </TableCell>
                       <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
