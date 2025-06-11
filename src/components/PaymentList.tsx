@@ -44,6 +44,7 @@ const PaymentList = () => {
   const [treatmentPricing, setTreatmentPricing] = useState([]);
   const [pricingLoading, setPricingLoading] = useState(true);
   const [isRecordPaymentModalOpen, setIsRecordPaymentModalOpen] = useState(false);
+  const [processedAppointments, setProcessedAppointments] = useState(new Set<string>());
 
   const { allNotes, loading: notesLoading } = useAllTreatmentNotes();
   const { patients, loading: patientsLoading, addPatient } = usePatients();
@@ -71,18 +72,40 @@ const PaymentList = () => {
     const autoAddPatientsFromAppointments = async () => {
       if (!appointments || !patients || appointmentsLoading || patientsLoading) return;
 
-      const existingPatientNames = new Set(patients.map(p => p.name.toLowerCase()));
+      // Create a set of existing patient names (case-insensitive)
+      const existingPatientNames = new Set(
+        patients.map(p => p.name.toLowerCase().trim())
+      );
       
+      // Create a set to track unique patient names from appointments
+      const uniqueAppointmentPatients = new Map<string, any>();
+      
+      // First pass: collect unique patients from appointments
       for (const appointment of appointments) {
-        const patientName = appointment.patient.name;
-        if (patientName && !existingPatientNames.has(patientName.toLowerCase())) {
-          console.log(`Auto-adding patient from appointment: ${patientName}`);
-          
-          try {
-            await addPatient({
+        const patientName = appointment.patient.name?.trim();
+        if (patientName) {
+          const lowerName = patientName.toLowerCase();
+          if (!existingPatientNames.has(lowerName) && !uniqueAppointmentPatients.has(lowerName)) {
+            uniqueAppointmentPatients.set(lowerName, {
               name: patientName,
               email: appointment.patient.email || '',
               phone: appointment.patient.phone || '',
+              appointmentId: appointment.id
+            });
+          }
+        }
+      }
+      
+      // Second pass: add unique patients that don't exist
+      for (const [lowerName, patientData] of uniqueAppointmentPatients) {
+        if (!processedAppointments.has(patientData.appointmentId)) {
+          console.log(`Auto-adding unique patient: ${patientData.name}`);
+          
+          try {
+            await addPatient({
+              name: patientData.name,
+              email: patientData.email,
+              phone: patientData.phone,
               dateOfBirth: new Date().toISOString().split('T')[0], // Default date
               gender: 'Not specified',
               address: '',
@@ -92,16 +115,20 @@ const PaymentList = () => {
               patientType: 'insurance'
             });
             
-            existingPatientNames.add(patientName.toLowerCase());
+            // Mark this appointment as processed
+            setProcessedAppointments(prev => new Set(prev).add(patientData.appointmentId));
+            
+            // Add to existing names to prevent further duplicates in this session
+            existingPatientNames.add(lowerName);
           } catch (error) {
-            console.error(`Error auto-adding patient ${patientName}:`, error);
+            console.error(`Error auto-adding patient ${patientData.name}:`, error);
           }
         }
       }
     };
 
     autoAddPatientsFromAppointments();
-  }, [appointments, patients, appointmentsLoading, patientsLoading, addPatient]);
+  }, [appointments, patients, appointmentsLoading, patientsLoading, addPatient, processedAppointments]);
 
   // Helper function to find treatment price
   const findTreatmentPrice = (procedureName: string) => {
