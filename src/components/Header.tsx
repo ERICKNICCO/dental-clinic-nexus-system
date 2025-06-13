@@ -9,7 +9,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const { userProfile, logout } = useAuth();
-  const { notifications, unreadCount, markAsRead, clearAllNotifications } = useNotifications();
+  const { notifications, unreadCount, markAsRead, clearAllNotifications, markAllAsUnread } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
@@ -101,6 +101,14 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                         className="text-xs text-blue-600 hover:text-blue-800"
                       >
                         Mark all read
+                      </button>
+                    )}
+                    {notifications.length > unreadCount && unreadCount === 0 && (
+                      <button
+                        onClick={markAllAsUnread}
+                        className="text-xs text-blue-600 hover:text-blue-800 ml-2"
+                      >
+                        Mark all unread
                       </button>
                     )}
                   </div>

@@ -27,13 +27,16 @@ export const useNotifications = () => {
     }
   }, []);
 
-  const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    try {
-      await notificationService.addNotification(notification);
-    } catch (error) {
-      console.error('Error adding notification to Firestore:', error);
-    }
-  }, []);
+  const addNotification = useCallback(
+    async (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+      try {
+        await notificationService.addNotification(notification);
+      } catch (error) {
+        console.error('Error adding notification to Firestore:', error);
+      }
+    },
+    []
+  );
 
   const markAsRead = async (id: string) => {
     try {
@@ -52,7 +55,7 @@ export const useNotifications = () => {
       const unread = notificationsRef.current.filter(n => !n.read);
       if (unread.length === 0) return;
 
-      await notificationService.markAllAsRead(unread.map(n => n.id));
+      await notificationService.markAllNotificationsAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
@@ -60,9 +63,22 @@ export const useNotifications = () => {
     }
   };
 
+  const markAllAsUnread = async () => {
+    try {
+      const readNotifications = notificationsRef.current.filter(n => n.read);
+      if (readNotifications.length === 0) return;
+
+      await notificationService.markAllAsUnread(readNotifications.map(n => n.id));
+      setNotifications(prev => prev.map(n => ({ ...n, read: false })));
+      setUnreadCount(readNotifications.length);
+    } catch (error) {
+      console.error('Failed to mark all notifications as unread:', error);
+    }
+  };
+
   const clearAllNotifications = async () => {
     try {
-      await notificationService.clearAllNotifications();
+      await notificationService.markAllNotificationsAsRead();
       setNotifications([]);
       setUnreadCount(0);
     } catch (error) {
@@ -70,11 +86,10 @@ export const useNotifications = () => {
     }
   };
 
-  // Add notifications for new pending appointments
   useEffect(() => {
     if (!userProfile) return;
 
-    const unsubscribeAppointments = appointmentService.subscribeToAppointments((appointments) => {
+    const unsubscribeAppointments = appointmentService.subscribeToAppointments(appointments => {
       const newAppointments = appointments.filter(
         app =>
           app.status === 'Pending' &&
@@ -95,12 +110,11 @@ export const useNotifications = () => {
     return () => unsubscribeAppointments();
   }, [userProfile, addNotification]);
 
-  // Realtime sync with Firestore
   useEffect(() => {
     if (!userProfile) return;
 
     const unsubscribe = notificationService.subscribeToNotifications(
-      (updatedNotifications) => {
+      updatedNotifications => {
         setNotifications(updatedNotifications);
         setUnreadCount(updatedNotifications.filter(n => !n.read).length);
       },
@@ -116,6 +130,7 @@ export const useNotifications = () => {
     addNotification,
     markAsRead,
     markAllAsRead,
+    markAllAsUnread,
     clearAllNotifications,
     playNotificationSound,
   };

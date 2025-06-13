@@ -44,7 +44,7 @@ export const notificationService = {
     }
   },
 
-  async markAllAsRead() {
+  async markAllNotificationsAsRead() {
     try {
       const batch = writeBatch(db);
       const notificationsQuery = query(collection(db, 'notifications'), where('read', '==', false));
@@ -62,6 +62,21 @@ export const notificationService = {
       console.log('All unread notifications marked as read in Firestore.');
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  },
+
+  async markAllAsUnread(notificationIds: string[]) {
+    try {
+      const batch = writeBatch(db);
+      notificationIds.forEach(id => {
+        const ref = doc(db, 'notifications', id);
+        batch.update(ref, { read: false });
+      });
+      await batch.commit();
+      console.log('All notifications marked as unread.');
+    } catch (error) {
+      console.error('Error marking notifications as unread:', error);
       throw error;
     }
   },
