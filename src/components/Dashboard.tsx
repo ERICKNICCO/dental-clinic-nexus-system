@@ -1,4 +1,3 @@
-
 import React from 'react';
 import StatsCard from './dashboard/StatsCard';
 import AppointmentCalendar from './dashboard/Calendar';
@@ -7,15 +6,28 @@ import RevenueChart from './dashboard/RevenueChart';
 import RecentPatients from './dashboard/RecentPatients';
 import { useAuth } from '../contexts/AuthContext';
 import { useDoctorStats } from '../hooks/useDoctorStats';
+import { useFinancialReports } from '../hooks/useFinancialReports';
+import { usePatients } from '../hooks/usePatients';
+import { useAppointments } from '../hooks/useAppointments';
+import { Appointment } from '../types/appointment';
+import { Patient } from '../types/patient';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
   const { stats, loading } = useDoctorStats(userProfile?.name || '');
+  const { totalRevenue, loading: financialLoading } = useFinancialReports();
+  const { patients, loading: patientsLoading } = usePatients();
+  const { appointments, loading: appointmentsLoading } = useAppointments();
 
   const isDoctor = userProfile?.role === 'doctor';
 
   // Get current month name for display
   const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
+
+  const upcomingAppointments = appointments
+    .filter((appt: Appointment) => new Date(appt.date) > new Date() && appt.status === 'Approved')
+    .sort((a: Appointment, b: Appointment) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 3);
 
   return (
     <main className="flex-1 overflow-y-auto p-6 bg-gray-100 w-full">
@@ -35,8 +47,8 @@ const Dashboard: React.FC = () => {
         />
         {!isDoctor && (
           <StatsCard 
-            title="Monthly Revenue" 
-            value="$12,450" 
+            title="Total Revenue" 
+            value={financialLoading ? 'Loading...' : `Tsh ${totalRevenue.toLocaleString()}`}
             icon="dollar" 
             color="bg-yellow-100 text-yellow-600" 
           />

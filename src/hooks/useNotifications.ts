@@ -1,131 +1,122 @@
-
-import { useState, useEffect } from 'react';
-import { appointmentService } from '../services/appointmentService';
-import { Appointment } from '../types/appointment';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-
-interface Notification {
-  id: string;
-  type: 'new_appointment' | 'appointment_approved' | 'appointment_cancelled';
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-  appointmentId?: string;
-}
+import { appointmentService } from '../services/appointmentService';
+import { notificationService } from '../services/notificationService';
+import { Appointment } from '../types/appointment';
+import { Notification } from '../types/notification';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { userProfile } = useAuth();
 
-  // Play notification sound
-  const playNotificationSound = () => {
+  const notificationsRef = useRef<Notification[]>([]);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
+
+  const playNotificationSound = useCallback(() => {
     try {
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeBjiRza3MfCwEJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeA=');
-      audio.play().catch(e => console.log('Could not play notification sound:', e));
+      const audio = new Audio(
+        'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='
+      );
+      audio.play();
+    } catch (err) {
+      console.error('Notification sound failed to play:', err);
+    }
+  }, []);
+
+  const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    try {
+      await notificationService.addNotification(notification);
     } catch (error) {
-      console.log('Could not create notification sound:', error);
+      console.error('Error adding notification to Firestore:', error);
+    }
+  }, []);
+
+  const markAsRead = async (id: string) => {
+    try {
+      await notificationService.markNotificationAsRead(id);
+      setNotifications(prev =>
+        prev.map(n => (n.id === id ? { ...n, read: true } : n))
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
     }
   };
 
+  const markAllAsRead = async () => {
+    try {
+      const unread = notificationsRef.current.filter(n => !n.read);
+      if (unread.length === 0) return;
+
+      await notificationService.markAllAsRead(unread.map(n => n.id));
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    try {
+      await notificationService.clearAllNotifications();
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error);
+    }
+  };
+
+  // Add notifications for new pending appointments
   useEffect(() => {
     if (!userProfile) return;
 
-    let lastAppointmentCount = 0;
-    let knownAppointmentIds = new Set<string>();
+    const unsubscribeAppointments = appointmentService.subscribeToAppointments((appointments) => {
+      const newAppointments = appointments.filter(
+        app =>
+          app.status === 'Pending' &&
+          !notificationsRef.current.some(n => n.appointmentId === app.id)
+      );
 
-    const unsubscribe = appointmentService.subscribeToAppointments((appointments) => {
-      // For admin: notify on new appointments
-      if (userProfile.role === 'admin') {
-        const newAppointments = appointments.filter(apt => !knownAppointmentIds.has(apt.id));
-        
-        if (newAppointments.length > 0 && knownAppointmentIds.size > 0) {
-          newAppointments.forEach(appointment => {
-            const notification: Notification = {
-              id: `new_${appointment.id}_${Date.now()}`,
-              type: 'new_appointment',
-              title: 'New Appointment',
-              message: `New appointment from ${appointment.patient.name} for ${appointment.treatment}`,
-              timestamp: new Date(),
-              read: false,
-              appointmentId: appointment.id
-            };
-            
-            setNotifications(prev => [notification, ...prev.slice(0, 49)]); // Keep last 50 notifications
-            playNotificationSound();
-          });
-        }
-        
-        // Update known appointment IDs
-        appointments.forEach(apt => knownAppointmentIds.add(apt.id));
-      }
-      
-      // For doctors: notify when their appointments are approved
-      if (userProfile.role === 'doctor') {
-        const doctorAppointments = appointments.filter(apt => 
-          apt.dentist === userProfile.name && apt.status === 'Approved'
-        );
-        
-        // Check for newly approved appointments
-        doctorAppointments.forEach(appointment => {
-          const notificationId = `approved_${appointment.id}`;
-          const existingNotification = notifications.find(n => n.id === notificationId);
-          
-          if (!existingNotification && knownAppointmentIds.size > 0) {
-            const notification: Notification = {
-              id: notificationId,
-              type: 'appointment_approved',
-              title: 'Appointment Approved',
-              message: `Your appointment with ${appointment.patient.name} has been approved`,
-              timestamp: new Date(),
-              read: false,
-              appointmentId: appointment.id
-            };
-            
-            setNotifications(prev => [notification, ...prev.slice(0, 49)]);
-            playNotificationSound();
-          }
+      newAppointments.forEach(app => {
+        addNotification({
+          type: 'new_appointment',
+          title: 'New Appointment',
+          message: `A new appointment has been requested by ${app.patient.name} for ${new Date(app.date).toLocaleDateString()}.`,
+          appointmentId: app.id,
+          targetDoctorName: app.dentist,
         });
-        
-        // Update known appointment IDs
-        appointments.forEach(apt => knownAppointmentIds.add(apt.id));
-      }
+      });
     });
 
-    return () => unsubscribe();
-  }, [userProfile, notifications]);
+    return () => unsubscribeAppointments();
+  }, [userProfile, addNotification]);
 
-  // Update unread count
+  // Realtime sync with Firestore
   useEffect(() => {
-    setUnreadCount(notifications.filter(n => !n.read).length);
-  }, [notifications]);
+    if (!userProfile) return;
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-          : notification
-      )
+    const unsubscribe = notificationService.subscribeToNotifications(
+      (updatedNotifications) => {
+        setNotifications(updatedNotifications);
+        setUnreadCount(updatedNotifications.filter(n => !n.read).length);
+      },
+      userProfile.role === 'doctor' ? userProfile.name : undefined
     );
-  };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
-
-  const clearNotifications = () => {
-    setNotifications([]);
-  };
+    return () => unsubscribe();
+  }, [userProfile]);
 
   return {
     notifications,
     unreadCount,
+    addNotification,
     markAsRead,
     markAllAsRead,
-    clearNotifications
+    clearAllNotifications,
+    playNotificationSound,
   };
 };

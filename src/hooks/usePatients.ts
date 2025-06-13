@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   collection, 
   onSnapshot, 
@@ -9,7 +9,8 @@ import {
   query, 
   orderBy,
   getDocs,
-  where
+  where,
+  DocumentData
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useToast } from './use-toast';
@@ -90,7 +91,7 @@ export const usePatients = () => {
     }
   };
 
-  const migrateExistingPatients = async () => {
+  const migrateExistingPatients = useCallback(async () => {
     try {
       console.log('Starting patient migration...');
       const q = query(collection(db, 'patients'));
@@ -98,7 +99,7 @@ export const usePatients = () => {
       
       // First, find the highest existing patient ID number
       let highestNumber = 0;
-      const patientsWithoutIds: any[] = [];
+      const patientsWithoutIds: { docId: string; data: DocumentData }[] = [];
       
       querySnapshot.forEach((docSnapshot) => {
         const data = docSnapshot.data();
@@ -151,7 +152,7 @@ export const usePatients = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     const q = query(collection(db, 'patients'), orderBy('createdAt', 'desc'));
@@ -198,11 +199,28 @@ export const usePatients = () => {
     );
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, migrateExistingPatients]);
 
   const addPatient = async (newPatientData: NewPatient) => {
     try {
       console.log('usePatients: Adding patient with data:', newPatientData);
+      
+      // Check for existing patients with the same name, email, or phone (any match)
+      const patientsRef = collection(db, 'patients');
+      const [nameSnap, emailSnap, phoneSnap] = await Promise.all([
+        getDocs(query(patientsRef, where('name', '==', newPatientData.name))),
+        getDocs(query(patientsRef, where('email', '==', newPatientData.email))),
+        getDocs(query(patientsRef, where('phone', '==', newPatientData.phone)))
+      ]);
+      
+      if (!nameSnap.empty || !emailSnap.empty || !phoneSnap.empty) {
+        const duplicateFields = [];
+        if (!nameSnap.empty) duplicateFields.push(`name (${newPatientData.name})`);
+        if (!emailSnap.empty) duplicateFields.push(`email (${newPatientData.email})`);
+        if (!phoneSnap.empty) duplicateFields.push(`phone (${newPatientData.phone})`);
+        throw new Error(`A patient with the same ${duplicateFields.join(', ')} already exists.`);
+      }
+
       const now = new Date();
       const patientId = await generatePatientId();
       
@@ -233,11 +251,12 @@ export const usePatients = () => {
         title: "Patient Added",
         description: `${newPatientData.name} has been successfully added with ID: ${patientId}`,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('usePatients: Error adding patient:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to add patient to database";
       toast({
         title: "Error",
-        description: "Failed to add patient to database",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;

@@ -185,7 +185,7 @@ const AppointmentsTable: React.FC = () => {
       // Navigate to consultation page if we have a patient ID
       if (patientId) {
         console.log('Navigating to patient file with ID:', patientId);
-        navigate(`/patients/${patientId}/file`);
+        navigate(`/patients/${patientId}`);
       } else {
         console.error('Could not determine patient ID for navigation');
         toast({

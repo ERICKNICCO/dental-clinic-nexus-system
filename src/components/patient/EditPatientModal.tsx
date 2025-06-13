@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import {
@@ -194,7 +193,13 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
               <FormField
                 control={form.control}
                 name="emergencyContact"
-                rules={{ required: 'Emergency contact is required' }}
+                rules={{
+                  required: 'Emergency contact is required',
+                  pattern: {
+                    value: /^[A-Za-z\s]+$/,
+                    message: 'Emergency contact should only contain letters and spaces'
+                  }
+                }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Emergency Contact</FormLabel>

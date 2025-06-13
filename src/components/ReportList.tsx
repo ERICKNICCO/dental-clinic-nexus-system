@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Tabs, 
@@ -15,7 +14,11 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { FileText, Download, Calendar as CalendarIcon } from 'lucide-react';
+import { FileText, Download, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+
+import { useFinancialReports } from '../hooks/useFinancialReports';
+import { usePatientReports } from '../hooks/usePatientReports';
+import { useTreatmentReports } from '../hooks/useTreatmentReports';
 
 // Brand colors
 const brandBlue = '#33C3F0'; // Sky Blue
@@ -23,40 +26,17 @@ const brandBrightBlue = '#1EAEDB'; // Bright Blue
 const brandGreen = '#4AD295'; // Green from logo
 const brandLightGreen = '#F2FCE2'; // Soft Green
 
-// Mock financial data
-const financeData = [
-  { month: 'Jan', revenue: 42500, expenses: 29800 },
-  { month: 'Feb', revenue: 38700, expenses: 26500 },
-  { month: 'Mar', revenue: 47200, expenses: 31200 },
-  { month: 'Apr', revenue: 41000, expenses: 30000 },
-  { month: 'May', revenue: 52300, expenses: 34500 },
-  { month: 'Jun', revenue: 49800, expenses: 32100 }
-];
-
-// Mock patient data
-const patientData = [
-  { month: 'Jan', newPatients: 24, returning: 58 },
-  { month: 'Feb', newPatients: 18, returning: 52 },
-  { month: 'Mar', newPatients: 29, returning: 61 },
-  { month: 'Apr', newPatients: 22, returning: 54 },
-  { month: 'May', newPatients: 31, returning: 65 },
-  { month: 'Jun', newPatients: 26, returning: 63 }
-];
-
-// Mock treatment data
-const treatmentData = [
-  { name: 'Routine Checkup', value: 35 },
-  { name: 'Fillings', value: 25 },
-  { name: 'Root Canal', value: 15 },
-  { name: 'Cosmetic Procedures', value: 10 },
-  { name: 'Orthodontics', value: 15 }
-];
-
 // Colors for pie chart - using brand colors
 const COLORS = [brandBlue, brandGreen, brandBrightBlue, '#60D5FA', '#8BDC70'];
 
 const ReportList = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
+
+  const { monthlyData: financeMonthlyData, totalRevenue, totalExpenses, netProfit, loading: financialLoading, error: financialError } = useFinancialReports();
+  const { monthlyPatientData, totalPatients, newPatientsCount, retentionRate, loading: patientLoading, error: patientError } = usePatientReports();
+  const { treatmentDistribution, loading: treatmentLoading, error: treatmentError } = useTreatmentReports();
+
+  const currentYear = date?.getFullYear() || new Date().getFullYear();
 
   return (
     <div className="space-y-6">
@@ -86,49 +66,57 @@ const ReportList = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue ({currentYear})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">$271,500</div>
-                <p className="text-xs text-green-600 mt-1">↑ 12.5% from last period</p>
+                {financialLoading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : <div className="text-2xl font-bold">Tsh {totalRevenue.toLocaleString()}</div>}
+                {/* <p className="text-xs text-green-600 mt-1">↑ 12.5% from last period</p> */}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses ({currentYear})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">$184,100</div>
-                <p className="text-xs text-green-600 mt-1">↓ 3.2% from last period</p>
+                {financialLoading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : <div className="text-2xl font-bold">Tsh {totalExpenses.toLocaleString()}</div>}
+                {/* <p className="text-xs text-green-600 mt-1">↓ 3.2% from last period</p> */}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Net Profit</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Net Profit ({currentYear})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">$87,400</div>
-                <p className="text-xs text-green-600 mt-1">↑ 18.7% from last period</p>
+                {financialLoading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : <div className="text-2xl font-bold">Tsh {netProfit.toLocaleString()}</div>}
+                {/* <p className="text-xs text-green-600 mt-1">↑ 18.7% from last period</p> */}
               </CardContent>
             </Card>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Revenue vs Expenses</CardTitle>
+              <CardTitle>Revenue vs Expenses ({currentYear})</CardTitle>
             </CardHeader>
             <CardContent className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={financeData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="revenue" fill={brandBlue} name="Revenue" />
-                  <Bar dataKey="expenses" fill={brandGreen} name="Expenses" />
-                </BarChart>
-              </ResponsiveContainer>
+              {financialLoading ? (
+                <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+              ) : financialError ? (
+                <div className="text-center text-red-500">Error: {financialError}</div>
+              ) : financeMonthlyData.length === 0 ? (
+                <div className="text-center text-gray-500">No financial data available for {currentYear}.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={financeMonthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="revenue" fill={brandBlue} name="Revenue" />
+                    <Bar dataKey="expenses" fill={brandGreen} name="Expenses" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -137,49 +125,57 @@ const ReportList = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Patients</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Patients ({currentYear})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">503</div>
-                <p className="text-xs text-green-600 mt-1">↑ 8.3% from last period</p>
+                {patientLoading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : <div className="text-2xl font-bold">{totalPatients.toLocaleString()}</div>}
+                {/* <p className="text-xs text-green-600 mt-1">↑ 8.3% from last period</p> */}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">New Patients</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">New Patients ({currentYear})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">150</div>
-                <p className="text-xs text-green-600 mt-1">↑ 12.7% from last period</p>
+                {patientLoading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : <div className="text-2xl font-bold">{newPatientsCount.toLocaleString()}</div>}
+                {/* <p className="text-xs text-green-600 mt-1">↑ 12.7% from last period</p> */}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Retention Rate</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Retention Rate ({currentYear})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">86%</div>
-                <p className="text-xs text-green-600 mt-1">↑ 2.1% from last period</p>
+                {patientLoading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : <div className="text-2xl font-bold">{retentionRate.toFixed(1)}%</div>}
+                {/* <p className="text-xs text-green-600 mt-1">↑ 2.1% from last period</p> */}
               </CardContent>
             </Card>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Patient Visits</CardTitle>
+              <CardTitle>Patient Visits ({currentYear})</CardTitle>
             </CardHeader>
             <CardContent className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={patientData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="newPatients" stroke={brandBlue} name="New Patients" />
-                  <Line type="monotone" dataKey="returning" stroke={brandGreen} name="Returning Patients" />
-                </LineChart>
-              </ResponsiveContainer>
+              {patientLoading ? (
+                <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+              ) : patientError ? (
+                <div className="text-center text-red-500">Error: {patientError}</div>
+              ) : monthlyPatientData.length === 0 ? (
+                <div className="text-center text-gray-500">No patient data available for {currentYear}.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlyPatientData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="newPatients" stroke={brandBlue} name="New Patients" />
+                    <Line type="monotone" dataKey="returning" stroke={brandGreen} name="Returning Patients" />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -188,28 +184,36 @@ const ReportList = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Treatment Distribution</CardTitle>
+                <CardTitle>Treatment Distribution ({currentYear})</CardTitle>
               </CardHeader>
               <CardContent className="h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={treatmentData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={120}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {treatmentData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {treatmentLoading ? (
+                  <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
+                ) : treatmentError ? (
+                  <div className="text-center text-red-500">Error: {treatmentError}</div>
+                ) : treatmentDistribution.length === 0 ? (
+                  <div className="text-center text-gray-500">No treatment data available for {currentYear}.</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={treatmentDistribution}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={120}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {treatmentDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
             

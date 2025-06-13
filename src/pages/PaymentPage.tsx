@@ -1,13 +1,15 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import PaymentList from '../components/PaymentList';
 import { useAuth } from '../contexts/AuthContext';
+import { useSidebarCollapseOnMobile } from '../hooks/useSidebarCollapseOnMobile';
 
 const PaymentPage = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { userProfile } = useAuth();
+
+  useSidebarCollapseOnMobile(setIsSidebarCollapsed);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);

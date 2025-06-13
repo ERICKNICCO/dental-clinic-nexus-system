@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -66,45 +66,13 @@ const PaymentList = () => {
     loadTreatmentPricing();
   }, []);
 
-  // Automatically add patients from appointments if they don't exist
   useEffect(() => {
-    const autoAddPatientsFromAppointments = async () => {
-      if (!appointments || !patients || appointmentsLoading || patientsLoading) return;
-
-      const existingPatientNames = new Set(patients.map(p => p.name.toLowerCase()));
-      
-      for (const appointment of appointments) {
-        const patientName = appointment.patient.name;
-        if (patientName && !existingPatientNames.has(patientName.toLowerCase())) {
-          console.log(`Auto-adding patient from appointment: ${patientName}`);
-          
-          try {
-            await addPatient({
-              name: patientName,
-              email: appointment.patient.email || '',
-              phone: appointment.patient.phone || '',
-              dateOfBirth: new Date().toISOString().split('T')[0], // Default date
-              gender: 'Not specified',
-              address: '',
-              emergencyContact: '',
-              emergencyPhone: '',
-              insurance: 'NHIF', // Default insurance
-              patientType: 'insurance'
-            });
-            
-            existingPatientNames.add(patientName.toLowerCase());
-          } catch (error) {
-            console.error(`Error auto-adding patient ${patientName}:`, error);
-          }
-        }
-      }
-    };
-
-    autoAddPatientsFromAppointments();
-  }, [appointments, patients, appointmentsLoading, patientsLoading, addPatient]);
+    if (!appointments || !patients || appointmentsLoading || patientsLoading) return;
+    // Auto-add functionality removed
+  }, [appointments, patients, appointmentsLoading, patientsLoading]);
 
   // Helper function to find treatment price
-  const findTreatmentPrice = (procedureName: string) => {
+  const findTreatmentPrice = useCallback((procedureName: string) => {
     // Try exact match first
     let pricingData = treatmentPricing.find(p => p.name === procedureName);
     if (pricingData) {
@@ -125,10 +93,10 @@ const PaymentList = () => {
     }
     
     return 0;
-  };
+  }, [treatmentPricing]);
 
   // Helper function to find patient info by ID or name
-  const findPatientInfo = (patientId: string) => {
+  const findPatientInfo = useCallback((patientId: string) => {
     const patient = patients.find(p => p.id === patientId || p.name === patientId);
     return patient ? {
       name: patient.name,
@@ -139,7 +107,7 @@ const PaymentList = () => {
       insuranceProvider: 'NHIF',
       patientType: 'insurance'
     };
-  };
+  }, [patients]);
 
   // Convert treatment notes to payments
   useEffect(() => {
@@ -186,7 +154,7 @@ const PaymentList = () => {
 
       setPayments(paymentsFromTreatments);
     }
-  }, [allNotes, patients, treatmentPricing, notesLoading, patientsLoading, pricingLoading]);
+  }, [allNotes, notesLoading, patientsLoading, pricingLoading, findTreatmentPrice, findPatientInfo]);
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,11 +1,13 @@
-
 import React, { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Dashboard from '../components/Dashboard';
+import { useSidebarCollapseOnMobile } from '../hooks/useSidebarCollapseOnMobile';
 
 const Index = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useSidebarCollapseOnMobile(setIsSidebarCollapsed);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);

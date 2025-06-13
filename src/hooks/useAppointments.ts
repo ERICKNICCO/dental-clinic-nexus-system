@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { appointmentService } from '../services/appointmentService';
 import { Appointment } from '../types/appointment';
-import { useAuth } from '../contexts/AuthContext';
 
 export const useAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -11,48 +10,71 @@ export const useAppointments = () => {
   const { userProfile } = useAuth();
 
   useEffect(() => {
-    console.log('Setting up appointments subscription...');
-    setLoading(true);
-    
-    const unsubscribe = appointmentService.subscribeToAppointments((appointmentsList) => {
-      console.log('Received appointments from Firebase:', appointmentsList);
-      
-      // Filter appointments based on user role
-      let filteredAppointments = appointmentsList;
-      if (userProfile?.role === 'doctor') {
-        filteredAppointments = appointmentsList.filter(
-          appointment => appointment.dentist === userProfile.name
-        );
+    if (!userProfile) return;
+
+    const loadAppointments = async () => {
+      try {
+        setLoading(true);
+        // Always fetch all appointments, then filter locally
+        const allAppointments = await appointmentService.getAppointments();
+
+        const filteredAppointments = allAppointments.filter((appt) => {
+          if (userProfile.role === 'doctor') {
+            // Filter by 'Approved' status and matching doctor's name
+            return appt.status === 'Approved' && appt.dentist === userProfile.name;
+          }
+          return true; // Admin and other roles see all
+        });
+
+        setAppointments(filteredAppointments);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load appointments');
+        console.error('Error loading appointments:', err);
+      } finally {
+        setLoading(false);
       }
-      
-      setAppointments(filteredAppointments);
-      setLoading(false);
-      setError(null);
+    };
+
+    loadAppointments();
+
+    // Subscribe to real-time updates for all appointments, then filter locally
+    const unsubscribe = appointmentService.subscribeToAppointments((allUpdatedAppointments) => {
+      const filteredUpdatedAppointments = allUpdatedAppointments.filter((appt) => {
+        if (userProfile.role === 'doctor') {
+          return appt.status === 'Approved' && appt.dentist === userProfile.name;
+        }
+        return true; // Admin and other roles see all
+      });
+      setAppointments(filteredUpdatedAppointments);
     });
 
-    return () => {
-      console.log('Cleaning up appointments subscription');
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [userProfile]);
 
-  const addAppointment = async (appointmentData: Omit<Appointment, 'id'>) => {
+  const addAppointment = async (appointment: Omit<Appointment, 'id'>) => {
     try {
-      console.log('Adding appointment:', appointmentData);
-      await appointmentService.addAppointment(appointmentData);
+      const appointmentId = await appointmentService.addAppointment(appointment);
+      const newAppointment = {
+        ...appointment,
+        id: appointmentId
+      } as Appointment;
+      setAppointments((prev) => [...prev, newAppointment]);
+      return newAppointment;
     } catch (err) {
-      console.error('Error adding appointment:', err);
-      setError('Failed to add appointment');
+      setError('Failed to create appointment');
       throw err;
     }
   };
 
   const updateAppointment = async (id: string, updates: Partial<Appointment>) => {
     try {
-      console.log('Updating appointment:', id, updates);
       await appointmentService.updateAppointment(id, updates);
+      setAppointments((prev) =>
+        prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
+      );
+      return { ...updates, id } as Appointment;
     } catch (err) {
-      console.error('Error updating appointment:', err);
       setError('Failed to update appointment');
       throw err;
     }
@@ -60,10 +82,9 @@ export const useAppointments = () => {
 
   const deleteAppointment = async (id: string) => {
     try {
-      console.log('Deleting appointment:', id);
       await appointmentService.deleteAppointment(id);
+      setAppointments((prev) => prev.filter((app) => app.id !== id));
     } catch (err) {
-      console.error('Error deleting appointment:', err);
       setError('Failed to delete appointment');
       throw err;
     }
@@ -75,6 +96,6 @@ export const useAppointments = () => {
     error,
     addAppointment,
     updateAppointment,
-    deleteAppointment
+    deleteAppointment,
   };
 };

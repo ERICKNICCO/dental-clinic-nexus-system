@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Menu, Bell, User, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
@@ -10,9 +9,37 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const { userProfile, logout } = useAuth();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, clearAllNotifications } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAllNotifications, setShowAllNotifications] = useState(false);
+
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const bellButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Close notifications if clicked outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node) &&
+        bellButtonRef.current &&
+        !bellButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   const handleLogout = () => {
     logout();
@@ -45,6 +72,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
           {/* Notifications */}
           <div className="relative">
             <button
+              ref={bellButtonRef}
               onClick={() => setShowNotifications(!showNotifications)}
               className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-dental-500"
             >
@@ -57,13 +85,19 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+              <div ref={notificationsRef} className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                 <div className="py-1">
                   <div className="px-4 py-2 border-b border-gray-200 flex justify-between items-center">
                     <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
+                    <button
+                      onClick={() => setShowAllNotifications(!showAllNotifications)}
+                      className="text-xs text-gray-600 hover:text-gray-800"
+                    >
+                      {showAllNotifications ? 'Show unread only' : 'Show all'}
+                    </button>
                     {unreadCount > 0 && (
                       <button
-                        onClick={markAllAsRead}
+                        onClick={clearAllNotifications}
                         className="text-xs text-blue-600 hover:text-blue-800"
                       >
                         Mark all read
@@ -77,7 +111,8 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                         No notifications
                       </div>
                     ) : (
-                      notifications.slice(0, 10).map((notification) => (
+                      (showAllNotifications ? notifications : notifications.filter((notification) => !notification.read))
+                        .slice(0, 10).map((notification) => (
                         <div
                           key={notification.id}
                           className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
