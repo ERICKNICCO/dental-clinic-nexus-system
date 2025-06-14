@@ -10,19 +10,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface EmailRequest {
-  appointmentId: string;
-  recipientEmail: string;
-  patientName: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  treatment: string;
-  dentist: string;
-  emailType: 'confirmation' | 'approval' | 'reminder' | 'cancellation';
-}
-
-const handler = async (req: Request): Promise<Response> => {
-  if (req.method === 'OPTIONS') {
+serve(async (req: Request): Promise<Response> => {
+  // Always handle CORS preflight first
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -41,7 +31,16 @@ const handler = async (req: Request): Promise<Response> => {
       treatment, 
       dentist, 
       emailType 
-    }: EmailRequest = await req.json();
+    }: {
+      appointmentId: string;
+      recipientEmail: string;
+      patientName: string;
+      appointmentDate: string;
+      appointmentTime: string;
+      treatment: string;
+      dentist: string;
+      emailType: 'confirmation' | 'approval' | 'reminder' | 'cancellation';
+    } = await req.json();
 
     console.log('Sending email for appointment:', appointmentId);
 
@@ -80,16 +79,13 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error sending email:", error);
-
-    // Try to log the error in database if we have the appointment info
     try {
+      // Try logging the failing email to the DB
       const body = await req.clone().json();
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? ''
       );
-
       await supabase
         .from('email_notifications')
         .insert({
@@ -103,7 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
     } catch (logError) {
       console.error('Error logging failed email:', logError);
     }
-
+    // Always return CORS headers even on error!
     return new Response(
       JSON.stringify({ error: error.message }),
       {
@@ -112,7 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   }
-};
+});
 
 function getEmailSubject(emailType: string, patientName: string): string {
   switch (emailType) {
@@ -192,5 +188,3 @@ function getEmailContent(
       return baseContent + appointmentDetails + footer;
   }
 }
-
-serve(handler);
