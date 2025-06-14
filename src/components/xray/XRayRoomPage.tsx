@@ -40,10 +40,13 @@ export const XRayRoomPage: React.FC = () => {
           where("status", "==", "waiting-xray")
         );
         const querySnapshot = await getDocs(q);
-        const patients: WaitingPatient[] = [];
+
+        // Use a map to keep only one consultation per patientId
+        const uniquePatientsMap = new Map<string, WaitingPatient>();
 
         for (const docSnap of querySnapshot.docs) {
           const data = docSnap.data();
+          const patientId = data.patientId || docSnap.id;
           let patientName =
             data.patientName ||
             data.patientFullName ||
@@ -66,13 +69,16 @@ export const XRayRoomPage: React.FC = () => {
             patientName = "Unknown";
           }
 
-          patients.push({
-            id: data.patientId || docSnap.id,
-            name: patientName,
-            consultationId: docSnap.id,
-          });
+          // Only add if patientId not already present (only show the first consultation found)
+          if (!uniquePatientsMap.has(patientId)) {
+            uniquePatientsMap.set(patientId, {
+              id: patientId,
+              name: patientName,
+              consultationId: docSnap.id,
+            });
+          }
         }
-        setWaitingPatients(patients);
+        setWaitingPatients(Array.from(uniquePatientsMap.values()));
       } catch (e) {
         toast({ title: "Failed to load X-ray queue", variant: "destructive" });
         setWaitingPatients([]);
