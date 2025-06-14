@@ -6,6 +6,8 @@ import { xrayImageService } from "../../services/xrayImageService";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Scan, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
 // Step-by-step progress header
 const steps = [
@@ -72,13 +74,32 @@ export const XRayRoomPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  // Load patients waiting for X-ray
+  // Load patients waiting for X-ray from Firebase (not using mock data)
   useEffect(() => {
-    // MOCK: Replace this with real data from API/service!
-    setWaitingPatients([
-      { id: "pat1", name: "Alice Smith", consultationId: "con1" },
-      { id: "pat2", name: "Samir Malik", consultationId: "con2" },
-    ]);
+    const fetchWaitingPatients = async () => {
+      try {
+        const q = query(
+          collection(db, "consultations"),
+          where("status", "==", "waiting-xray")
+        );
+        const querySnapshot = await getDocs(q);
+        const patients: WaitingPatient[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          // Use fallback if name doesn't exist (could be extended as needed)
+          patients.push({
+            id: data.patientId || doc.id,
+            name: data.patientName || data.patientFullName || "Unknown",
+            consultationId: doc.id,
+          });
+        });
+        setWaitingPatients(patients);
+      } catch (e) {
+        toast({ title: "Failed to load X-ray queue", variant: "destructive" });
+        setWaitingPatients([]);
+      }
+    };
+    fetchWaitingPatients();
   }, []);
 
   useEffect(() => {
