@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import DoctorScheduleCard from './schedule/DoctorScheduleCard';
 import WeeklyScheduleCalendar from './schedule/WeeklyScheduleCalendar';
@@ -70,6 +69,7 @@ const DoctorScheduleList: React.FC = () => {
     }
 
     // For admin and staff, show all schedules
+    // (Radiologists will see nothing - not relevant to them)
     return allDoctorSchedules;
   }, [allDoctorSchedules, userProfile]);
 
@@ -158,9 +158,10 @@ const DoctorScheduleList: React.FC = () => {
       ) : (
         <>
           {viewMode === 'calendar' ? (
+            {/* Fix the typing for userRole prop */}
             <WeeklyScheduleCalendar 
               doctorSchedules={doctorSchedules} 
-              userRole={userProfile?.role || 'staff'}
+              userRole={userProfile?.role as "admin" | "doctor" | "staff" | "radiologist"}
             />
           ) : (
             <div className="bg-white rounded-lg shadow-sm p-6">

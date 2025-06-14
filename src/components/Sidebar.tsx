@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -13,7 +12,7 @@ import {
   Pill,
   Clock,
   Settings,
-  XRay
+  Scan
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -46,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
     { path: '/payments', icon: CreditCard, label: 'Payments' },
     { path: '/pricing', icon: DollarSign, label: 'Treatment Pricing' },
     { path: '/reports', icon: BarChart2, label: 'Reports' },
-    { path: '/xray-room', icon: XRay, label: 'X-ray Room' }
+    { path: '/xray-room', icon: Scan, label: 'X-ray Room' } // Use Scan
   ];
 
   const filteredNavigation = navigationItems.filter(item => 

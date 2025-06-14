@@ -18,7 +18,7 @@ import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
 import './App.css';
-import XRayRoomPage from './components/xray/XRayRoomPage';
+import { XRayRoomPage } from './components/xray/XRayRoomPage';
 
 const queryClient = new QueryClient();
 
