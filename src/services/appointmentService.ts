@@ -17,31 +17,22 @@ import { Appointment } from '../types/appointment';
 import { notificationService } from './notificationService';
 import { supabaseAppointmentService } from './supabaseAppointmentService';
 
-// Helper to send email (placeholder for actual implementation)
-const sendAppointmentConfirmationEmail = async (appointment: Appointment): Promise<boolean> => {
-  try {
-    console.log('Sending confirmation email for appointment:', appointment.id);
-    console.log('Recipient:', appointment.patient.email);
-    console.log('Message: Your appointment with ' + appointment.dentist + ' on ' + new Date(appointment.date).toLocaleDateString() + ' at ' + appointment.time + ' has been successfully confirmed.');
-
-    await supabaseAppointmentService.sendEmailNotification(appointment.id, 'confirmation');
-    console.log('Confirmation email sent successfully for appointment:', appointment.id);
-    return true;
-
-  } catch (error) {
-    console.error('Error sending confirmation email for appointment:', appointment.id, error);
-    return false;
-  }
-};
-
-// Email sending: use Supabase Edge Function directly
-const sendAppointmentStatusEmail = async (appointment: Appointment, newStatus: string) => {
+// Helper to send email notification for any status update
+const sendAppointmentStatusEmail = async (
+  appointment: Appointment,
+  newStatus: string
+) => {
   if (!appointment?.patient?.email) {
     console.warn('No patient email for appointment, skipping email notification');
     return;
   }
 
-  let emailType: 'confirmation' | 'approval' | 'reminder' | 'cancellation' | null = null;
+  let emailType:
+    | 'confirmation'
+    | 'approval'
+    | 'reminder'
+    | 'cancellation'
+    | null = null;
   switch (newStatus) {
     case 'Confirmed':
       emailType = 'confirmation';
@@ -50,7 +41,7 @@ const sendAppointmentStatusEmail = async (appointment: Appointment, newStatus: s
       emailType = 'approval';
       break;
     case 'Completed':
-      emailType = 'reminder'; // You may wish to create a custom type, but reuse 'reminder' or adjust edge function/templates if needed.
+      emailType = 'reminder'; // or another custom type if you wish
       break;
     case 'Cancelled':
       emailType = 'cancellation';
@@ -61,7 +52,7 @@ const sendAppointmentStatusEmail = async (appointment: Appointment, newStatus: s
   if (!emailType) return;
 
   try {
-    // Call Supabase function via HTTP fetch (avoiding importing src/integrations/supabase/client)
+    // Use Supabase edge function, passing all appointment properties directly!
     const functionUrl = `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/send-appointment-email`;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
     const payload = {
@@ -72,20 +63,53 @@ const sendAppointmentStatusEmail = async (appointment: Appointment, newStatus: s
       appointmentTime: appointment.time,
       treatment: appointment.treatment,
       dentist: appointment.dentist,
-      emailType
+      emailType,
     };
 
     await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': anonKey,
+        apikey: anonKey,
       },
       body: JSON.stringify(payload),
     });
-    console.log(`Appointment status email (${emailType}) sent to`, appointment.patient.email);
+    console.log(
+      `Appointment status email (${emailType}) sent to`,
+      appointment.patient.email
+    );
   } catch (err) {
     console.error(`Failed to send ${emailType} email notification:`, err);
+  }
+};
+
+// Send appointment confirmation email (alias for status email)
+const sendAppointmentConfirmationEmail = async (
+  appointment: Appointment
+): Promise<boolean> => {
+  try {
+    if (!appointment || !appointment.patient || !appointment.patient.email) {
+      console.warn(
+        'Cannot send confirmation email: Invalid or missing patient email'
+      );
+      return false;
+    }
+
+    // Call the status email sender, passing 'Confirmed'
+    await sendAppointmentStatusEmail(appointment, 'Confirmed');
+
+    console.log(
+      'Confirmation email sent successfully for appointment:',
+      appointment.id
+    );
+    return true;
+  } catch (error) {
+    console.error(
+      'Error sending confirmation email for appointment:',
+      appointment?.id,
+      error
+    );
+    return false;
   }
 };
 
@@ -247,31 +271,19 @@ export const appointmentService = {
       });
       console.log('Successfully updated appointment:', id);
 
-      // After updating in Firestore, send status-change email as needed
+      // Always send status-change email (if patient has email)
       if (statusChanged && newStatus) {
         // Fetch latest appointment data for accurate details
         const updatedAppointmentSnap = await getDoc(appointmentRef);
         const updatedAppointmentData = updatedAppointmentSnap.exists() ? this.transformFirebaseData(updatedAppointmentSnap.id, updatedAppointmentSnap.data()) : undefined;
-        if (updatedAppointmentData) {
+        if (
+          updatedAppointmentData &&
+          updatedAppointmentData.patient &&
+          updatedAppointmentData.patient.email
+        ) {
           await sendAppointmentStatusEmail(updatedAppointmentData, newStatus);
         }
       }
-
-      // Check if status changed to 'Confirmed' and send email
-      if (currentAppointmentData?.status !== 'Confirmed' && updates.status === 'Confirmed') {
-        // Fetch the updated appointment to get all details, including patient email
-        const updatedAppointmentSnap = await getDoc(appointmentRef);
-        const updatedAppointmentData = updatedAppointmentSnap.exists() ? this.transformFirebaseData(updatedAppointmentSnap.id, updatedAppointmentSnap.data()) : undefined;
-
-        if (updatedAppointmentData && updatedAppointmentData.patient.email) {
-          const emailSent = await sendAppointmentConfirmationEmail(updatedAppointmentData);
-          console.log('Email sent status for appointment', updatedAppointmentData.id, ':', emailSent);
-          if (!emailSent) {
-            console.warn('ACTION REQUIRED: Failed to send confirmation email for appointment:', updatedAppointmentData.id, '. Please check logs and notify admin.');
-          }
-        }
-      }
-
     } catch (error) {
       console.error('Error updating appointment:', error);
       throw error;
