@@ -261,7 +261,7 @@ export const appointmentService = {
   // Update an appointment
   async updateAppointment(id: string | number, updates: Partial<Appointment>) {
     try {
-      console.log('[updateAppointment] Called with:', { id, updates });
+      console.log("🔥🔥 [appointmentService] updateAppointment called!", { id, updates });
       const appointmentRef = doc(db, 'appointments', id.toString());
       
       // Get current appointment data before update
