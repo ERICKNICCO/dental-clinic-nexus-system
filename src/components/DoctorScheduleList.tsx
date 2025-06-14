@@ -158,7 +158,7 @@ const DoctorScheduleList: React.FC = () => {
       ) : (
         <>
           {viewMode === 'calendar' ? (
-            {/* Fix the typing for userRole prop */}
+            // The typing for userRole prop is handled here:
             <WeeklyScheduleCalendar 
               doctorSchedules={doctorSchedules} 
               userRole={userProfile?.role as "admin" | "doctor" | "staff" | "radiologist"}
