@@ -1,3 +1,4 @@
+
 import React from 'react';
 import StatsCard from './dashboard/StatsCard';
 import AppointmentCalendar from './dashboard/Calendar';
@@ -10,7 +11,8 @@ import { useFinancialReports } from '../hooks/useFinancialReports';
 import { usePatients } from '../hooks/usePatients';
 import { useAppointments } from '../hooks/useAppointments';
 import { Appointment } from '../types/appointment';
-import { Patient } from '../types/patient';
+// Fix import below: Patient type now imported from appointment
+import type { Patient } from '../types/appointment';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -92,3 +94,4 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+
