@@ -1,21 +1,54 @@
-
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Button } from './ui/button';
+import { Scan } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import StatsCard from './dashboard/StatsCard';
 import AppointmentCalendar from './dashboard/Calendar';
 import AppointmentsTable from './dashboard/AppointmentsTable';
 import RevenueChart from './dashboard/RevenueChart';
 import RecentPatients from './dashboard/RecentPatients';
-import { useAuth } from '../contexts/AuthContext';
 import { useDoctorStats } from '../hooks/useDoctorStats';
 import { useFinancialReports } from '../hooks/useFinancialReports';
 import { usePatients } from '../hooks/usePatients';
 import { useAppointments } from '../hooks/useAppointments';
 import { Appointment } from '../types/appointment';
-// Fix import below: Patient type now imported from appointment
 import type { Patient } from '../types/appointment';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
+  const isRadiologist = userProfile?.role === 'radiologist';
+  const navigate = useNavigate();
+
+  if (isRadiologist) {
+    return (
+      <main className="flex-1 overflow-y-auto p-6 bg-gray-100 w-full flex flex-col items-center justify-center min-h-[65vh]">
+        <div className="bg-white rounded-lg shadow p-10 w-full max-w-xl flex flex-col items-center">
+          <div className="mb-4 flex items-center gap-3">
+            <Scan size={40} className="text-blue-500" />
+            <h2 className="text-2xl font-bold text-blue-700">Hello, {userProfile?.name || "Radiologist"}!</h2>
+          </div>
+          <p className="mb-6 text-gray-600 text-center">
+            Welcome to your radiology dashboard.<br/>
+            From here, you can quickly jump to the X-ray Room to process your studies.
+          </p>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 text-lg rounded mb-6"
+            onClick={() => navigate("/xray-room")}
+          >
+            <Scan className="mr-2" />
+            Enter X-ray Room
+          </Button>
+          <div className="w-full mt-6">
+            <div className="text-center text-xs text-blue-500 p-4 border-t">
+              Recent activity will appear here soon.
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   const { stats, loading } = useDoctorStats(userProfile?.name || '');
   const { totalRevenue, loading: financialLoading } = useFinancialReports();
   const { patients, loading: patientsLoading } = usePatients();
@@ -94,4 +127,3 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-
