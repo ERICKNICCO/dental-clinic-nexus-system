@@ -34,6 +34,61 @@ const sendAppointmentConfirmationEmail = async (appointment: Appointment): Promi
   }
 };
 
+// Email sending: use Supabase Edge Function directly
+const sendAppointmentStatusEmail = async (appointment: Appointment, newStatus: string) => {
+  if (!appointment?.patient?.email) {
+    console.warn('No patient email for appointment, skipping email notification');
+    return;
+  }
+
+  let emailType: 'confirmation' | 'approval' | 'reminder' | 'cancellation' | null = null;
+  switch (newStatus) {
+    case 'Confirmed':
+      emailType = 'confirmation';
+      break;
+    case 'Approved':
+      emailType = 'approval';
+      break;
+    case 'Completed':
+      emailType = 'reminder'; // You may wish to create a custom type, but reuse 'reminder' or adjust edge function/templates if needed.
+      break;
+    case 'Cancelled':
+      emailType = 'cancellation';
+      break;
+    default:
+      emailType = null;
+  }
+  if (!emailType) return;
+
+  try {
+    // Call Supabase function via HTTP fetch (avoiding importing src/integrations/supabase/client)
+    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/send-appointment-email`;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+    const payload = {
+      appointmentId: appointment.id,
+      recipientEmail: appointment.patient.email,
+      patientName: appointment.patient.name,
+      appointmentDate: appointment.date,
+      appointmentTime: appointment.time,
+      treatment: appointment.treatment,
+      dentist: appointment.dentist,
+      emailType
+    };
+
+    await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': anonKey,
+      },
+      body: JSON.stringify(payload),
+    });
+    console.log(`Appointment status email (${emailType}) sent to`, appointment.patient.email);
+  } catch (err) {
+    console.error(`Failed to send ${emailType} email notification:`, err);
+  }
+};
+
 export const appointmentService = {
   // Add a new appointment
   async addAppointment(appointmentData: Omit<Appointment, 'id'>) {
@@ -175,6 +230,10 @@ export const appointmentService = {
       const currentAppointmentSnap = await getDoc(appointmentRef);
       const currentAppointmentData = currentAppointmentSnap.exists() ? this.transformFirebaseData(currentAppointmentSnap.id, currentAppointmentSnap.data()) : undefined;
 
+      // IMPORTANT: Get the intended newStatus
+      const newStatus = updates.status;
+      const statusChanged = newStatus && currentAppointmentData && currentAppointmentData.status !== newStatus;
+
       // Create a new object to avoid modifying the original updates object
       const dataToUpdate: Partial<Appointment> = { ...updates };
       // Remove the id from updates if it exists to avoid updating the document ID
@@ -187,6 +246,16 @@ export const appointmentService = {
         updatedAt: Timestamp.now()
       });
       console.log('Successfully updated appointment:', id);
+
+      // After updating in Firestore, send status-change email as needed
+      if (statusChanged && newStatus) {
+        // Fetch latest appointment data for accurate details
+        const updatedAppointmentSnap = await getDoc(appointmentRef);
+        const updatedAppointmentData = updatedAppointmentSnap.exists() ? this.transformFirebaseData(updatedAppointmentSnap.id, updatedAppointmentSnap.data()) : undefined;
+        if (updatedAppointmentData) {
+          await sendAppointmentStatusEmail(updatedAppointmentData, newStatus);
+        }
+      }
 
       // Check if status changed to 'Confirmed' and send email
       if (currentAppointmentData?.status !== 'Confirmed' && updates.status === 'Confirmed') {
