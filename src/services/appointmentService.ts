@@ -52,9 +52,9 @@ const sendAppointmentStatusEmail = async (
   if (!emailType) return;
 
   try {
-    // Use Supabase edge function, passing all appointment properties directly!
-    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/send-appointment-email`;
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+    // Use the **HARD-CODED** Supabase project URL for the edge function call
+    const functionUrl = `https://ulknlrckbrwkxpakdrfn.supabase.co/functions/v1/send-appointment-email`;
+    const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsa25scmNrYnJ3a3hwYWtkcmZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNDc1NDgsImV4cCI6MjA2NDgyMzU0OH0.U1uH3mNtoK8IM7xwc4ZZ8881ezXFWSPO7gTmkBew9xE";
     const payload = {
       appointmentId: appointment.id,
       recipientEmail: appointment.patient.email,
@@ -66,7 +66,8 @@ const sendAppointmentStatusEmail = async (
       emailType,
     };
 
-    await fetch(functionUrl, {
+    console.log(`[sendAppointmentStatusEmail] Calling edge function at: ${functionUrl}`);
+    const res = await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,12 +75,21 @@ const sendAppointmentStatusEmail = async (
       },
       body: JSON.stringify(payload),
     });
-    console.log(
-      `Appointment status email (${emailType}) sent to`,
-      appointment.patient.email
-    );
+
+    // Improved logging:
+    if (!res.ok) {
+      const errorMsg = await res.text();
+      console.error(`[sendAppointmentStatusEmail] Edge function failed. Status: ${res.status}. Body: ${errorMsg}`);
+    } else {
+      const data = await res.json();
+      console.log(`[sendAppointmentStatusEmail] Function response:`, data);
+      console.log(
+        `Appointment status email (${emailType}) sent to`,
+        appointment.patient.email
+      );
+    }
   } catch (err) {
-    console.error(`Failed to send ${emailType} email notification:`, err);
+    console.error(`[sendAppointmentStatusEmail] Failed to send ${emailType} email notification:`, err);
   }
 };
 
