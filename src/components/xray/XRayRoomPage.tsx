@@ -4,7 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../ui/button";
 import { xrayImageService } from "../../services/xrayImageService";
 import { toast } from "@/hooks/use-toast";
-import { Scan, Upload } from "lucide-react";
+import { ArrowLeft, Scan, Upload } from "lucide-react";
 
 // Step-by-step progress header
 const steps = [
@@ -150,6 +150,23 @@ export const XRayRoomPage: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-8 bg-white rounded-lg shadow-lg mt-8">
+      {/* Back Button */}
+      {selectedConsultation && (
+        <button
+          className="flex items-center gap-2 text-blue-600 hover:underline mb-2 transition text-sm font-medium"
+          onClick={() => {
+            setSelectedConsultation(null);
+            setSelectedPatientName("");
+            setImages([]);
+            setNote("");
+            setStepIndex(0);
+          }}
+          type="button"
+        >
+          <ArrowLeft size={18} />
+          Back to queue
+        </button>
+      )}
       <h1 className="text-2xl font-bold text-blue-700 mb-2 flex items-center gap-2">
         <Scan size={28} className="text-blue-600" />
         X-ray Room
