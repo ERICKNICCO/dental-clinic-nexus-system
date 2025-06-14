@@ -5,7 +5,7 @@ import { Appointment } from '../../types/appointment';
 
 interface WeeklyScheduleCalendarProps {
   doctorSchedules: WeeklySchedule[];
-  userRole?: 'admin' | 'doctor' | 'staff';
+  userRole?: 'admin' | 'doctor' | 'staff' | 'radiologist';
 }
 
 const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({ 
