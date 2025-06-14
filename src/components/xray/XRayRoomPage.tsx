@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -6,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { xrayImageService } from "../../services/xrayImageService";
-import XRayStepsHeader from "./XRayStepsHeader";
+import { XRayStepsHeader } from "./XRayStepsHeader";
 import XRayPatientQueue, { WaitingPatient } from "./XRayPatientQueue";
 import XRayUploadPanel from "./XRayUploadPanel";
 
