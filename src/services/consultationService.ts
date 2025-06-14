@@ -18,8 +18,8 @@ export interface Consultation {
   doctorId: string;
   doctorName: string;
   appointmentId?: string;
-  status: 'in-progress' | 'completed' | 'cancelled';
-  
+  status: 'in-progress' | 'waiting-xray' | 'xray-done' | 'completed' | 'cancelled'; // UPDATED: add waiting-xray and xray-done
+
   // Consultation steps
   symptoms: string;
   examination: string;
@@ -35,7 +35,7 @@ export interface Consultation {
   prescriptions: string;
   followUpInstructions: string;
   nextAppointment?: string;
-  
+
   // Treatment cost information
   estimatedCost?: number;
   treatmentItems?: Array<{
@@ -43,7 +43,7 @@ export interface Consultation {
     cost: number;
     duration: string;
   }>;
-  
+
   startedAt: Date;
   completedAt?: Date;
   createdAt: Date;
