@@ -20,8 +20,13 @@ export const useConsultation = (patientId: string) => {
       const consultationsList = await consultationService.getPatientConsultations(patientId);
       setConsultations(consultationsList);
       
-      // Find any active consultation
-      const active = consultationsList.find(c => c.status === 'in-progress');
+      // Support for active consultations in in-progress/xray states
+      const active = consultationsList.find(
+        c =>
+          c.status === 'in-progress' ||
+          c.status === 'waiting-xray' ||
+          c.status === 'xray-done'
+      );
       setActiveConsultation(active || null);
     } catch (err) {
       console.error('Error loading consultations:', err);
