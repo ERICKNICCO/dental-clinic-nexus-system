@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { xrayImageService } from "../../services/xrayImageService";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Scan, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Step-by-step progress header
 const steps = [
@@ -69,6 +70,7 @@ export const XRayRoomPage: React.FC = () => {
   const [stepIndex, setStepIndex] = useState<number>(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   // Load patients waiting for X-ray
   useEffect(() => {
@@ -150,10 +152,19 @@ export const XRayRoomPage: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-8 bg-white rounded-lg shadow-lg mt-8">
-      {/* Back Button */}
+      {/* Always show Back to Dashboard */}
+      <button
+        className="flex items-center gap-2 text-blue-600 hover:underline mb-4 transition text-sm font-medium"
+        onClick={() => navigate("/")}
+        type="button"
+      >
+        <ArrowLeft size={18} />
+        Back
+      </button>
+      {/* Conditional: Back to queue for selected consultation */}
       {selectedConsultation && (
         <button
-          className="flex items-center gap-2 text-blue-600 hover:underline mb-2 transition text-sm font-medium"
+          className="flex items-center gap-2 text-blue-500 hover:underline mb-2 transition text-xs font-medium"
           onClick={() => {
             setSelectedConsultation(null);
             setSelectedPatientName("");
@@ -163,7 +174,7 @@ export const XRayRoomPage: React.FC = () => {
           }}
           type="button"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} />
           Back to queue
         </button>
       )}
