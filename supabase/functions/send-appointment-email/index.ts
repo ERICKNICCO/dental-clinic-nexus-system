@@ -45,7 +45,7 @@ serve(async (req: Request): Promise<Response> => {
     console.log('Sending email for appointment:', appointmentId);
 
     const subject = getEmailSubject(emailType, patientName);
-    const htmlContent = getEmailContent(emailType, patientName, appointmentDate, appointmentTime, treatment, dentist);
+    const htmlContent = getProfessionalEmailContent(emailType, patientName, appointmentDate, appointmentTime, treatment, dentist);
 
     const emailResponse = await resend.emails.send({
       from: "SD Dental Clinic <info@sddentalclinic.com>",
@@ -125,66 +125,120 @@ function getEmailSubject(emailType: string, patientName: string): string {
   }
 }
 
-function getEmailContent(
-  emailType: string, 
-  patientName: string, 
-  date: string, 
-  time: string, 
-  treatment: string, 
+// New: More professional, modern styling for emails
+function getProfessionalEmailContent(
+  emailType: string,
+  patientName: string,
+  date: string,
+  time: string,
+  treatment: string,
   dentist: string
 ): string {
-  const baseContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h1 style="color: #2563eb;">Dental Clinic</h1>
-      <h2>Dear ${patientName},</h2>
-  `;
+  // Optionally, you can use a logo image link here
+  // const logoUrl = "https://yourdomain.com/logo.png";
+  const clinicBrandColor = "#2563eb"; // brand blue
+  const secondaryColor = "#f4f8ff"; // pale blue bg box
+  const cardShadow = "0 4px 20px rgba(37,99,235,0.09)";
+  const now = new Date();
+  const year = now.getFullYear();
 
-  const appointmentDetails = `
-      <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3>Appointment Details:</h3>
-        <p><strong>Date:</strong> ${date}</p>
-        <p><strong>Time:</strong> ${time}</p>
-        <p><strong>Treatment:</strong> ${treatment}</p>
-        <p><strong>Dentist:</strong> ${dentist}</p>
-      </div>
-  `;
-
-  const footer = `
-      <p>If you have any questions, please contact our clinic.</p>
-      <p>Best regards,<br>Dental Clinic Team</p>
-    </div>
-  `;
-
+  let mainMessage = "";
   switch (emailType) {
-    case 'confirmation':
-      return baseContent + `
-        <p>Your appointment has been confirmed! We look forward to seeing you.</p>
-        ${appointmentDetails}
-        <p>Please arrive 15 minutes early for check-in.</p>
-        ${footer}
-      `;
-    case 'approval':
-      return baseContent + `
-        <p>Great news! Your appointment request has been approved.</p>
-        ${appointmentDetails}
-        <p>Please arrive 15 minutes early for check-in.</p>
-        ${footer}
-      `;
-    case 'reminder':
-      return baseContent + `
-        <p>This is a friendly reminder about your upcoming appointment.</p>
-        ${appointmentDetails}
-        <p>Please arrive 15 minutes early for check-in.</p>
-        ${footer}
-      `;
-    case 'cancellation':
-      return baseContent + `
-        <p>We regret to inform you that your appointment has been cancelled.</p>
-        ${appointmentDetails}
-        <p>Please contact us to reschedule at your convenience.</p>
-        ${footer}
-      `;
+    case "confirmation":
+      mainMessage =
+        "Your appointment has been <span style='color:#249749; font-weight:600'>confirmed</span>! We look forward to seeing you.";
+      break;
+    case "approval":
+      mainMessage =
+        "Great news! Your appointment request has been <span style='color:#249749; font-weight:600'>approved</span>.";
+      break;
+    case "reminder":
+      mainMessage =
+        "This is a friendly reminder about your upcoming dental appointment.";
+      break;
+    case "cancellation":
+      mainMessage =
+        "<span style='color:#e84141; font-weight:600'>We regret to inform you that your appointment has been cancelled.</span>";
+      break;
     default:
-      return baseContent + appointmentDetails + footer;
+      mainMessage = "Please see your appointment details below.";
+      break;
   }
+
+  let bottomMessage = "";
+  if (emailType === "cancellation") {
+    bottomMessage =
+      "<p style='margin:18px 0 0 0'>Please contact us to reschedule at your convenience.</p>";
+  } else {
+    bottomMessage =
+      "<p style='margin:18px 0 0 0'>Please arrive <b>15 minutes early</b> for check-in.</p>";
+  }
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>Appointment Notification</title>
+    </head>
+    <body style="background:${secondaryColor}; margin:0; padding:0; font-family:Segoe UI,Arial,sans-serif;">
+      <table align="center" width="100%" bgcolor="${secondaryColor}" style="padding:32px 0;">
+        <tr>
+          <td>
+            <table align="center" width="600" style="background:#fff; border-radius:14px; box-shadow:${cardShadow}; padding: 0 0 32px 0;">
+              <tr>
+                <td style="text-align:center; padding-top:32px;">
+                  <!-- If you add a logo URL, uncomment this line
+                  <img src="${logoUrl}" alt="Dental Clinic Logo" height="60" style="margin-bottom:10px;" /> -->
+                  <h1 style="margin:0; color:${clinicBrandColor}; font-family:Segoe UI,Arial,sans-serif; font-size:2rem; letter-spacing:1px;">Dental Clinic</h1>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px 48px 0 48px;">
+                  <h2 style="font-weight:600; color:#101828; font-size:1.18rem; margin: 0 0 12px 0;">Dear ${patientName},</h2>
+                  <p style="font-size: 1rem; color:#182136; margin:0 0 18px 0;">${mainMessage}</p>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0; background:${secondaryColor}; border-radius:10px;">
+                    <tr>
+                      <td style="padding:18px 26px;">
+                        <h3 style="margin:0 0 10px 0; color:${clinicBrandColor}; font-size:1rem; font-weight:600; letter-spacing:0.5px;">Appointment Details</h3>
+                        <table style="color:#222; font-size:1rem;">
+                          <tr>
+                            <td style="padding: 4px 14px 4px 0;"><strong>Date:</strong></td>
+                            <td>${date}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 4px 14px 4px 0;"><strong>Time:</strong></td>
+                            <td>${time}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 4px 14px 4px 0;"><strong>Treatment:</strong></td>
+                            <td>${treatment}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 4px 14px 4px 0;"><strong>Dentist:</strong></td>
+                            <td>${dentist}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                  ${bottomMessage}
+                  <p style="margin:18px 0 0 0; color:#536178;">If you have any questions, please contact our clinic.</p>
+                  <div style="margin:32px 0 0 0; border-top:1px solid #e5e8f2; padding-top:18px; text-align:left">
+                    <p style="color:#777d92; font-size:13px; margin:0;">
+                      Best regards,<br/>
+                      <span style="color:${clinicBrandColor}; font-weight:bold;">SD Dental Clinic Team</span>
+                    </p>
+                    <p style="color:#b4b4b4; font-size:11px; margin:14px 0 0 0;">© ${year} SD Dental Clinic. All rights reserved.</p>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
 }
