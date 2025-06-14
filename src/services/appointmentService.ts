@@ -23,7 +23,7 @@ const sendAppointmentStatusEmail = async (
   newStatus: string
 ) => {
   if (!appointment?.patient?.email) {
-    console.warn('No patient email for appointment, skipping email notification');
+    console.warn('[sendAppointmentStatusEmail] No patient email for appointment, skipping email notification');
     return;
   }
 
@@ -49,7 +49,10 @@ const sendAppointmentStatusEmail = async (
     default:
       emailType = null;
   }
-  if (!emailType) return;
+  if (!emailType) {
+    console.log('[sendAppointmentStatusEmail] No emailType matched for status:', newStatus);
+    return;
+  }
 
   try {
     // Use the **HARD-CODED** Supabase project URL for the edge function call
@@ -66,7 +69,8 @@ const sendAppointmentStatusEmail = async (
       emailType,
     };
 
-    console.log(`[sendAppointmentStatusEmail] Calling edge function at: ${functionUrl}`);
+    console.log('[sendAppointmentStatusEmail] About to call edge function with:', payload);
+
     const res = await fetch(functionUrl, {
       method: 'POST',
       headers: {
@@ -76,7 +80,6 @@ const sendAppointmentStatusEmail = async (
       body: JSON.stringify(payload),
     });
 
-    // Improved logging:
     if (!res.ok) {
       const errorMsg = await res.text();
       console.error(`[sendAppointmentStatusEmail] Edge function failed. Status: ${res.status}. Body: ${errorMsg}`);
@@ -84,7 +87,7 @@ const sendAppointmentStatusEmail = async (
       const data = await res.json();
       console.log(`[sendAppointmentStatusEmail] Function response:`, data);
       console.log(
-        `Appointment status email (${emailType}) sent to`,
+        `[sendAppointmentStatusEmail] Appointment status email (${emailType}) sent to`,
         appointment.patient.email
       );
     }
@@ -258,6 +261,7 @@ export const appointmentService = {
   // Update an appointment
   async updateAppointment(id: string | number, updates: Partial<Appointment>) {
     try {
+      console.log('[updateAppointment] Called with:', { id, updates });
       const appointmentRef = doc(db, 'appointments', id.toString());
       
       // Get current appointment data before update
@@ -267,35 +271,42 @@ export const appointmentService = {
       // IMPORTANT: Get the intended newStatus
       const newStatus = updates.status;
       const statusChanged = newStatus && currentAppointmentData && currentAppointmentData.status !== newStatus;
+      console.log('[updateAppointment] currentAppointmentData:', currentAppointmentData);
+      console.log('[updateAppointment] newStatus:', newStatus);
+      console.log('[updateAppointment] statusChanged:', statusChanged);
 
       // Create a new object to avoid modifying the original updates object
       const dataToUpdate: Partial<Appointment> = { ...updates };
-      // Remove the id from updates if it exists to avoid updating the document ID
       if (dataToUpdate.id) {
         delete dataToUpdate.id;
       }
-      
+
       await updateDoc(appointmentRef, {
         ...dataToUpdate,
         updatedAt: Timestamp.now()
       });
-      console.log('Successfully updated appointment:', id);
+      console.log('[updateAppointment] Successfully updated appointment:', id);
 
       // Always send status-change email (if patient has email)
       if (statusChanged && newStatus) {
         // Fetch latest appointment data for accurate details
         const updatedAppointmentSnap = await getDoc(appointmentRef);
         const updatedAppointmentData = updatedAppointmentSnap.exists() ? this.transformFirebaseData(updatedAppointmentSnap.id, updatedAppointmentSnap.data()) : undefined;
+        console.log('[updateAppointment] Will trigger status-change email for:', updatedAppointmentData);
         if (
           updatedAppointmentData &&
           updatedAppointmentData.patient &&
           updatedAppointmentData.patient.email
         ) {
           await sendAppointmentStatusEmail(updatedAppointmentData, newStatus);
+        } else {
+          console.warn('[updateAppointment] No email found, cannot send status change email');
         }
+      } else {
+        console.log('[updateAppointment] Status did not change or newStatus missing, skipping email.');
       }
     } catch (error) {
-      console.error('Error updating appointment:', error);
+      console.error('[updateAppointment] Error updating appointment:', error);
       throw error;
     }
   },

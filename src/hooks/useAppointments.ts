@@ -69,12 +69,14 @@ export const useAppointments = () => {
 
   const updateAppointment = async (id: string, updates: Partial<Appointment>) => {
     try {
+      console.log('[useAppointments.updateAppointment] called with:', { id, updates });
       await appointmentService.updateAppointment(id, updates);
       setAppointments((prev) =>
         prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
       );
       return { ...updates, id } as Appointment;
     } catch (err) {
+      console.error('[useAppointments.updateAppointment] ERROR:', err);
       setError('Failed to update appointment');
       throw err;
     }
