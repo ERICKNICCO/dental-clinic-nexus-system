@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '../../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { 
@@ -33,6 +33,11 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
   patientName,
   patientId
 }) => {
+  // --- NEW: Add diagnosis type state handling ---
+  const [diagnosisType, setDiagnosisType] = useState<'clinical' | 'xray'>('clinical');
+
+  // Optionally, reset diagnosisType if consultationData changes, or customize as needed
+
   return (
     <div className="w-full">
       <Tabs value={currentStep} onValueChange={onStepChange} className="w-full">
@@ -68,6 +73,13 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
               <DiagnosisTab
                 diagnosis={consultationData.diagnosis || ''}
                 onChange={(value) => onUpdateField('diagnosis', value)}
+                diagnosisType={diagnosisType}
+                onDiagnosisTypeChange={setDiagnosisType}
+                // Optionally pass these when implementing the actual functionality:
+                // consultationId={activeConsultation?.id}
+                // consultationStatus={activeConsultation?.status}
+                // xrayResult={activeConsultation?.xrayResult}
+                // onSendToXRay={yourSendFunction}
               />
             </TabsContent>
 
