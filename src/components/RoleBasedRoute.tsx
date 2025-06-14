@@ -6,7 +6,7 @@ import { AlertTriangle } from 'lucide-react';
 
 interface RoleBasedRouteProps {
   children: React.ReactNode;
-  allowedRoles: ('admin' | 'doctor' | 'staff')[];
+  allowedRoles: ('admin' | 'doctor' | 'staff' | 'radiologist')[];
 }
 
 const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({ children, allowedRoles }) => {

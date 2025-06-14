@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,6 +18,7 @@ import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
 import './App.css';
+import XRayRoomPage from './components/xray/XRayRoomPage';
 
 const queryClient = new QueryClient();
 
@@ -89,6 +89,13 @@ function App() {
                 <ProtectedRoute>
                   <RoleBasedRoute allowedRoles={['admin']}>
                     <InventoryPage />
+                  </RoleBasedRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/xray-room" element={
+                <ProtectedRoute>
+                  <RoleBasedRoute allowedRoles={['radiologist']}>
+                    <XRayRoomPage />
                   </RoleBasedRoute>
                 </ProtectedRoute>
               } />

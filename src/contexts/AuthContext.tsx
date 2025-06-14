@@ -11,7 +11,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 
 interface UserProfile {
-  role: 'admin' | 'doctor' | 'staff';
+  role: 'admin' | 'doctor' | 'staff' | 'radiologist';  // <-- added 'radiologist'
   name: string;
   email: string;
 }

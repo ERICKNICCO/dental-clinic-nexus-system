@@ -12,7 +12,8 @@ import {
   Users,
   Pill,
   Clock,
-  Settings
+  Settings,
+  XRay
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,7 +30,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
   const rolePermissions = {
     admin: ['/', '/appointments', '/schedule', '/patients', '/treatments', '/payments', '/reports', '/pricing'],
     doctor: ['/', '/patients', '/schedule', '/treatments'],
-    staff: ['/', '/appointments', '/patients', '/treatments']
+    staff: ['/', '/appointments', '/patients', '/treatments'],
+    radiologist: ['/xray-room'] // Only give access to the X-ray Room
   };
 
   const userRole = userProfile?.role || 'doctor';
@@ -43,7 +45,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
     { path: '/treatments', icon: Pill, label: 'Treatments' },
     { path: '/payments', icon: CreditCard, label: 'Payments' },
     { path: '/pricing', icon: DollarSign, label: 'Treatment Pricing' },
-    { path: '/reports', icon: BarChart2, label: 'Reports' }
+    { path: '/reports', icon: BarChart2, label: 'Reports' },
+    { path: '/xray-room', icon: XRay, label: 'X-ray Room' }
   ];
 
   const filteredNavigation = navigationItems.filter(item => 
