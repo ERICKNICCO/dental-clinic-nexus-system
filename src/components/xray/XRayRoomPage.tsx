@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Scan } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { xrayImageService } from "../../services/xrayImageService";
 import { XRayStepsHeader } from "./XRayStepsHeader";
@@ -42,14 +41,37 @@ export const XRayRoomPage: React.FC = () => {
         );
         const querySnapshot = await getDocs(q);
         const patients: WaitingPatient[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
+
+        for (const docSnap of querySnapshot.docs) {
+          const data = docSnap.data();
+          let patientName =
+            data.patientName ||
+            data.patientFullName ||
+            null;
+
+          // If patient name missing, fetch from the patients collection
+          if (!patientName && data.patientId) {
+            try {
+              const patientDoc = await getDoc(doc(db, "patients", data.patientId));
+              if (patientDoc.exists()) {
+                const patientData = patientDoc.data();
+                patientName = patientData.name || "Unknown";
+              } else {
+                patientName = "Unknown";
+              }
+            } catch (e) {
+              patientName = "Unknown";
+            }
+          } else if (!patientName) {
+            patientName = "Unknown";
+          }
+
           patients.push({
-            id: data.patientId || doc.id,
-            name: data.patientName || data.patientFullName || "Unknown",
-            consultationId: doc.id,
+            id: data.patientId || docSnap.id,
+            name: patientName,
+            consultationId: docSnap.id,
           });
-        });
+        }
         setWaitingPatients(patients);
       } catch (e) {
         toast({ title: "Failed to load X-ray queue", variant: "destructive" });
