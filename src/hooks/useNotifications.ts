@@ -40,11 +40,12 @@ export const useNotifications = () => {
 
   const markAsRead = async (id: string) => {
     try {
-      await notificationService.markNotificationAsRead(id);
-      setNotifications(prev =>
-        prev.map(n => (n.id === id ? { ...n, read: true } : n))
-      );
+      setNotifications(prev => prev.map(n =>
+        n.id === id ? { ...n, read: true } : n
+      ));
       setUnreadCount(prev => Math.max(0, prev - 1));
+
+      await notificationService.markNotificationAsRead(id);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
