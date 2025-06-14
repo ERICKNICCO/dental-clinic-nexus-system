@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useConsultation } from '../../hooks/useConsultation';
 import { useDoctorAppointments } from '../../hooks/useDoctorAppointments';
@@ -202,6 +201,16 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
     }));
   };
 
+  const handleSendToXRay = async () => {
+    if (!activeConsultation) return;
+    try {
+      await updateConsultation(activeConsultation.id, { status: "waiting-xray" });
+      toast.success("Patient sent to X-ray room!");
+    } catch (error) {
+      toast.error("Failed to send to X-ray room.");
+    }
+  };
+
   if (!activeConsultation) {
     return (
       <div className="space-y-4">
@@ -264,6 +273,8 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
         onUpdateVitalSigns={updateVitalSigns}
         patientName={patientName}
         patientId={patientId}
+        consultationStatus={activeConsultation?.status}
+        onSendToXRay={handleSendToXRay}
       />
     </div>
   );

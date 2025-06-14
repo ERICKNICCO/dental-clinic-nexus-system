@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '../../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
@@ -22,6 +21,8 @@ interface ConsultationTabsProps {
   onUpdateVitalSigns: (field: string, value: string) => void;
   patientName: string;
   patientId: string;
+  consultationStatus?: string;
+  onSendToXRay?: () => void;
 }
 
 const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
@@ -31,7 +32,9 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
   onUpdateField,
   onUpdateVitalSigns,
   patientName,
-  patientId
+  patientId,
+  consultationStatus,
+  onSendToXRay
 }) => {
   // --- NEW: Add diagnosis type state handling ---
   const [diagnosisType, setDiagnosisType] = useState<'clinical' | 'xray'>('clinical');
@@ -75,11 +78,9 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
                 onChange={(value) => onUpdateField('diagnosis', value)}
                 diagnosisType={diagnosisType}
                 onDiagnosisTypeChange={setDiagnosisType}
-                // Optionally pass these when implementing the actual functionality:
-                // consultationId={activeConsultation?.id}
-                // consultationStatus={activeConsultation?.status}
-                // xrayResult={activeConsultation?.xrayResult}
-                // onSendToXRay={yourSendFunction}
+                // --- Wire up status/xray actions ---
+                consultationStatus={consultationStatus}
+                onSendToXRay={onSendToXRay}
               />
             </TabsContent>
 
