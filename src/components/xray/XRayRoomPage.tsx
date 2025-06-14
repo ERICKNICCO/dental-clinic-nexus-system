@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { XRayImageGallery } from "../patient/consultation/XRayImageGallery";
 import { useAuth } from "../../contexts/AuthContext";
@@ -108,9 +107,9 @@ export const XRayRoomPage: React.FC = () => {
     const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
     if (files.length > 0) {
       setImages(files);
-      toast.success("Images added.");
+      toast({ title: "Images added." });
     } else {
-      toast.error("Please drop image files only.");
+      toast({ title: "Please drop image files only.", variant: "destructive" });
     }
   };
 
@@ -123,7 +122,7 @@ export const XRayRoomPage: React.FC = () => {
     setUploading(true);
     try {
       await xrayImageService.uploadXrayResult(selectedConsultation, images, note, userProfile?.name || "Radiologist");
-      toast.success("X-ray uploaded and marked as complete.");
+      toast({ title: "X-ray uploaded and marked as complete." });
       setSelectedConsultation(null);
       setSelectedPatientName("");
       setImages([]);
@@ -131,7 +130,7 @@ export const XRayRoomPage: React.FC = () => {
       // Reload waiting patients, removing the completed one
       setWaitingPatients((prev) => prev.filter(p => p.consultationId !== selectedConsultation));
     } catch (e) {
-      toast.error("Error uploading X-ray: " + (e?.message || "Unknown error"));
+      toast({ title: "Error uploading X-ray: " + (e?.message || "Unknown error"), variant: "destructive" });
     }
     setUploading(false);
   };
