@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogClose } from '../../ui/dialog';
-import { X, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, RotateCw, Grid, List } from 'lucide-react';
 import { Button } from '../../ui/button';
+import { XRayImageList } from './XRayImageList';
 
 interface XRayImageGalleryProps {
   images: string[];
@@ -12,6 +13,7 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   if (!images || images.length === 0) {
     return <div className="text-gray-400 text-sm">No X-ray images available.</div>;
@@ -44,22 +46,55 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
 
   return (
     <>
-      <div className="flex flex-row gap-4 overflow-x-auto">
-        {images.map((img, idx) => (
-          <div key={img} className="relative group cursor-pointer">
-            <img
-              src={img}
-              alt={`X-ray ${idx + 1}`}
-              className="h-32 w-auto rounded shadow-md border hover:shadow-lg transition-all duration-200 hover:scale-105"
-              title={`Click to view X-ray image ${idx + 1} in full screen`}
-              onClick={() => handleImageClick(img)}
-              style={{ cursor: 'pointer' }}
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded flex items-center justify-center pointer-events-none">
-              <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" size={24} />
-            </div>
+      <div className="space-y-4">
+        {/* View Mode Toggle */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-gray-700">X-ray Images ({images.length})</h3>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-7 px-2"
+            >
+              <Grid size={14} />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-7 px-2"
+            >
+              <List size={14} />
+            </Button>
           </div>
-        ))}
+        </div>
+
+        {/* Grid View */}
+        {viewMode === 'grid' && (
+          <div className="flex flex-row gap-4 overflow-x-auto">
+            {images.map((img, idx) => (
+              <div key={img} className="relative group cursor-pointer">
+                <img
+                  src={img}
+                  alt={`X-ray ${idx + 1}`}
+                  className="h-32 w-auto rounded shadow-md border hover:shadow-lg transition-all duration-200 hover:scale-105"
+                  title={`Click to view X-ray image ${idx + 1} in full screen`}
+                  onClick={() => handleImageClick(img)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded flex items-center justify-center pointer-events-none">
+                  <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" size={24} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <XRayImageList images={images} onImageClick={handleImageClick} />
+        )}
       </div>
 
       {/* Full Screen Modal */}
