@@ -275,6 +275,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
         patientId={patientId}
         consultationStatus={activeConsultation?.status}
         onSendToXRay={handleSendToXRay}
+        xrayResult={activeConsultation?.xrayResult ?? null}
       />
     </div>
   );
