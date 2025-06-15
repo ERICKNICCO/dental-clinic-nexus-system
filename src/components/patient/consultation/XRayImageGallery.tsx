@@ -31,27 +31,32 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
           </DialogTrigger>
           <DialogContent
             className="
-              fixed inset-0 !max-w-none !rounded-none !shadow-none !p-0
-              flex justify-center items-center bg-black
-              "
+              !p-0 !rounded-none !shadow-none !m-0
+              fixed inset-0 z-50 bg-black flex items-center justify-center
+            "
             style={{
               width: "100vw",
               height: "100vh",
-              backgroundColor: "rgba(0,0,0,0.98)"
+              minWidth: 0,
+              minHeight: 0,
+              backgroundColor: "rgba(0,0,0,0.99)",
+              overflow: "hidden"
             }}
           >
             <img
               src={img}
               alt={`X-ray ${idx + 1}`}
-              className="max-w-full max-h-full w-auto h-auto m-auto object-contain animate-scale-in"
+              className="object-contain w-screen h-screen m-0 animate-scale-in"
               style={{
-                maxWidth: "90vw",
-                maxHeight: "90vh",
                 display: "block",
+                maxWidth: "100vw",
+                maxHeight: "100vh",
+                minWidth: 0,
+                minHeight: 0,
                 background: "black"
               }}
             />
-            <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 text-xs text-gray-300 bg-black/60 px-3 py-1 rounded">
+            <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 text-xs text-gray-300 bg-black/60 px-3 py-1 rounded pointer-events-none select-none">
               Click outside, press ESC, or Close to return
             </div>
           </DialogContent>
