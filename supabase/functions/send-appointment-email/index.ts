@@ -214,6 +214,25 @@ function getModernEmailContent(
           overflow: hidden;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
+        .logo-section {
+          background-color: #ffffff;
+          padding: 20px;
+          text-align: center;
+          border-bottom: 2px solid #f1f5ff;
+        }
+        .logo-section img {
+          max-width: 200px;
+          height: auto;
+        }
+        .banner-section {
+          width: 100%;
+          display: block;
+        }
+        .banner-section img {
+          width: 100%;
+          height: auto;
+          display: block;
+        }
         .header {
           background-color: #007BFF;
           padding: 30px 20px;
@@ -263,12 +282,19 @@ function getModernEmailContent(
     </head>
     <body>
       <div class="email-container">
+        <div class="logo-section">
+          <img src="https://ulknlrckbrwkxpakdrfn.supabase.co/storage/v1/object/public/images/0bf25785-d496-446f-adcc-3c105fc24d90.png" alt="SD Dental Clinic Logo" />
+        </div>
+        
+        <div class="banner-section">
+          <img src="https://ulknlrckbrwkxpakdrfn.supabase.co/storage/v1/object/public/images/2d52b191-e483-4876-8452-96a4e3c3503a.png" alt="SD Dental Clinic Banner" />
+        </div>
+
         <div class="header">
-          <h1>SD Dental Clinic</h1>
+          <h1>${headerTitle}</h1>
         </div>
 
         <div class="content">
-          <h2>${headerTitle}</h2>
           <p>Dear <strong>${patientName}</strong>,</p>
           <p>${mainMessage}</p>
 
