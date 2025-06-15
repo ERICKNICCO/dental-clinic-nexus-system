@@ -148,12 +148,7 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
           <TreatmentTab
             treatmentPlan={consultationData.treatmentPlan || ''}
             prescriptions={consultationData.prescriptions || ''}
-            estimatedCost={consultationData.estimatedCost || 0}
-            treatmentItems={consultationData.treatmentItems || []}
-            onUpdateTreatmentPlan={(value) => onUpdateField('treatmentPlan', value)}
-            onUpdatePrescriptions={(value) => onUpdateField('prescriptions', value)}
-            onUpdateEstimatedCost={(value) => onUpdateField('estimatedCost', value.toString())}
-            onUpdateTreatmentItems={(items) => onUpdateField('treatmentItems', JSON.stringify(items))}
+            onUpdateField={onUpdateField}
           />
         </TabsContent>
 
