@@ -1,11 +1,21 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppointments } from '../../hooks/useAppointments';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [realTimeDate, setRealTimeDate] = useState(new Date());
   const { appointments } = useAppointments();
+
+  // Update real-time date every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRealTimeDate(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Get appointments for the current month and year
   const monthlyAppointments = useMemo(() => {
@@ -30,7 +40,6 @@ const Calendar = () => {
     return dayMap;
   }, [monthlyAppointments]);
 
-  const today = new Date();
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -60,7 +69,7 @@ const Calendar = () => {
   };
 
   const isToday = (date: Date) => {
-    return date.toDateString() === today.toDateString();
+    return date.toDateString() === realTimeDate.toDateString();
   };
 
   const isCurrentMonth = (date: Date) => {
@@ -138,7 +147,7 @@ const Calendar = () => {
       </div>
       
       <div className="mt-4 text-xs text-gray-500 text-center">
-        Today: {today.toLocaleDateString('en-US', { 
+        Today: {realTimeDate.toLocaleDateString('en-US', { 
           weekday: 'long',
           month: 'long', 
           day: 'numeric',

@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import StatsCard from './dashboard/StatsCard';
 import Calendar from './dashboard/Calendar';
 import AppointmentsTable from './dashboard/AppointmentsTable';
@@ -12,12 +12,21 @@ import { Calendar as CalendarIcon, Users, DollarSign, AlertTriangle } from 'luci
 const Dashboard = () => {
   const { appointments, loading } = useAppointments();
   const { userProfile } = useAuth();
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Update current date every minute to ensure real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Get today's date in YYYY-MM-DD format
   const today = useMemo(() => {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
-  }, []);
+    return currentDate.toISOString().split('T')[0];
+  }, [currentDate]);
 
   // Calculate today's appointments count
   const todaysAppointmentsCount = useMemo(() => {
@@ -67,7 +76,7 @@ const Dashboard = () => {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-gray-900">{getDashboardTitle()}</h2>
         <p className="text-gray-600 mt-1">
-          {new Date().toLocaleDateString('en-US', { 
+          {currentDate.toLocaleDateString('en-US', { 
             weekday: 'long',
             year: 'numeric', 
             month: 'long', 

@@ -1,17 +1,26 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Clock, User, Stethoscope } from 'lucide-react';
 import { Appointment } from '../../types/appointment';
 import { useAppointments } from '../../hooks/useAppointments';
 
 const AppointmentsTable = () => {
   const { appointments, loading } = useAppointments();
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Update current date every minute to ensure real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Get today's date in YYYY-MM-DD format
   const today = useMemo(() => {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
-  }, []);
+    return currentDate.toISOString().split('T')[0];
+  }, [currentDate]);
 
   // Filter appointments for today only
   const todaysAppointments = useMemo(() => {
@@ -46,7 +55,7 @@ const AppointmentsTable = () => {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Today's Appointments</h3>
         <span className="text-sm text-gray-500">
-          {new Date().toLocaleDateString('en-US', { 
+          {currentDate.toLocaleDateString('en-US', { 
             weekday: 'long',
             year: 'numeric', 
             month: 'long', 
@@ -60,7 +69,7 @@ const AppointmentsTable = () => {
           <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500">No appointments scheduled for today</p>
           <p className="text-sm text-gray-400 mt-1">
-            {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+            {currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
           </p>
         </div>
       ) : (
