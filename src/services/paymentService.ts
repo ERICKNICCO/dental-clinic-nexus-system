@@ -38,7 +38,7 @@ export const paymentService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Payment;
   },
 
   async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment> {
@@ -50,7 +50,7 @@ export const paymentService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Payment;
   },
 
   async getPaymentsByPatient(patientId: string): Promise<Payment[]> {
@@ -61,7 +61,7 @@ export const paymentService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as Payment[];
   },
 
   async getAllPayments(): Promise<Payment[]> {
@@ -71,7 +71,7 @@ export const paymentService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as Payment[];
   },
 
   async recordPayment(paymentId: string, amountPaid: number, paymentMethod: string, collectedBy: string, notes?: string): Promise<Payment> {
@@ -103,7 +103,7 @@ export const paymentService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Payment;
   },
 
   formatPrice(amountInCents: number): string {

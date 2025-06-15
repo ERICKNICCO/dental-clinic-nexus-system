@@ -118,17 +118,14 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
         <TabsContent value="symptoms">
           <SymptomsTab
             symptoms={consultationData.symptoms || ''}
-            onUpdateSymptoms={(value) => onUpdateField('symptoms', value)}
+            onChange={(value) => onUpdateField('symptoms', value)}
           />
         </TabsContent>
 
         <TabsContent value="examination">
           <ExaminationTab
             examination={consultationData.examination || ''}
-            onUpdateExamination={(value) => onUpdateField('examination', value)}
-            patientName={patientName}
-            patientId={patientId}
-            onSendToXRay={onSendToXRay}
+            onChange={(value) => onUpdateField('examination', value)}
           />
         </TabsContent>
 
@@ -142,7 +139,7 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
         <TabsContent value="diagnosis">
           <DiagnosisTab
             diagnosis={consultationData.diagnosis || ''}
-            onUpdateDiagnosis={(value) => onUpdateField('diagnosis', value)}
+            onChange={(value) => onUpdateField('diagnosis', value)}
             xrayResult={xrayResult}
           />
         </TabsContent>
@@ -164,8 +161,9 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
           <FollowUpTab
             followUpInstructions={consultationData.followUpInstructions || ''}
             nextAppointment={consultationData.nextAppointment || ''}
-            onUpdateFollowUpInstructions={(value) => onUpdateField('followUpInstructions', value)}
-            onUpdateNextAppointment={(value) => onUpdateField('nextAppointment', value)}
+            onUpdateField={onUpdateField}
+            patientName={patientName}
+            patientId={patientId}
           />
         </TabsContent>
 
