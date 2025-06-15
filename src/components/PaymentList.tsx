@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -14,162 +15,49 @@ import { Search, Plus, CreditCard, Filter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useAllTreatmentNotes } from '../hooks/useAllTreatmentNotes';
-import { usePatients } from '../hooks/usePatients';
-import { useAppointments } from '../hooks/useAppointments';
-import { treatmentPricingFirebaseService } from '../services/treatmentPricingFirebaseService';
+import { paymentService, Payment } from '../services/paymentService';
 import RecordPaymentModal from './payments/RecordPaymentModal';
 
 const paymentStatuses = ["All", "Paid", "Partial", "Pending"];
-const paymentMethods = ["All", "Cash", "NHIF", "Jubilee", "GA Insurance", "Mo Insurance"];
-
-interface Payment {
-  id: string;
-  patientName: string;
-  treatmentName: string;
-  amount: number;
-  amountPaid: number;
-  paymentStatus: 'paid' | 'partial' | 'pending';
-  paymentMethod: string;
-  insuranceProvider?: string;
-  date: string;
-  notes: string;
-}
+const paymentMethods = ["All", "Cash", "Card", "Bank Transfer", "Insurance"];
 
 const PaymentList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedMethod, setSelectedMethod] = useState("All");
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [treatmentPricing, setTreatmentPricing] = useState([]);
-  const [pricingLoading, setPricingLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [isRecordPaymentModalOpen, setIsRecordPaymentModalOpen] = useState(false);
 
-  const { allNotes, loading: notesLoading } = useAllTreatmentNotes();
-  const { patients, loading: patientsLoading, addPatient } = usePatients();
-  const { appointments, loading: appointmentsLoading } = useAppointments();
-
-  // Load treatment pricing from Firebase
   useEffect(() => {
-    const loadTreatmentPricing = async () => {
-      try {
-        setPricingLoading(true);
-        const pricing = await treatmentPricingFirebaseService.getAllTreatmentPricing();
-        setTreatmentPricing(pricing);
-      } catch (error) {
-        console.error('Error loading treatment pricing:', error);
-      } finally {
-        setPricingLoading(false);
-      }
-    };
-
-    loadTreatmentPricing();
+    loadPayments();
   }, []);
 
-  useEffect(() => {
-    if (!appointments || !patients || appointmentsLoading || patientsLoading) return;
-    // Auto-add functionality removed
-  }, [appointments, patients, appointmentsLoading, patientsLoading]);
-
-  // Helper function to find treatment price
-  const findTreatmentPrice = useCallback((procedureName: string) => {
-    // Try exact match first
-    let pricingData = treatmentPricing.find(p => p.name === procedureName);
-    if (pricingData) {
-      return pricingData.price;
+  const loadPayments = async () => {
+    try {
+      setLoading(true);
+      const allPayments = await paymentService.getAllPayments();
+      setPayments(allPayments);
+    } catch (error) {
+      console.error('Error loading payments:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    pricingData = treatmentPricing.find(p => p.name.toLowerCase() === procedureName.toLowerCase());
-    if (pricingData) {
-      return pricingData.price;
-    }
-    
-    pricingData = treatmentPricing.find(p => 
-      p.name.toLowerCase().includes(procedureName.toLowerCase()) ||
-      procedureName.toLowerCase().includes(p.name.toLowerCase())
-    );
-    if (pricingData) {
-      return pricingData.price;
-    }
-    
-    return 0;
-  }, [treatmentPricing]);
-
-  // Helper function to find patient info by ID or name
-  const findPatientInfo = useCallback((patientId: string) => {
-    const patient = patients.find(p => p.id === patientId || p.name === patientId);
-    return patient ? {
-      name: patient.name,
-      insuranceProvider: patient.insurance,
-      patientType: patient.patientType
-    } : {
-      name: 'Unknown Patient',
-      insuranceProvider: 'NHIF',
-      patientType: 'insurance'
-    };
-  }, [patients]);
-
-  // Convert treatment notes to payments
-  useEffect(() => {
-    if (!notesLoading && !patientsLoading && !pricingLoading) {
-      const paymentsFromTreatments = allNotes.map(note => {
-        const amount = findTreatmentPrice(note.procedure);
-        const patientInfo = findPatientInfo(note.patientId);
-        
-        // Determine payment method based on patient type and insurance
-        let paymentMethod = '';
-        let insuranceProvider = '';
-        
-        if (patientInfo.patientType === 'insurance') {
-          insuranceProvider = patientInfo.insuranceProvider || 'NHIF';
-          paymentMethod = insuranceProvider;
-        } else {
-          paymentMethod = 'Cash';
-        }
-        
-        // For demo purposes, randomly assign payment status
-        const statuses: ('paid' | 'partial' | 'pending')[] = ['paid', 'partial', 'pending'];
-        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-        
-        let amountPaid = 0;
-        if (randomStatus === 'paid') {
-          amountPaid = amount;
-        } else if (randomStatus === 'partial') {
-          amountPaid = Math.floor(amount * 0.5); // 50% paid
-        }
-
-        return {
-          id: note.id,
-          patientName: patientInfo.name,
-          treatmentName: note.procedure,
-          amount: amount,
-          amountPaid: amountPaid,
-          paymentStatus: randomStatus,
-          paymentMethod: paymentMethod,
-          insuranceProvider: insuranceProvider,
-          date: note.date,
-          notes: note.notes || 'Treatment completed'
-        };
-      });
-
-      setPayments(paymentsFromTreatments);
-    }
-  }, [allNotes, notesLoading, patientsLoading, pricingLoading, findTreatmentPrice, findPatientInfo]);
+  };
 
   const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.treatmentName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = payment.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.treatment_name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = selectedStatus === "All" || payment.paymentStatus === selectedStatus.toLowerCase();
+    const matchesStatus = selectedStatus === "All" || payment.payment_status === selectedStatus.toLowerCase();
     const matchesMethod = selectedMethod === "All" || 
-      payment.paymentMethod.toLowerCase() === selectedMethod.toLowerCase() ||
-      payment.insuranceProvider?.toLowerCase() === selectedMethod.toLowerCase();
+      payment.payment_method.toLowerCase() === selectedMethod.toLowerCase().replace(' ', '_');
     
     return matchesSearch && matchesStatus && matchesMethod;
   });
 
-  const pendingPayments = payments.filter(payment => payment.paymentStatus === 'pending');
-  const partialPayments = payments.filter(payment => payment.paymentStatus === 'partial');
+  const pendingPayments = payments.filter(payment => payment.payment_status === 'pending');
+  const partialPayments = payments.filter(payment => payment.payment_status === 'partial');
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -180,30 +68,21 @@ const PaymentList = () => {
     }
   };
 
-  const getInsuranceProviderColor = (provider: string) => {
-    switch (provider.toLowerCase()) {
-      case 'nhif': return 'bg-blue-100 text-blue-800';
-      case 'jubilee': return 'bg-purple-100 text-purple-800';
-      case 'ga insurance': return 'bg-orange-100 text-orange-800';
-      case 'mo insurance': return 'bg-teal-100 text-teal-800';
+  const getMethodColor = (method: string) => {
+    switch (method.toLowerCase()) {
       case 'cash': return 'bg-green-100 text-green-800';
+      case 'card': return 'bg-blue-100 text-blue-800';
+      case 'bank_transfer': return 'bg-purple-100 text-purple-800';
+      case 'insurance': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const formatPrice = (price: number): string => {
-    if (price === 0) {
-      return 'No charge';
-    }
-    return treatmentPricingFirebaseService.formatPrice(price);
-  };
-
   const handlePaymentRecorded = () => {
-    // Refresh the payments data
-    // In a real app, you would refetch from the database
+    loadPayments();
   };
 
-  if (notesLoading || patientsLoading || pricingLoading || appointmentsLoading) {
+  if (loading) {
     return (
       <div className="bg-white rounded-lg shadow">
         <div className="flex items-center justify-center h-64">
@@ -264,7 +143,7 @@ const PaymentList = () => {
 
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="all">All Payments</TabsTrigger>
+          <TabsTrigger value="all">All Payments ({payments.length})</TabsTrigger>
           <TabsTrigger value="pending">Pending ({pendingPayments.length})</TabsTrigger>
           <TabsTrigger value="partial">Partial ({partialPayments.length})</TabsTrigger>
         </TabsList>
@@ -280,7 +159,7 @@ const PaymentList = () => {
                   <TableHead>Amount Paid</TableHead>
                   <TableHead>Balance</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Insurance Provider</TableHead>
+                  <TableHead>Payment Method</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -295,28 +174,25 @@ const PaymentList = () => {
                 ) : (
                   filteredPayments.map((payment) => (
                     <TableRow key={payment.id}>
-                      <TableCell className="font-medium">{payment.patientName}</TableCell>
-                      <TableCell>{payment.treatmentName}</TableCell>
-                      <TableCell className="font-semibold">{formatPrice(payment.amount)}</TableCell>
-                      <TableCell className="font-semibold text-green-600">{formatPrice(payment.amountPaid)}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{formatPrice(payment.amount - payment.amountPaid)}</TableCell>
+                      <TableCell className="font-medium">{payment.patient_name}</TableCell>
+                      <TableCell>{payment.treatment_name}</TableCell>
+                      <TableCell className="font-semibold">{paymentService.formatPrice(payment.total_amount)}</TableCell>
+                      <TableCell className="font-semibold text-green-600">{paymentService.formatPrice(payment.amount_paid)}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice(payment.total_amount - payment.amount_paid)}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(payment.paymentStatus)}>
-                          {payment.paymentStatus.charAt(0).toUpperCase() + payment.paymentStatus.slice(1)}
+                        <Badge className={getStatusColor(payment.payment_status)}>
+                          {payment.payment_status.charAt(0).toUpperCase() + payment.payment_status.slice(1)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getInsuranceProviderColor(payment.paymentMethod)}>
-                          {payment.paymentMethod === 'Cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
+                        <Badge className={getMethodColor(payment.payment_method)}>
+                          {payment.payment_method.replace('_', ' ').charAt(0).toUpperCase() + payment.payment_method.replace('_', ' ').slice(1)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" className="mr-2">
                           <CreditCard className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          Edit
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -336,8 +212,8 @@ const PaymentList = () => {
                   <TableHead>Patient</TableHead>
                   <TableHead>Treatment</TableHead>
                   <TableHead>Amount Due</TableHead>
-                  <TableHead>Insurance Provider</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Date Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -351,15 +227,15 @@ const PaymentList = () => {
                 ) : (
                   pendingPayments.map((payment) => (
                     <TableRow key={payment.id}>
-                      <TableCell className="font-medium">{payment.patientName}</TableCell>
-                      <TableCell>{payment.treatmentName}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{formatPrice(payment.amount)}</TableCell>
+                      <TableCell className="font-medium">{payment.patient_name}</TableCell>
+                      <TableCell>{payment.treatment_name}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice(payment.total_amount)}</TableCell>
                       <TableCell>
-                        <Badge className={getInsuranceProviderColor(payment.paymentMethod)}>
-                          {payment.paymentMethod === 'Cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
+                        <Badge className={getMethodColor(payment.payment_method)}>
+                          {payment.payment_method.replace('_', ' ').charAt(0).toUpperCase() + payment.payment_method.replace('_', ' ').slice(1)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(payment.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
                           Collect Payment
@@ -383,8 +259,8 @@ const PaymentList = () => {
                   <TableHead>Treatment</TableHead>
                   <TableHead>Amount Paid</TableHead>
                   <TableHead>Balance Due</TableHead>
-                  <TableHead>Insurance Provider</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Last Payment</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -398,16 +274,16 @@ const PaymentList = () => {
                 ) : (
                   partialPayments.map((payment) => (
                     <TableRow key={payment.id}>
-                      <TableCell className="font-medium">{payment.patientName}</TableCell>
-                      <TableCell>{payment.treatmentName}</TableCell>
-                      <TableCell className="font-semibold text-green-600">{formatPrice(payment.amountPaid)}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{formatPrice(payment.amount - payment.amountPaid)}</TableCell>
+                      <TableCell className="font-medium">{payment.patient_name}</TableCell>
+                      <TableCell>{payment.treatment_name}</TableCell>
+                      <TableCell className="font-semibold text-green-600">{paymentService.formatPrice(payment.amount_paid)}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice(payment.total_amount - payment.amount_paid)}</TableCell>
                       <TableCell>
-                        <Badge className={getInsuranceProviderColor(payment.paymentMethod)}>
-                          {payment.paymentMethod === 'Cash' ? 'Cash' : payment.insuranceProvider || payment.paymentMethod}
+                        <Badge className={getMethodColor(payment.payment_method)}>
+                          {payment.payment_method.replace('_', ' ').charAt(0).toUpperCase() + payment.payment_method.replace('_', ' ').slice(1)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
                           Collect Balance

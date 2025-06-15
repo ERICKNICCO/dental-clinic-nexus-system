@@ -98,6 +98,109 @@ export type Database = {
           },
         ]
       }
+      payment_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_name: string
+          payment_id: string | null
+          quantity: number
+          total_price: number | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_name: string
+          payment_id?: string | null
+          quantity?: number
+          total_price?: number | null
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_name?: string
+          payment_id?: string | null
+          quantity?: number
+          total_price?: number | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_items_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount_paid: number
+          appointment_id: string | null
+          collected_by: string | null
+          consultation_id: string | null
+          created_at: string
+          id: string
+          insurance_provider: string | null
+          notes: string | null
+          patient_id: string
+          patient_name: string
+          payment_date: string | null
+          payment_method: string
+          payment_status: string
+          total_amount: number
+          treatment_name: string
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number
+          appointment_id?: string | null
+          collected_by?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          id?: string
+          insurance_provider?: string | null
+          notes?: string | null
+          patient_id: string
+          patient_name: string
+          payment_date?: string | null
+          payment_method?: string
+          payment_status?: string
+          total_amount?: number
+          treatment_name: string
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          appointment_id?: string | null
+          collected_by?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          id?: string
+          insurance_provider?: string | null
+          notes?: string | null
+          patient_id?: string
+          patient_name?: string
+          payment_date?: string | null
+          payment_method?: string
+          payment_status?: string
+          total_amount?: number
+          treatment_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
