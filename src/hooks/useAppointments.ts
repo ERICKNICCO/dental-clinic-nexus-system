@@ -81,7 +81,7 @@ export const useAppointments = () => {
 
         const filteredAppointments = allAppointments.filter((appt) => {
           if (userProfile.role === 'doctor') {
-            // Filter by 'Approved' status and matching doctor's name using flexible matching
+            // Filter by 'Approved' OR 'Confirmed' status and matching doctor's name using flexible matching
             const appointmentDoctor = appt.dentist || '';
             const userDoctor = userProfile.name || '';
             
@@ -89,11 +89,11 @@ export const useAppointments = () => {
             console.log('useAppointments filtering - User doctor:', userDoctor);
             
             const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
-            const isApproved = appt.status === 'Approved';
+            const isValidStatus = ['Approved', 'Confirmed'].includes(appt.status);
             
-            console.log('Doctor match:', isDoctorMatch, 'Status approved:', isApproved);
+            console.log('Doctor match:', isDoctorMatch, 'Status valid:', isValidStatus, 'Status:', appt.status);
             
-            return isApproved && isDoctorMatch;
+            return isValidStatus && isDoctorMatch;
           }
           return true; // Admin and other roles see all
         });
@@ -118,8 +118,8 @@ export const useAppointments = () => {
           const appointmentDoctor = appt.dentist || '';
           const userDoctor = userProfile.name || '';
           const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
-          const isApproved = appt.status === 'Approved';
-          return isApproved && isDoctorMatch;
+          const isValidStatus = ['Approved', 'Confirmed'].includes(appt.status);
+          return isValidStatus && isDoctorMatch;
         }
         return true; // Admin and other roles see all
       });

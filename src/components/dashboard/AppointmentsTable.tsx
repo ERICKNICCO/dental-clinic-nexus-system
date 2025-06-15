@@ -310,6 +310,8 @@ const AppointmentsTable: React.FC = () => {
                 Looking for appointments for {userProfile.name} on {today}
                 <br />
                 Normalized name: "{normalizeDoctorName(userProfile.name || '')}"
+                <br />
+                Searching for Confirmed and Approved appointments
               </div>
             )}
           </div>
@@ -350,7 +352,7 @@ const AppointmentsTable: React.FC = () => {
                       {userProfile?.role === 'doctor' ? (
                         // Doctor view: Accept/Delete buttons
                         <>
-                          {appointment.status === 'Approved' && (
+                          {(appointment.status === 'Approved' || appointment.status === 'Confirmed') && (
                             <button 
                               className="text-green-600 hover:text-green-900 mr-2 p-1 rounded hover:bg-green-50"
                               onClick={() => handleAcceptAppointment(appointment)}
@@ -405,6 +407,8 @@ const AppointmentsTable: React.FC = () => {
               Found {todaysAppointments.length} appointments for today
               <br />
               Searching for normalized name: "{normalizeDoctorName(userProfile.name || '')}"
+              <br />
+              Including Confirmed and Approved appointments
             </div>
           </div>
         )}

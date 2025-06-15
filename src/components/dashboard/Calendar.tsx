@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppointments } from '../../hooks/useAppointments';
@@ -203,6 +202,8 @@ const AppointmentCalendar: React.FC = () => {
           Showing upcoming appointments for {userProfile.name}
           <div className="text-xs text-gray-500 mt-1">
             Found {doctorAppointments.filter(appt => new Date(appt.date) >= new Date()).length} upcoming appointments
+            <br />
+            Including Confirmed and Approved appointments
           </div>
         </div>
       )}
