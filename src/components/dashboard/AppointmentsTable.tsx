@@ -17,9 +17,13 @@ const AppointmentsTable: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Get today's date in the same format as stored in Firebase
-  const today = new Date().toISOString().split('T')[0];
-  console.log('Today\'s date for filtering:', today);
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date();
+  const todayString = today.getFullYear() + '-' + 
+    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(today.getDate()).padStart(2, '0');
+  
+  console.log('Today\'s date for filtering:', todayString);
   console.log('All appointments loaded:', appointments);
   console.log('User profile:', userProfile);
 
@@ -83,12 +87,24 @@ const AppointmentsTable: React.FC = () => {
     return false;
   };
 
+  // Helper function to check if appointment date is today
+  const isAppointmentToday = (appointmentDate: string) => {
+    // Handle various date formats
+    const appointmentDateObj = new Date(appointmentDate);
+    const appointmentString = appointmentDateObj.getFullYear() + '-' + 
+      String(appointmentDateObj.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(appointmentDateObj.getDate()).padStart(2, '0');
+    
+    console.log('Appointment date string:', appointmentString, 'Today string:', todayString);
+    return appointmentString === todayString;
+  };
+
   // Filter appointments for today and for the current doctor if they are a doctor
   const todaysAppointments = appointments.filter(appointment => {
     console.log('Checking appointment:', appointment);
-    console.log('Appointment date:', appointment.date, 'vs Today:', today);
+    console.log('Appointment date:', appointment.date);
     
-    const isToday = appointment.date === today;
+    const isToday = isAppointmentToday(appointment.date);
     
     // If user is a doctor, also filter by doctor name
     if (userProfile?.role === 'doctor') {
@@ -307,13 +323,20 @@ const AppointmentsTable: React.FC = () => {
             <p>No appointments scheduled for today</p>
             {userProfile?.role === 'doctor' && (
               <div className="text-xs text-gray-400 mt-2">
-                Looking for appointments for {userProfile.name} on {today}
+                Looking for appointments for {userProfile.name} on {todayString}
                 <br />
                 Normalized name: "{normalizeDoctorName(userProfile.name || '')}"
                 <br />
-                Searching for Confirmed and Approved appointments
+                Total appointments in system: {appointments.length}
               </div>
             )}
+            <div className="text-xs text-gray-400 mt-2">
+              Today's date: {todayString}
+              <br />
+              Total appointments: {appointments.length}
+              <br />
+              Appointments for today (all users): {appointments.filter(apt => isAppointmentToday(apt.date)).length}
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -402,13 +425,13 @@ const AppointmentsTable: React.FC = () => {
         
         {userProfile?.role === 'doctor' && (
           <div className="mt-4 text-sm text-gray-600">
-            Showing appointments for {userProfile.name} on {today}
+            Showing appointments for {userProfile.name} on {todayString}
             <div className="text-xs text-gray-500 mt-1">
               Found {todaysAppointments.length} appointments for today
               <br />
               Searching for normalized name: "{normalizeDoctorName(userProfile.name || '')}"
               <br />
-              Including Confirmed and Approved appointments
+              Total appointments in system: {appointments.length}
             </div>
           </div>
         )}
