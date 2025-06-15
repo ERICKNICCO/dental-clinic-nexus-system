@@ -22,10 +22,11 @@ export const useDoctorStats = (doctorName: string, userRole?: string) => {
 
   useEffect(() => {
     try {
-      // Get current month and year
+      // Get current date information
       const now = new Date();
       const currentMonth = now.getMonth(); // 0-11
       const currentYear = now.getFullYear();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at 00:00:00
       
       // Helper function to normalize doctor names for comparison
       const normalizeDoctorName = (name: string) => {
@@ -90,18 +91,31 @@ export const useDoctorStats = (doctorName: string, userRole?: string) => {
       console.log('Stats calculation - Total appointments:', appointments.length);
       console.log('Stats calculation - Filtered appointments:', filteredAppointments.length);
 
-      // Count current month's confirmed appointments
-      const monthlyAppointments = filteredAppointments.filter(appointment => {
-        const appointmentDate = new Date(appointment.date);
-        const appointmentMonth = appointmentDate.getMonth();
-        const appointmentYear = appointmentDate.getFullYear();
-        
-        return appointmentMonth === currentMonth && 
-               appointmentYear === currentYear && 
-               appointment.status === 'Confirmed';
-      }).length;
-
-      console.log('Stats calculation - Monthly confirmed appointments:', monthlyAppointments);
+      // Calculate appointments based on user role
+      let appointmentCount = 0;
+      
+      if (userRole === 'doctor') {
+        // For doctors: Count current month's confirmed appointments
+        appointmentCount = filteredAppointments.filter(appointment => {
+          const appointmentDate = new Date(appointment.date);
+          const appointmentMonth = appointmentDate.getMonth();
+          const appointmentYear = appointmentDate.getFullYear();
+          
+          return appointmentMonth === currentMonth && 
+                 appointmentYear === currentYear && 
+                 appointment.status === 'Confirmed';
+        }).length;
+        console.log('Stats calculation - Monthly confirmed appointments for doctor:', appointmentCount);
+      } else {
+        // For admin: Count today's appointments (any status)
+        appointmentCount = filteredAppointments.filter(appointment => {
+          const appointmentDate = new Date(appointment.date);
+          const appointmentDateOnly = new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate());
+          
+          return appointmentDateOnly.getTime() === today.getTime();
+        }).length;
+        console.log('Stats calculation - Today\'s appointments for admin:', appointmentCount);
+      }
 
       // Count unique patients
       let totalPatients = 0;
@@ -126,7 +140,7 @@ export const useDoctorStats = (doctorName: string, userRole?: string) => {
       console.log('Stats calculation - Pending treatments:', pendingTreatments);
 
       setStats({
-        monthlyAppointments,
+        monthlyAppointments: appointmentCount,
         totalPatients,
         pendingTreatments
       });
