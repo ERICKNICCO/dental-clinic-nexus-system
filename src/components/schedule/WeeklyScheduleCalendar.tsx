@@ -12,10 +12,43 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   doctorSchedules, 
   userRole = 'staff' 
 }) => {
-  // Updated time slots for 9:00-17:00 working hours
-  const timeSlots = [
-    '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'
-  ];
+  // Function to get working hours and time slots for each day
+  const getWorkingHoursForDay = (dayName: string) => {
+    if (dayName === 'Saturday') {
+      return {
+        workingHours: '9:00 AM - 1:00 PM',
+        timeSlots: ['9:00', '10:00', '11:00', '12:00', '13:00'],
+        isWorkingDay: true
+      };
+    } else if (dayName === 'Sunday') {
+      return {
+        workingHours: 'Closed',
+        timeSlots: [],
+        isWorkingDay: false
+      };
+    } else {
+      return {
+        workingHours: '9:00 AM - 5:00 PM',
+        timeSlots: ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
+        isWorkingDay: true
+      };
+    }
+  };
+
+  // Get all unique time slots across all days for consistent grid layout
+  const getAllTimeSlots = () => {
+    const allSlots = new Set<string>();
+    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    daysOfWeek.forEach(day => {
+      const { timeSlots } = getWorkingHoursForDay(day);
+      timeSlots.forEach(slot => allSlots.add(slot));
+    });
+    
+    return Array.from(allSlots).sort();
+  };
+
+  const allTimeSlots = getAllTimeSlots();
   
   // Get current week's dates
   const getCurrentWeekDates = () => {
@@ -104,6 +137,12 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  // Check if a time slot is within working hours for a specific day
+  const isTimeSlotAvailable = (dayName: string, timeSlot: string) => {
+    const { timeSlots } = getWorkingHoursForDay(dayName);
+    return timeSlots.includes(timeSlot);
+  };
+
   // Show message if no schedules are available
   if (doctorSchedules.length === 0) {
     return (
@@ -125,7 +164,10 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
           <p className="text-sm text-gray-600 mt-1">Your personal schedule with appointments</p>
         )}
         <p className="text-sm text-gray-500 mt-1">
-          Working hours: 9:00 AM - 5:00 PM | Week of {formatDate(weekDates[0])} - {formatDate(weekDates[6])}
+          Working hours: Mon-Fri: 9:00 AM - 5:00 PM | Sat: 9:00 AM - 1:00 PM | Sun: Closed
+        </p>
+        <p className="text-sm text-gray-500">
+          Week of {formatDate(weekDates[0])} - {formatDate(weekDates[6])}
         </p>
       </div>
       
@@ -134,28 +176,33 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
           {/* Header */}
           <div className="grid grid-cols-8 border-b bg-gray-50">
             <div className="p-4 font-medium text-gray-700 border-r">Time</div>
-            {daysOfWeek.map(day => (
-              <div key={day.short} className="p-4 text-center border-r last:border-r-0">
-                <div className="font-medium text-gray-900">{day.short}</div>
-                <div className="text-xs text-gray-500 mt-1">{formatDate(day.date)}</div>
-              </div>
-            ))}
+            {daysOfWeek.map(day => {
+              const { workingHours, isWorkingDay } = getWorkingHoursForDay(day.full);
+              return (
+                <div key={day.short} className={`p-4 text-center border-r last:border-r-0 ${!isWorkingDay ? 'bg-gray-200' : ''}`}>
+                  <div className="font-medium text-gray-900">{day.short}</div>
+                  <div className="text-xs text-gray-500 mt-1">{formatDate(day.date)}</div>
+                  <div className="text-xs text-gray-400 mt-1">{workingHours}</div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Time slots */}
-          {timeSlots.map(timeSlot => (
+          {allTimeSlots.map(timeSlot => (
             <div key={timeSlot} className="grid grid-cols-8 border-b hover:bg-gray-50">
               <div className="p-4 font-medium text-gray-600 border-r bg-blue-50">
                 {timeSlot}
               </div>
               {daysOfWeek.map(day => {
-                const appointments = getAppointmentsForSlot(day.full, timeSlot, day.date);
+                const isAvailable = isTimeSlotAvailable(day.full, timeSlot);
+                const appointments = isAvailable ? getAppointmentsForSlot(day.full, timeSlot, day.date) : [];
                 
                 return (
-                  <div key={`${day.short}-${timeSlot}`} className="p-2 border-r last:border-r-0 min-h-[60px]">
+                  <div key={`${day.short}-${timeSlot}`} className={`p-2 border-r last:border-r-0 min-h-[60px] ${!isAvailable ? 'bg-gray-100' : ''}`}>
                     <div className="space-y-1">
-                      {/* Show appointments if any */}
-                      {appointments.map(appointment => (
+                      {/* Show appointments if any and time slot is available */}
+                      {isAvailable && appointments.map(appointment => (
                         <div
                           key={`${appointment.id}-${day.short}-${timeSlot}`}
                           className={`text-xs p-2 rounded border ${getDoctorColor(appointment.dentist)}`}
@@ -172,10 +219,17 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
                         </div>
                       ))}
                       
-                      {/* Show empty slot if no appointments */}
-                      {appointments.length === 0 && (
+                      {/* Show empty slot if no appointments and time slot is available */}
+                      {isAvailable && appointments.length === 0 && (
                         <div className="text-xs text-gray-400 p-2">
                           Available
+                        </div>
+                      )}
+                      
+                      {/* Show closed message for unavailable time slots */}
+                      {!isAvailable && (
+                        <div className="text-xs text-gray-500 p-2 text-center">
+                          Closed
                         </div>
                       )}
                     </div>
