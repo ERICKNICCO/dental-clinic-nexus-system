@@ -20,42 +20,41 @@ const DoctorTreatmentView: React.FC = () => {
   console.log('DoctorTreatmentView: Error state:', error);
   console.log('DoctorTreatmentView: Current doctor name:', userProfile?.name);
   
-  // Get current month
+  // Get today's date
   const currentDate = new Date();
-  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-  console.log('DoctorTreatmentView: Current month filter:', currentMonth);
+  const today = currentDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+  console.log('DoctorTreatmentView: Today filter:', today);
   
-  // Filter treatments by current doctor and current month
+  // Filter treatments by current doctor and today only
   const doctorTreatments = allNotes.filter(treatment => {
-    const treatmentDate = new Date(treatment.date);
-    const treatmentMonth = `${treatmentDate.getFullYear()}-${String(treatmentDate.getMonth() + 1).padStart(2, '0')}`;
+    const treatmentDate = new Date(treatment.date).toISOString().split('T')[0]; // Format: YYYY-MM-DD
     
     console.log('DoctorTreatmentView: Checking treatment:', {
       id: treatment.id,
       doctor: treatment.doctor,
       currentDoctor: userProfile?.name,
       doctorMatch: treatment.doctor === userProfile?.name,
-      treatmentMonth: treatmentMonth,
-      currentMonth: currentMonth,
-      monthMatch: treatmentMonth === currentMonth,
+      treatmentDate: treatmentDate,
+      today: today,
+      dateMatch: treatmentDate === today,
       date: treatment.date,
       procedure: treatment.procedure,
       patientName: treatment.patientName
     });
     
     const doctorMatch = treatment.doctor === userProfile?.name;
-    const monthMatch = treatmentMonth === currentMonth;
-    const shouldInclude = doctorMatch && monthMatch;
+    const dateMatch = treatmentDate === today;
+    const shouldInclude = doctorMatch && dateMatch;
     
-    console.log(`DoctorTreatmentView: Treatment ${treatment.id} - Include: ${shouldInclude} (doctor: ${doctorMatch}, month: ${monthMatch})`);
+    console.log(`DoctorTreatmentView: Treatment ${treatment.id} - Include: ${shouldInclude} (doctor: ${doctorMatch}, date: ${dateMatch})`);
     
     return shouldInclude;
   });
 
-  console.log('DoctorTreatmentView: Filtered doctor treatments:', doctorTreatments);
+  console.log('DoctorTreatmentView: Filtered doctor treatments for today:', doctorTreatments);
   console.log('DoctorTreatmentView: Filtered treatments count:', doctorTreatments.length);
 
-  // Calculate stats based on actual treatment notes
+  // Calculate stats based on actual treatment notes for today
   const totalTreatments = doctorTreatments.length;
   
   // Calculate actual revenue based on treatment procedures
@@ -99,7 +98,7 @@ const DoctorTreatmentView: React.FC = () => {
     }
   }, [doctorTreatments.length]);
 
-  console.log('DoctorTreatmentView: Stats - Total treatments:', totalTreatments, 'Calculated revenue:', calculatedRevenue);
+  console.log('DoctorTreatmentView: Stats - Total treatments today:', totalTreatments, 'Calculated revenue:', calculatedRevenue);
   console.log('=== End DoctorTreatmentView Debug ===');
 
   if (loading) {
@@ -138,56 +137,58 @@ const DoctorTreatmentView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Current Month Stats */}
+      {/* Today's Stats */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            My Treatments - {currentDate.toLocaleDateString('en-US', { 
+            My Treatments - Today ({currentDate.toLocaleDateString('en-US', { 
+              weekday: 'long',
+              year: 'numeric',
               month: 'long', 
-              year: 'numeric' 
-            })}
+              day: 'numeric'
+            })})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600">{totalTreatments}</div>
-              <div className="text-sm text-gray-500">Treatments This Month</div>
+              <div className="text-sm text-gray-500">Treatments Today</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600">
                 {treatmentPricingFirebaseService.formatPrice(calculatedRevenue)}
               </div>
-              <div className="text-sm text-gray-500">Actual Revenue This Month</div>
+              <div className="text-sm text-gray-500">Revenue Today</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Doctor's Treatments Table */}
+      {/* Doctor's Today's Treatments Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Your Recent Treatments</CardTitle>
+          <CardTitle>Today's Treatments</CardTitle>
         </CardHeader>
         <CardContent>
           {doctorTreatments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium mb-2">No treatments performed this month</h3>
+              <h3 className="text-lg font-medium mb-2">No treatments performed today</h3>
               <p className="text-sm">Complete consultations with patients to see your treatment records here.</p>
               <div className="mt-4 text-xs text-gray-400">
                 <p>Debug info:</p>
                 <p>Total notes: {allNotes.length}</p>
                 <p>Current doctor: {userProfile?.name}</p>
-                <p>Current month: {currentMonth}</p>
+                <p>Today: {today}</p>
               </div>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Time</TableHead>
                   <TableHead>Patient</TableHead>
                   <TableHead>Treatment</TableHead>
                   <TableHead>Notes</TableHead>
@@ -198,7 +199,10 @@ const DoctorTreatmentView: React.FC = () => {
                 {doctorTreatments.map((treatment) => (
                   <TableRow key={treatment.id}>
                     <TableCell>
-                      {new Date(treatment.date).toLocaleDateString()}
+                      {new Date(treatment.date).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
