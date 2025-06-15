@@ -30,37 +30,44 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
             />
           </DialogTrigger>
           <DialogContent
-            className="
+            className={`
               !p-0 !rounded-none !shadow-none !m-0
               fixed inset-0 z-[9999] bg-black flex items-center justify-center
-              overflow-hidden
-            "
+            `}
             style={{
+              padding: 0,
+              margin: 0,
               width: "100vw",
               height: "100vh",
               minWidth: 0,
               minHeight: 0,
-              backgroundColor: "rgba(0,0,0,0.99)",
+              backgroundColor: "rgba(0,0,0,1)",
               overflow: "hidden",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 0,
+              zIndex: 9999,
             }}
           >
-            <img
-              src={img}
-              alt={`X-ray ${idx + 1}`}
-              className="object-contain max-w-full max-h-full w-auto h-auto animate-scale-in"
-              style={{
-                display: "block",
-                maxWidth: "100vw",
-                maxHeight: "100vh",
-                margin: "auto",
-                background: "black"
-              }}
-            />
-            <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 text-xs text-gray-300 bg-black/60 px-3 py-1 rounded pointer-events-none select-none">
+            <div className="flex items-center justify-center w-screen h-screen">
+              <img
+                src={img}
+                alt={`X-ray ${idx + 1}`}
+                className="object-contain max-w-screen max-h-screen w-auto h-auto block m-auto animate-scale-in"
+                style={{
+                  boxShadow: "0 2px 32px 0 rgba(0,0,0,0.6)",
+                  background: "black",
+                  width: '100%',
+                  height: '100%',
+                  maxWidth: '100vw',
+                  maxHeight: '100vh',
+                  objectFit: 'contain',
+                  margin: 'auto',
+                  display: 'block'
+                }}
+              />
+            </div>
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-300 bg-black/60 px-3 py-1 rounded pointer-events-none select-none z-[10001]">
               Click outside, press ESC, or Close to return
             </div>
           </DialogContent>
