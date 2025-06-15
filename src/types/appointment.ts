@@ -16,4 +16,6 @@ export interface Appointment {
   dentist: string;
   status: 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved' | 'Checked In' | 'In Progress' | 'Completed';
   patientId?: string;
+  patientType?: 'cash' | 'insurance';
+  insurance?: string;
 }
