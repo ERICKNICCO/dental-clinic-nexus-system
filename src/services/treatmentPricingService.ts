@@ -60,7 +60,8 @@ const treatmentPrices: TreatmentPrice[] = [
     description: 'High-quality ceramic crown restoration',
     basePrice: 400000,
     category: 'Restorative',
-    duration: '90 mins'
+    duration: '90 mins',
+    remarks: 'Each unit'
   },
   {
     id: '7',
@@ -86,7 +87,7 @@ const treatmentPrices: TreatmentPrice[] = [
     basePrice: 60000,
     category: 'Restorative',
     duration: '45 mins',
-    remarks: 'Avoid relining'
+    remarks: 'But avoid relining'
   },
   {
     id: '10',
