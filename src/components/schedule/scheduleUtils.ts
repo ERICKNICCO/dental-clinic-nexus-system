@@ -33,37 +33,14 @@ const getDoctorImage = (doctorName: string) => {
   return imageMap[doctorName] || 'https://randomuser.me/api/portraits/men/5.jpg';
 };
 
-// Group appointments by doctor and day
-const groupAppointmentsByDoctorAndDay = (appointments: Appointment[]) => {
-  const grouped: { [doctorName: string]: { [day: string]: Appointment[] } } = {};
-  
-  appointments.forEach(appointment => {
-    const doctorName = appointment.dentist;
-    const appointmentDate = new Date(appointment.date);
-    const dayName = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
-    
-    if (!grouped[doctorName]) {
-      grouped[doctorName] = {};
-    }
-    
-    if (!grouped[doctorName][dayName]) {
-      grouped[doctorName][dayName] = [];
-    }
-    
-    grouped[doctorName][dayName].push(appointment);
-  });
-  
-  return grouped;
-};
-
 // Create default schedule for days without appointments
-const createDefaultDaySchedule = (appointments?: Appointment[]): DaySchedule => {
+const createDefaultDaySchedule = (): DaySchedule => {
   return {
     startTime: '09:00',
     endTime: '17:00',
-    isAvailable: true,
-    specialNotes: '',
-    appointments: appointments || []
+    isAvailable: false, // Changed to false - only show as available if there are actual appointments
+    specialNotes: 'No appointments scheduled',
+    appointments: []
   };
 };
 
@@ -79,7 +56,7 @@ const createDayScheduleWithAppointments = (appointments: Appointment[]): DaySche
   const firstAppointment = sortedAppointments[0];
   const lastAppointment = sortedAppointments[sortedAppointments.length - 1];
   
-  // Extract start and end times (simplified - using first and last appointment times)
+  // Extract start and end times
   const startTime = firstAppointment.time.replace(/[^\d:]/g, '').substring(0, 5) || '09:00';
   const endTime = lastAppointment.time.replace(/[^\d:]/g, '').substring(0, 5) || '17:00';
   
@@ -92,21 +69,50 @@ const createDayScheduleWithAppointments = (appointments: Appointment[]): DaySche
   };
 };
 
-// Generate weekly schedule from real appointments
+// Generate weekly schedule from real appointments ONLY
 export const getWeeklyScheduleByDoctor = (appointments: Appointment[]): WeeklySchedule[] => {
-  console.log('Generating schedule from appointments:', appointments);
+  console.log('🔍 Generating schedule from appointments:', appointments);
   
-  // Get unique doctors
-  const doctors = getUniqueDoctors(appointments);
-  console.log('Unique doctors found:', doctors);
+  // Filter only confirmed and approved appointments
+  const validAppointments = appointments.filter(appointment => 
+    appointment.status === 'Confirmed' || appointment.status === 'Approved'
+  );
+  
+  console.log('🔍 Valid appointments after filtering:', validAppointments);
+  
+  if (validAppointments.length === 0) {
+    console.log('🔍 No valid appointments found, returning empty schedule');
+    return [];
+  }
+  
+  // Get unique doctors from valid appointments only
+  const doctors = getUniqueDoctors(validAppointments);
+  console.log('🔍 Unique doctors found:', doctors);
   
   // Group appointments by doctor and day
-  const groupedAppointments = groupAppointmentsByDoctorAndDay(appointments);
-  console.log('Grouped appointments:', groupedAppointments);
+  const groupedAppointments: { [doctorName: string]: { [day: string]: Appointment[] } } = {};
+  
+  validAppointments.forEach(appointment => {
+    const doctorName = appointment.dentist;
+    const appointmentDate = new Date(appointment.date);
+    const dayName = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    if (!groupedAppointments[doctorName]) {
+      groupedAppointments[doctorName] = {};
+    }
+    
+    if (!groupedAppointments[doctorName][dayName]) {
+      groupedAppointments[doctorName][dayName] = [];
+    }
+    
+    groupedAppointments[doctorName][dayName].push(appointment);
+  });
+  
+  console.log('🔍 Grouped appointments:', groupedAppointments);
   
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   
-  // Create weekly schedules for each doctor
+  // Create weekly schedules for each doctor with actual appointments
   const weeklySchedules: WeeklySchedule[] = doctors.map(doctor => {
     const schedule: { [key: string]: DaySchedule } = {};
     
@@ -116,13 +122,7 @@ export const getWeeklyScheduleByDoctor = (appointments: Appointment[]): WeeklySc
       if (dayAppointments.length > 0) {
         schedule[day] = createDayScheduleWithAppointments(dayAppointments);
       } else {
-        // Create default availability for weekdays, off for weekends
-        const isWeekend = day === 'Saturday' || day === 'Sunday';
-        schedule[day] = {
-          ...createDefaultDaySchedule(),
-          isAvailable: !isWeekend,
-          specialNotes: isWeekend ? 'Weekend - Off' : ''
-        };
+        schedule[day] = createDefaultDaySchedule();
       }
     });
     
@@ -133,7 +133,7 @@ export const getWeeklyScheduleByDoctor = (appointments: Appointment[]): WeeklySc
     };
   });
   
-  console.log('Generated weekly schedules:', weeklySchedules);
+  console.log('🔍 Generated weekly schedules:', weeklySchedules);
   return weeklySchedules;
 };
 
@@ -143,16 +143,10 @@ export const getDoctorAppointmentsForDay = (
   doctorName: string, 
   date: string
 ): Appointment[] => {
-  const targetDate = new Date(date);
-  const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'long' });
-  
   return appointments.filter(appointment => {
-    const appointmentDate = new Date(appointment.date);
-    const appointmentDay = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
-    
     return appointment.dentist === doctorName && 
-           appointmentDay === dayName &&
-           appointment.date === date;
+           appointment.date === date &&
+           (appointment.status === 'Confirmed' || appointment.status === 'Approved');
   });
 };
 

@@ -59,40 +59,37 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
     return colors[doctorName as keyof typeof colors] || 'bg-gray-200 text-gray-800 border-gray-300';
   };
 
-  const isTimeInRange = (timeSlot: string, startTime: string, endTime: string) => {
-    if (!startTime || !endTime) return false;
-    
-    const slotHour = parseInt(timeSlot.split(':')[0]);
-    const startHour = parseInt(startTime.split(':')[0]);
-    const endHour = parseInt(endTime.split(':')[0]);
-    
-    return slotHour >= startHour && slotHour < endHour;
-  };
-
-  const getAvailableDoctors = (day: string, timeSlot: string) => {
-    return doctorSchedules.filter(doctor => {
-      const daySchedule = doctor.schedule[day];
-      return daySchedule?.isAvailable && isTimeInRange(timeSlot, daySchedule.startTime, daySchedule.endTime);
-    });
-  };
-
-  const getAppointmentsForSlot = (day: string, timeSlot: string): Appointment[] => {
+  const getAppointmentsForSlot = (day: string, timeSlot: string, date: Date): Appointment[] => {
     const appointments: Appointment[] = [];
+    const dateString = date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    
+    console.log(`🔍 Getting appointments for ${day} ${timeSlot} on ${dateString}`);
     
     doctorSchedules.forEach(doctor => {
       const daySchedule = doctor.schedule[day];
       if (daySchedule?.appointments) {
         const slotAppointments = daySchedule.appointments.filter(appointment => {
-          // More flexible time matching
+          // Check if appointment is on the correct date
+          const appointmentDate = appointment.date;
+          console.log(`🔍 Comparing appointment date ${appointmentDate} with ${dateString}`);
+          
+          if (appointmentDate !== dateString) {
+            return false;
+          }
+          
+          // Check if appointment time matches the slot
           const appointmentTimeStr = appointment.time.replace(/[^\d:]/g, '');
           const appointmentHour = parseInt(appointmentTimeStr.split(':')[0]);
           const slotHour = parseInt(timeSlot.split(':')[0]);
+          
+          console.log(`🔍 Comparing appointment hour ${appointmentHour} with slot hour ${slotHour}`);
           return appointmentHour === slotHour;
         });
         appointments.push(...slotAppointments);
       }
     });
     
+    console.log(`🔍 Found ${appointments.length} appointments for ${day} ${timeSlot}`);
     return appointments;
   };
 
@@ -106,6 +103,19 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  // Show message if no schedules are available
+  if (doctorSchedules.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{getCalendarTitle()}</h2>
+        <p className="text-gray-600">No appointments scheduled for this week</p>
+        <p className="text-sm text-gray-500 mt-2">
+          Week of {formatDate(weekDates[0])} - {formatDate(weekDates[6])}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -139,8 +149,7 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
                 {timeSlot}
               </div>
               {daysOfWeek.map(day => {
-                const availableDoctors = getAvailableDoctors(day.full, timeSlot);
-                const appointments = getAppointmentsForSlot(day.full, timeSlot);
+                const appointments = getAppointmentsForSlot(day.full, timeSlot, day.date);
                 
                 return (
                   <div key={`${day.short}-${timeSlot}`} className="p-2 border-r last:border-r-0 min-h-[60px]">
@@ -149,34 +158,26 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
                       {appointments.map(appointment => (
                         <div
                           key={`${appointment.id}-${day.short}-${timeSlot}`}
-                          className="text-xs p-2 rounded border bg-red-100 text-red-800 border-red-300"
+                          className={`text-xs p-2 rounded border ${getDoctorColor(appointment.dentist)}`}
                         >
                           <div className="font-medium">
-                            {userRole === 'doctor' ? appointment.patient.name : `${appointment.dentist}`}
+                            {userRole === 'doctor' ? appointment.patient.name : appointment.dentist}
                           </div>
                           <div className="opacity-75">
                             {appointment.treatment}
                           </div>
                           <div className="text-xs opacity-60">
-                            {appointment.time} | {appointment.patient.name}
+                            {appointment.time}
                           </div>
                         </div>
                       ))}
                       
-                      {/* Show available doctors if no appointments */}
-                      {appointments.length === 0 && availableDoctors.map(doctor => (
-                        <div
-                          key={`${doctor.doctorName}-${day.short}-${timeSlot}`}
-                          className={`text-xs p-2 rounded border ${getDoctorColor(doctor.doctorName)} cursor-pointer hover:opacity-80 transition-opacity`}
-                        >
-                          <div className="font-medium">
-                            {userRole === 'doctor' ? 'Available' : doctor.doctorName}
-                          </div>
-                          <div className="opacity-75">
-                            {doctor.schedule[day.full]?.startTime} - {doctor.schedule[day.full]?.endTime}
-                          </div>
+                      {/* Show empty slot if no appointments */}
+                      {appointments.length === 0 && (
+                        <div className="text-xs text-gray-400 p-2">
+                          Available
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 );
