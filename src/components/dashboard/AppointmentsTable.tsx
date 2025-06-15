@@ -7,6 +7,7 @@ import { usePatients } from '../../hooks/usePatients';
 import { useAuth } from '../../contexts/AuthContext';
 import { Check, Trash2 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
+import { isAppointmentToday, isDoctorNameMatch, normalizeDoctorName, getTodayString } from '../../utils/appointmentFilters';
 
 const AppointmentsTable: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,87 +18,11 @@ const AppointmentsTable: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Get today's date in YYYY-MM-DD format
-  const today = new Date();
-  const todayString = today.getFullYear() + '-' + 
-    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-    String(today.getDate()).padStart(2, '0');
+  const todayString = getTodayString();
   
   console.log('Today\'s date for filtering:', todayString);
   console.log('All appointments loaded:', appointments);
   console.log('User profile:', userProfile);
-
-  // Helper function to normalize doctor names for comparison
-  const normalizeDoctorName = (name: string) => {
-    if (!name) return '';
-    
-    // Remove "Dr." prefix and normalize
-    return name.toLowerCase()
-      .replace(/^dr\.?\s*/i, '') // Remove "Dr." or "Dr" prefix
-      .replace(/\s+/g, ' ') // Normalize spaces
-      .trim();
-  };
-
-  // Helper function to check if two doctor names match
-  const isDoctorNameMatch = (appointmentDoctor: string, userDoctor: string) => {
-    const normalizedAppointmentDoctor = normalizeDoctorName(appointmentDoctor);
-    const normalizedUserDoctor = normalizeDoctorName(userDoctor);
-    
-    console.log('Comparing normalized names:', normalizedAppointmentDoctor, 'vs', normalizedUserDoctor);
-    
-    // Exact match
-    if (normalizedAppointmentDoctor === normalizedUserDoctor) {
-      console.log('Exact match found');
-      return true;
-    }
-    
-    // Split both names into words for better matching
-    const appointmentWords = normalizedAppointmentDoctor.split(' ').filter(word => word.length > 0);
-    const userWords = normalizedUserDoctor.split(' ').filter(word => word.length > 0);
-    
-    console.log('Appointment words:', appointmentWords);
-    console.log('User words:', userWords);
-    
-    // Check if any word from appointment doctor matches any word from user doctor
-    for (const appointmentWord of appointmentWords) {
-      for (const userWord of userWords) {
-        if (appointmentWord === userWord) {
-          console.log('Word match found:', appointmentWord, '=', userWord);
-          return true;
-        }
-      }
-    }
-    
-    // Check if appointment doctor contains any user word or vice versa
-    for (const appointmentWord of appointmentWords) {
-      if (normalizedUserDoctor.includes(appointmentWord)) {
-        console.log('Appointment word found in user name:', appointmentWord);
-        return true;
-      }
-    }
-    
-    for (const userWord of userWords) {
-      if (normalizedAppointmentDoctor.includes(userWord)) {
-        console.log('User word found in appointment name:', userWord);
-        return true;
-      }
-    }
-    
-    console.log('No match found');
-    return false;
-  };
-
-  // Helper function to check if appointment date is today
-  const isAppointmentToday = (appointmentDate: string) => {
-    // Handle various date formats
-    const appointmentDateObj = new Date(appointmentDate);
-    const appointmentString = appointmentDateObj.getFullYear() + '-' + 
-      String(appointmentDateObj.getMonth() + 1).padStart(2, '0') + '-' + 
-      String(appointmentDateObj.getDate()).padStart(2, '0');
-    
-    console.log('Appointment date string:', appointmentString, 'Today string:', todayString);
-    return appointmentString === todayString;
-  };
 
   // Filter appointments for today and for the current doctor if they are a doctor
   const todaysAppointments = appointments.filter(appointment => {

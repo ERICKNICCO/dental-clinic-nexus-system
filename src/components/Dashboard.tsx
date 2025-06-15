@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
@@ -59,6 +60,80 @@ const Dashboard: React.FC = () => {
   // Get current month name for display
   const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
 
+  // Helper function to check if appointment date is today (same as in AppointmentsTable)
+  const isAppointmentToday = (appointmentDate: string) => {
+    const today = new Date();
+    const todayString = today.getFullYear() + '-' + 
+      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(today.getDate()).padStart(2, '0');
+    
+    const appointmentDateObj = new Date(appointmentDate);
+    const appointmentString = appointmentDateObj.getFullYear() + '-' + 
+      String(appointmentDateObj.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(appointmentDateObj.getDate()).padStart(2, '0');
+    
+    return appointmentString === todayString;
+  };
+
+  // Helper function to normalize doctor names for comparison (same as in AppointmentsTable)
+  const normalizeDoctorName = (name: string) => {
+    if (!name) return '';
+    
+    return name.toLowerCase()
+      .replace(/^dr\.?\s*/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  // Helper function to check if two doctor names match (same as in AppointmentsTable)
+  const isDoctorNameMatch = (appointmentDoctor: string, userDoctor: string) => {
+    const normalizedAppointmentDoctor = normalizeDoctorName(appointmentDoctor);
+    const normalizedUserDoctor = normalizeDoctorName(userDoctor);
+    
+    if (normalizedAppointmentDoctor === normalizedUserDoctor) {
+      return true;
+    }
+    
+    const appointmentWords = normalizedAppointmentDoctor.split(' ').filter(word => word.length > 0);
+    const userWords = normalizedUserDoctor.split(' ').filter(word => word.length > 0);
+    
+    for (const appointmentWord of appointmentWords) {
+      for (const userWord of userWords) {
+        if (appointmentWord === userWord) {
+          return true;
+        }
+      }
+    }
+    
+    for (const appointmentWord of appointmentWords) {
+      if (normalizedUserDoctor.includes(appointmentWord)) {
+        return true;
+      }
+    }
+    
+    for (const userWord of userWords) {
+      if (normalizedAppointmentDoctor.includes(userWord)) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Calculate today's appointments using the same logic as AppointmentsTable
+  const todaysAppointmentsCount = appointments.filter(appointment => {
+    const isToday = isAppointmentToday(appointment.date);
+    
+    if (userProfile?.role === 'doctor') {
+      const appointmentDoctor = appointment.dentist || '';
+      const userDoctor = userProfile.name || '';
+      const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
+      return isToday && isDoctorMatch;
+    }
+    
+    return isToday;
+  }).length;
+
   const upcomingAppointments = appointments
     .filter((appt: Appointment) => new Date(appt.date) > new Date() && appt.status === 'Approved')
     .sort((a: Appointment, b: Appointment) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -70,7 +145,7 @@ const Dashboard: React.FC = () => {
       <div className={`grid grid-cols-1 md:grid-cols-2 ${isDoctor ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6 mb-6`}>
         <StatsCard 
           title={isDoctor ? `${currentMonthName} Confirmed Appointments` : "Today's Appointments"}
-          value={loading ? "..." : isDoctor ? stats.monthlyAppointments : stats.monthlyAppointments}
+          value={loading || appointmentsLoading ? "..." : isDoctor ? stats.monthlyAppointments : todaysAppointmentsCount}
           icon="calendar" 
           color="bg-blue-100 text-blue-600" 
         />
