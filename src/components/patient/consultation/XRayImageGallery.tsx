@@ -32,7 +32,8 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
           <DialogContent
             className="
               !p-0 !rounded-none !shadow-none !m-0
-              fixed inset-0 z-50 bg-black flex items-center justify-center
+              fixed inset-0 z-[9999] bg-black flex items-center justify-center
+              overflow-hidden
             "
             style={{
               width: "100vw",
@@ -40,19 +41,22 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
               minWidth: 0,
               minHeight: 0,
               backgroundColor: "rgba(0,0,0,0.99)",
-              overflow: "hidden"
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
             }}
           >
             <img
               src={img}
               alt={`X-ray ${idx + 1}`}
-              className="object-contain w-screen h-screen m-0 animate-scale-in"
+              className="object-contain max-w-full max-h-full w-auto h-auto animate-scale-in"
               style={{
                 display: "block",
                 maxWidth: "100vw",
                 maxHeight: "100vh",
-                minWidth: 0,
-                minHeight: 0,
+                margin: "auto",
                 background: "black"
               }}
             />
