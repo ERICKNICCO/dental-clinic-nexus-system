@@ -30,6 +30,7 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
             />
           </DialogTrigger>
           <DialogContent
+            // Remove custom styles, rely on tailwind for full-viewport centering.
             className="
               !p-0 !rounded-none !shadow-none !m-0
               fixed inset-0 z-[9999] bg-black flex items-center justify-center
@@ -50,24 +51,26 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
               zIndex: 9999,
             }}
           >
-            {/* The image is maximized, sharp, and centered */}
+            {/* TRUE fullscreen centered image */}
             <img
               src={img}
               alt={`X-ray ${idx + 1}`}
-              className="w-full h-full object-contain max-w-none max-h-none m-0 p-0 bg-black border-0 animate-scale-in"
+              className="
+                block 
+                max-w-screen max-h-screen w-auto h-auto 
+                m-0 p-0 bg-black border-0
+                object-contain
+                animate-scale-in
+              "
               style={{
                 display: "block",
-                width: "100vw",
-                height: "100vh",
                 background: "black",
-                objectFit: "contain",
                 margin: 0,
                 padding: 0,
                 border: 0,
-                boxShadow: "none",
               }}
             />
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-300 bg-black/60 px-3 py-1 rounded pointer-events-none select-none z-[10001]">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-gray-300 bg-black/60 px-3 py-1 rounded pointer-events-none select-none z-[10001]">
               Click outside, press ESC, or Close to return
             </div>
           </DialogContent>
