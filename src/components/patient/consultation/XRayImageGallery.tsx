@@ -18,6 +18,7 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
   }
 
   const handleImageClick = (img: string) => {
+    console.log('Image clicked:', img);
     setSelectedImage(img);
     setZoom(100);
     setRotation(0);
@@ -45,15 +46,16 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
     <>
       <div className="flex flex-row gap-4 overflow-x-auto">
         {images.map((img, idx) => (
-          <div key={img} className="relative group">
+          <div key={img} className="relative group cursor-pointer">
             <img
               src={img}
               alt={`X-ray ${idx + 1}`}
-              className="h-32 w-auto rounded shadow-md border hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105"
+              className="h-32 w-auto rounded shadow-md border hover:shadow-lg transition-all duration-200 hover:scale-105"
               title={`Click to view X-ray image ${idx + 1} in full screen`}
               onClick={() => handleImageClick(img)}
+              style={{ cursor: 'pointer' }}
             />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded flex items-center justify-center">
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded flex items-center justify-center pointer-events-none">
               <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" size={24} />
             </div>
           </div>
