@@ -59,6 +59,11 @@ function App() {
                   <PatientFilePage />
                 </ProtectedRoute>
               } />
+              <Route path="/patients/:patientId/file" element={
+                <ProtectedRoute>
+                  <PatientFilePage />
+                </ProtectedRoute>
+              } />
               <Route path="/treatments" element={
                 <ProtectedRoute>
                   <TreatmentPage />
