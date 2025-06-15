@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { 
   collection, 
@@ -91,75 +92,46 @@ export const usePatients = () => {
     }
   };
 
-  const cleanupDuplicatePatients = useCallback(async () => {
+  // New function to find existing patient by name, email, or phone
+  const findExistingPatient = async (patientData: { name: string; email?: string; phone: string }): Promise<Patient | null> => {
     try {
-      console.log('Starting duplicate patient cleanup...');
-      const q = query(collection(db, 'patients'));
-      const querySnapshot = await getDocs(q);
+      const patientsRef = collection(db, 'patients');
       
-      const patientMap = new Map();
-      const duplicatesToDelete: string[] = [];
+      // Check for exact name match first
+      const nameQuery = query(patientsRef, where('name', '==', patientData.name));
+      const nameSnapshot = await getDocs(nameQuery);
       
-      querySnapshot.forEach((docSnapshot) => {
-        const data = docSnapshot.data();
-        
-        // Safely handle name and phone fields
-        const name = typeof data.name === 'string' ? data.name.toLowerCase().trim() : '';
-        const phone = typeof data.phone === 'string' ? data.phone.trim() : 
-                     typeof data.phone === 'number' ? data.phone.toString() : '';
-        
-        const uniqueKey = `${name}-${phone}`;
-        
-        if (patientMap.has(uniqueKey)) {
-          // This is a duplicate - mark for deletion
-          const existing = patientMap.get(uniqueKey);
-          
-          // Keep the one with the earlier creation date or the one with more complete data
-          const currentCreatedAt = data.createdAt?.toDate?.() || new Date(data.createdAt) || new Date(0);
-          const existingCreatedAt = existing.data.createdAt?.toDate?.() || new Date(existing.data.createdAt) || new Date(0);
-          
-          if (currentCreatedAt < existingCreatedAt) {
-            // Current record is older, keep it and delete the existing one
-            duplicatesToDelete.push(existing.id);
-            patientMap.set(uniqueKey, { id: docSnapshot.id, data });
-          } else {
-            // Existing record is older, delete current one
-            duplicatesToDelete.push(docSnapshot.id);
-          }
-        } else {
-          patientMap.set(uniqueKey, { id: docSnapshot.id, data });
-        }
-      });
-      
-      // Delete duplicates
-      const deletePromises = duplicatesToDelete.map(async (docId) => {
-        console.log('Deleting duplicate patient with ID:', docId);
-        await deleteDoc(doc(db, 'patients', docId));
-      });
-      
-      if (deletePromises.length > 0) {
-        await Promise.all(deletePromises);
-        console.log(`Successfully deleted ${deletePromises.length} duplicate patients`);
-        toast({
-          title: "Duplicates Cleaned",
-          description: `Removed ${deletePromises.length} duplicate patient records`,
-        });
-      } else {
-        console.log('No duplicate patients found');
-        toast({
-          title: "No Duplicates Found",
-          description: "All patient records are unique",
-        });
+      if (!nameSnapshot.empty) {
+        const existingDoc = nameSnapshot.docs[0];
+        return { id: existingDoc.id, ...existingDoc.data() } as Patient;
       }
+      
+      // Check for phone match
+      const phoneQuery = query(patientsRef, where('phone', '==', patientData.phone));
+      const phoneSnapshot = await getDocs(phoneQuery);
+      
+      if (!phoneSnapshot.empty) {
+        const existingDoc = phoneSnapshot.docs[0];
+        return { id: existingDoc.id, ...existingDoc.data() } as Patient;
+      }
+      
+      // Check for email match if email is provided
+      if (patientData.email) {
+        const emailQuery = query(patientsRef, where('email', '==', patientData.email));
+        const emailSnapshot = await getDocs(emailQuery);
+        
+        if (!emailSnapshot.empty) {
+          const existingDoc = emailSnapshot.docs[0];
+          return { id: existingDoc.id, ...existingDoc.data() } as Patient;
+        }
+      }
+      
+      return null;
     } catch (error) {
-      console.error('Error during duplicate cleanup:', error);
-      toast({
-        title: "Cleanup Error",
-        description: "Failed to clean up duplicate patients",
-        variant: "destructive",
-      });
+      console.error('Error finding existing patient:', error);
+      return null;
     }
-  }, [toast]);
+  };
 
   const migrateExistingPatients = useCallback(async () => {
     try {
@@ -275,20 +247,15 @@ export const usePatients = () => {
     try {
       console.log('usePatients: Adding patient with data:', newPatientData);
       
-      // Check for existing patients with the same name, email, or phone (any match)
-      const patientsRef = collection(db, 'patients');
-      const [nameSnap, emailSnap, phoneSnap] = await Promise.all([
-        getDocs(query(patientsRef, where('name', '==', newPatientData.name))),
-        getDocs(query(patientsRef, where('email', '==', newPatientData.email))),
-        getDocs(query(patientsRef, where('phone', '==', newPatientData.phone)))
-      ]);
+      // Check if patient already exists
+      const existingPatient = await findExistingPatient({
+        name: newPatientData.name,
+        email: newPatientData.email,
+        phone: newPatientData.phone
+      });
       
-      if (!nameSnap.empty || !emailSnap.empty || !phoneSnap.empty) {
-        const duplicateFields = [];
-        if (!nameSnap.empty) duplicateFields.push(`name (${newPatientData.name})`);
-        if (!emailSnap.empty) duplicateFields.push(`email (${newPatientData.email})`);
-        if (!phoneSnap.empty) duplicateFields.push(`phone (${newPatientData.phone})`);
-        throw new Error(`A patient with the same ${duplicateFields.join(', ')} already exists.`);
+      if (existingPatient) {
+        throw new Error(`A patient with the same name, email, or phone already exists: ${existingPatient.name} (ID: ${existingPatient.patientId})`);
       }
 
       const now = new Date();
@@ -380,7 +347,7 @@ export const usePatients = () => {
     addPatient,
     updatePatient,
     deletePatient,
+    findExistingPatient,
     migrateExistingPatients,
-    cleanupDuplicatePatients,
   };
 };

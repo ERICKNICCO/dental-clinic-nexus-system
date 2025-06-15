@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from './ui/table';
 import { Button } from './ui/button';
-import { Search, UserPlus, FileText, Loader2, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, UserPlus, FileText, Loader2, Edit, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AddPatientModal from './patient/AddPatientModal';
 import EditPatientModal from './patient/EditPatientModal';
@@ -58,7 +59,7 @@ const PatientList: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const { patients, loading, error, addPatient, updatePatient, deletePatient, cleanupDuplicatePatients } = usePatients();
+  const { patients, loading, error, addPatient, updatePatient, deletePatient } = usePatients();
   const { userProfile } = useAuth();
   const { todaysAppointments, loading: appointmentsLoading } = useDoctorAppointments(userProfile?.name || '');
   const { appointments } = useAppointments();
@@ -115,10 +116,6 @@ const PatientList: React.FC = () => {
     }
   };
 
-  const handleCleanupDuplicates = async () => {
-    await cleanupDuplicatePatients();
-  };
-
   const formatInsuranceProvider = (insurance: string) => {
     if (insurance.toLowerCase() === 'jubilee') {
       return 'Jubilee';
@@ -161,16 +158,6 @@ const PatientList: React.FC = () => {
           />
         </div>
         <div className="flex gap-2">
-          {userProfile?.role === 'admin' && (
-            <Button 
-              variant="outline" 
-              onClick={handleCleanupDuplicates}
-              className="text-orange-600 hover:text-orange-700 border-orange-200"
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Clean Duplicates
-            </Button>
-          )}
           <Button onClick={() => setIsAddModalOpen(true)}>
             <UserPlus className="mr-2" />
             Add Patient
