@@ -54,19 +54,13 @@ const AppointmentCalendar: React.FC = () => {
     setCurrentMonth('July 2025');
   };
 
-  // Generate days for the demo calendar view
+  // Generate days for June 2025 (June 1st is a Sunday)
   const generateCalendarDays = () => {
     const days = [];
-    const previousMonthDays = [28, 29, 30, 31];
-    const currentMonthDays = Array.from({ length: 30 }, (_, i) => i + 1);
-    const nextMonthDays = [1, 2, 3, 4, 5];
+    const previousMonthDays = []; // No previous month days needed since June 1st is Sunday
+    const currentMonthDays = Array.from({ length: 30 }, (_, i) => i + 1); // June has 30 days
     
-    // Add previous month days
-    for (const day of previousMonthDays) {
-      days.push({ day, isCurrentMonth: false });
-    }
-    
-    // Add current month days
+    // Add current month days (June 1-30, 2025)
     for (const day of currentMonthDays) {
       days.push({
         day,
@@ -76,8 +70,9 @@ const AppointmentCalendar: React.FC = () => {
       });
     }
     
-    // Add next month days
-    for (const day of nextMonthDays) {
+    // Fill remaining slots with next month days (July 1-12)
+    const remainingSlots = 42 - currentMonthDays.length; // 6 rows × 7 days = 42 total slots
+    for (let day = 1; day <= remainingSlots; day++) {
       days.push({ day, isCurrentMonth: false });
     }
     
