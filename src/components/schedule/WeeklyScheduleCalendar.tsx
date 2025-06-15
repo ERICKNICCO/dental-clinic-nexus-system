@@ -35,21 +35,6 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
     }
   };
 
-  // Get doctor initials from name
-  const getDoctorInitials = (doctorName: string) => {
-    if (!doctorName) return 'D';
-    
-    // Remove "Dr." prefix if present
-    const cleanName = doctorName.replace(/^Dr\.?\s*/i, '').trim();
-    
-    return cleanName
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   // Get all unique time slots across all days for consistent grid layout
   const getAllTimeSlots = () => {
     const allSlots = new Set<string>();
@@ -188,23 +173,6 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
       
       <div className="overflow-x-auto">
         <div className="min-w-[800px]">
-          {/* Doctor Cards */}
-          <div className="p-4 border-b bg-gray-50">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {doctorSchedules.map((doctor) => (
-                <div key={doctor.doctorName} className="flex items-center space-x-3 bg-white p-3 rounded-lg shadow-sm">
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                    {getDoctorInitials(doctor.doctorName)}
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">{doctor.doctorName}</h3>
-                    <p className="text-xs text-gray-500">Available this week</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Header */}
           <div className="grid grid-cols-8 border-b bg-gray-50">
             <div className="p-4 font-medium text-gray-700 border-r">Time</div>
@@ -224,7 +192,7 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
           {allTimeSlots.map(timeSlot => (
             <div key={timeSlot} className="grid grid-cols-8 border-b hover:bg-gray-50">
               <div className="p-4 font-medium text-gray-600 border-r bg-blue-50">
-                {timeSlot}:00
+                {timeSlot}
               </div>
               {daysOfWeek.map(day => {
                 const isAvailable = isTimeSlotAvailable(day.full, timeSlot);
