@@ -10,7 +10,7 @@ import ConsultationTabs from './consultation/ConsultationTabs';
 import StartConsultation from './consultation/StartConsultation';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Clock, User } from 'lucide-react';
+import { Clock, User, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ConsultationWorkflowProps {
@@ -20,7 +20,7 @@ interface ConsultationWorkflowProps {
 
 const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, patientName }) => {
   const { currentUser, userProfile } = useAuth();
-  const { activeConsultation, loading, startConsultation, updateConsultation, completeConsultation } = useConsultation(patientId);
+  const { activeConsultation, loading, startConsultation, updateConsultation, completeConsultation, refreshConsultation } = useConsultation(patientId);
   const { checkedInAppointments } = useDoctorAppointments(userProfile?.name || '');
   const { addRecord } = useMedicalHistory(patientId);
   const { addNote, refreshNotes } = useTreatmentNotes(patientId);
@@ -29,6 +29,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
   const [selectedAppointment, setSelectedAppointment] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Find appointment for this patient
   const patientAppointment = checkedInAppointments.find(
@@ -50,6 +51,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
         examination: activeConsultation.examination || '',
         vitalSigns: activeConsultation.vitalSigns || {},
         diagnosis: activeConsultation.diagnosis || '',
+        diagnosisType: activeConsultation.diagnosisType || 'clinical',
         treatmentPlan: activeConsultation.treatmentPlan || '',
         prescriptions: activeConsultation.prescriptions || '',
         followUpInstructions: activeConsultation.followUpInstructions || '',
@@ -59,6 +61,42 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       });
     }
   }, [activeConsultation]);
+
+  // Auto-refresh consultation when status is waiting-xray to check for updates
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (activeConsultation?.status === 'waiting-xray') {
+      console.log('Setting up auto-refresh for X-ray status');
+      interval = setInterval(async () => {
+        console.log('Auto-refreshing consultation for X-ray updates');
+        if (refreshConsultation) {
+          await refreshConsultation();
+        }
+      }, 10000); // Check every 10 seconds
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [activeConsultation?.status, refreshConsultation]);
+
+  const handleRefreshConsultation = async () => {
+    if (!refreshConsultation) return;
+    
+    setRefreshing(true);
+    try {
+      await refreshConsultation();
+      toast.success('Consultation data refreshed');
+    } catch (error) {
+      console.error('Failed to refresh consultation:', error);
+      toast.error('Failed to refresh consultation data');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleStartConsultation = async () => {
     if (!currentUser || !userProfile) return;
@@ -250,9 +288,23 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       {activeConsultation.appointmentId && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>Consultation started from scheduled appointment</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>Consultation started from scheduled appointment</span>
+              </div>
+              {(activeConsultation.status === 'waiting-xray' || activeConsultation.status === 'xray-done') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshConsultation}
+                  disabled={refreshing}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  {refreshing ? 'Refreshing...' : 'Refresh X-ray Status'}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
