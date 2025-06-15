@@ -64,10 +64,10 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
 
       {/* Full Screen Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => closeModal()}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black">
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-full h-full p-0 bg-black border-0">
           <div className="relative w-full h-full flex flex-col">
             {/* Header with controls */}
-            <div className="absolute top-0 left-0 right-0 z-10 bg-black bg-opacity-80 p-4 flex justify-between items-center">
+            <div className="absolute top-0 left-0 right-0 z-10 bg-black bg-opacity-90 p-4 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -102,13 +102,13 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
               </DialogClose>
             </div>
 
-            {/* Image container */}
-            <div className="flex-1 flex items-center justify-center p-16 overflow-hidden">
+            {/* Full-screen image container */}
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
               {selectedImage && (
                 <img
                   src={selectedImage}
                   alt="X-ray full screen"
-                  className="max-w-none h-auto object-contain transition-all duration-300 ease-in-out"
+                  className="w-full h-full object-contain transition-all duration-300 ease-in-out"
                   style={{
                     transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
                     imageRendering: 'crisp-edges',
@@ -120,7 +120,7 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
             </div>
 
             {/* Instructions */}
-            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-80 p-4 text-center">
+            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-90 p-4 text-center">
               <p className="text-white text-sm">
                 Use the zoom controls to examine details • Rotate the image for better viewing angle • Click X or press ESC to close
               </p>
