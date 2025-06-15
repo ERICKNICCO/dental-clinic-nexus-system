@@ -102,7 +102,13 @@ export const usePatients = () => {
       
       querySnapshot.forEach((docSnapshot) => {
         const data = docSnapshot.data();
-        const uniqueKey = `${data.name?.toLowerCase()?.trim()}-${data.phone?.trim()}`;
+        
+        // Safely handle name and phone fields
+        const name = typeof data.name === 'string' ? data.name.toLowerCase().trim() : '';
+        const phone = typeof data.phone === 'string' ? data.phone.trim() : 
+                     typeof data.phone === 'number' ? data.phone.toString() : '';
+        
+        const uniqueKey = `${name}-${phone}`;
         
         if (patientMap.has(uniqueKey)) {
           // This is a duplicate - mark for deletion
