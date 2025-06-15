@@ -45,6 +45,17 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
     logout();
   };
 
+  const handleNotificationClick = async (notificationId: string) => {
+    console.log('Notification clicked:', notificationId);
+    try {
+      await markAsRead(notificationId);
+      console.log('Notification marked as read successfully');
+      // Keep dropdown open so user can see the change
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
   const formatTimeAgo = (timestamp: Date) => {
     const now = new Date();
     const diff = now.getTime() - timestamp.getTime();
@@ -89,28 +100,30 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                 <div className="py-1">
                   <div className="px-4 py-2 border-b border-gray-200 flex justify-between items-center">
                     <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
-                    <button
-                      onClick={() => setShowAllNotifications(!showAllNotifications)}
-                      className="text-xs text-gray-600 hover:text-gray-800"
-                    >
-                      {showAllNotifications ? 'Show unread only' : 'Show all'}
-                    </button>
-                    {unreadCount > 0 && (
+                    <div className="flex items-center space-x-2">
                       <button
-                        onClick={clearAllNotifications}
-                        className="text-xs text-blue-600 hover:text-blue-800"
+                        onClick={() => setShowAllNotifications(!showAllNotifications)}
+                        className="text-xs text-gray-600 hover:text-gray-800"
                       >
-                        Mark all read
+                        {showAllNotifications ? 'Show unread only' : 'Show all'}
                       </button>
-                    )}
-                    {notifications.length > unreadCount && unreadCount === 0 && (
-                      <button
-                        onClick={markAllAsUnread}
-                        className="text-xs text-blue-600 hover:text-blue-800 ml-2"
-                      >
-                        Mark all unread
-                      </button>
-                    )}
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={clearAllNotifications}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                      {notifications.length > unreadCount && unreadCount === 0 && (
+                        <button
+                          onClick={markAllAsUnread}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Mark all unread
+                        </button>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="max-h-96 overflow-y-auto">
@@ -126,10 +139,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                           className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
                             !notification.read ? 'bg-blue-50' : ''
                           }`}
-                          onClick={() => {
-                            markAsRead(notification.id);
-                            setShowNotifications(false);
-                          }}
+                          onClick={() => handleNotificationClick(notification.id)}
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
