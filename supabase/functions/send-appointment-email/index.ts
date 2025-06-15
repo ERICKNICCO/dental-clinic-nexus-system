@@ -79,6 +79,7 @@ serve(async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
+    console.error('Error in send-appointment-email:', error);
     try {
       // Try logging the failing email to the DB
       const body = await req.clone().json();
@@ -125,7 +126,7 @@ function getEmailSubject(emailType: string, patientName: string): string {
   }
 }
 
-// New: More professional, modern styling for emails
+// Fixed: More professional, modern styling for emails without undefined logoUrl
 function getProfessionalEmailContent(
   emailType: string,
   patientName: string,
@@ -134,8 +135,6 @@ function getProfessionalEmailContent(
   treatment: string,
   dentist: string
 ): string {
-  // Optionally, you can use a logo image link here
-  // const logoUrl = "https://yourdomain.com/logo.png";
   const clinicBrandColor = "#2563eb"; // brand blue
   const secondaryColor = "#f4f8ff"; // pale blue bg box
   const cardShadow = "0 4px 20px rgba(37,99,235,0.09)";
@@ -189,9 +188,7 @@ function getProfessionalEmailContent(
             <table align="center" width="600" style="background:#fff; border-radius:14px; box-shadow:${cardShadow}; padding: 0 0 32px 0;">
               <tr>
                 <td style="text-align:center; padding-top:32px;">
-                  <!-- If you add a logo URL, uncomment this line
-                  <img src="${logoUrl}" alt="Dental Clinic Logo" height="60" style="margin-bottom:10px;" /> -->
-                  <h1 style="margin:0; color:${clinicBrandColor}; font-family:Segoe UI,Arial,sans-serif; font-size:2rem; letter-spacing:1px;">Dental Clinic</h1>
+                  <h1 style="margin:0; color:${clinicBrandColor}; font-family:Segoe UI,Arial,sans-serif; font-size:2rem; letter-spacing:1px;">SD Dental Clinic</h1>
                 </td>
               </tr>
               <tr>
