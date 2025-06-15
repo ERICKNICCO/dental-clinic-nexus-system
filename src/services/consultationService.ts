@@ -48,6 +48,13 @@ export interface Consultation {
   completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+
+  // Add the xrayResult field
+  xrayResult?: {
+    images: string[];
+    note: string;
+    radiologist: string;
+  } | null;
 }
 
 // Helper function to remove undefined values
