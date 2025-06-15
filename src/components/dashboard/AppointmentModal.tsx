@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import { useAppointments } from '../../hooks/useAppointments';
+import { usePatients } from '../../hooks/usePatients';
 import { useToast } from '../../hooks/use-toast';
 
 interface AppointmentModalProps {
@@ -19,9 +20,21 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
     status: 'Pending' as 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved',
     notes: ''
   });
+  
+  const [isNewPatient, setIsNewPatient] = useState(true);
+  const [selectedPatientId, setSelectedPatientId] = useState('');
+  const [patientSearch, setPatientSearch] = useState('');
 
   const { addAppointment, updateAppointment } = useAppointments();
+  const { patients } = usePatients();
   const { toast } = useToast();
+
+  // Filter patients based on search term
+  const filteredPatients = patients.filter(patient =>
+    patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
+    patient.phone.includes(patientSearch) ||
+    (patient.email && patient.email.toLowerCase().includes(patientSearch.toLowerCase()))
+  );
 
   useEffect(() => {
     if (appointment) {
@@ -39,6 +52,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
         status: appointment.status,
         notes: appointment.notes || ''
       });
+      setIsNewPatient(false);
     } else {
       // Reset form for new appointment
       setFormData({
@@ -50,8 +64,25 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
         status: 'Pending',
         notes: ''
       });
+      setIsNewPatient(true);
+      setSelectedPatientId('');
+      setPatientSearch('');
     }
   }, [appointment, isOpen]);
+
+  const handlePatientSelect = (patient: any) => {
+    setSelectedPatientId(patient.id);
+    setFormData({
+      ...formData,
+      patient: {
+        name: patient.name,
+        phone: patient.phone,
+        email: patient.email || '',
+        image: 'https://randomuser.me/api/portraits/men/32.jpg'
+      }
+    });
+    setPatientSearch(patient.name);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +125,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b px-6 py-4">
           <h3 className="text-lg font-semibold">{appointment ? 'Edit Appointment' : 'New Appointment'}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -103,28 +134,112 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
         </div>
         <div className="p-6">
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-gray-700 mb-2">Patient Name</label>
-                <input 
-                  type="text"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
-                  value={formData.patient.name}
-                  onChange={(e) => setFormData({...formData, patient: {...formData.patient, name: e.target.value}})}
-                  required
-                />
+            <div className="grid grid-cols-1 gap-6">
+              {/* Patient Selection Toggle */}
+              {!appointment && (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex gap-4 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNewPatient(false);
+                        setFormData({...formData, patient: {name: '', phone: '', email: '', image: ''}});
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium ${
+                        !isNewPatient 
+                          ? 'bg-dental-600 text-white' 
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Select Existing Patient
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNewPatient(true);
+                        setSelectedPatientId('');
+                        setPatientSearch('');
+                        setFormData({...formData, patient: {name: '', phone: '', email: '', image: ''}});
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium ${
+                        isNewPatient 
+                          ? 'bg-dental-600 text-white' 
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      New Patient
+                    </button>
+                  </div>
+
+                  {/* Existing Patient Search */}
+                  {!isNewPatient && (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <input
+                          type="text"
+                          placeholder="Search existing patients..."
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dental-500"
+                          value={patientSearch}
+                          onChange={(e) => setPatientSearch(e.target.value)}
+                        />
+                      </div>
+                      
+                      {patientSearch && !selectedPatientId && (
+                        <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
+                          {filteredPatients.length > 0 ? (
+                            filteredPatients.slice(0, 5).map((patient) => (
+                              <button
+                                key={patient.id}
+                                type="button"
+                                onClick={() => handlePatientSelect(patient)}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="font-medium">{patient.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  {patient.phone} {patient.email && `• ${patient.email}`}
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-2 text-gray-500 text-center">
+                              No patients found
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Patient Information Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-gray-700 mb-2">Patient Name</label>
+                  <input 
+                    type="text"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
+                    value={formData.patient.name}
+                    onChange={(e) => setFormData({...formData, patient: {...formData.patient, name: e.target.value}})}
+                    required
+                    disabled={!isNewPatient && selectedPatientId}
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-2">Patient Phone</label>
+                  <input 
+                    type="tel"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
+                    value={formData.patient.phone}
+                    onChange={(e) => setFormData({...formData, patient: {...formData.patient, phone: e.target.value}})}
+                    required
+                    disabled={!isNewPatient && selectedPatientId}
+                  />
+                </div>
               </div>
+              
               <div>
-                <label className="block text-gray-700 mb-2">Patient Phone</label>
-                <input 
-                  type="tel"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
-                  value={formData.patient.phone}
-                  onChange={(e) => setFormData({...formData, patient: {...formData.patient, phone: e.target.value}})}
-                  required
-                />
-              </div>
-              <div className="md:col-span-2">
                 <label className="block text-gray-700 mb-2">Patient Email</label>
                 <input 
                   type="email"
@@ -132,77 +247,83 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                   value={formData.patient.email}
                   onChange={(e) => setFormData({...formData, patient: {...formData.patient, email: e.target.value}})}
                   placeholder="Email for appointment notifications"
+                  disabled={!isNewPatient && selectedPatientId}
                 />
                 <p className="text-sm text-gray-500 mt-1">Email is required for appointment confirmation notifications</p>
               </div>
-              <div>
-                <label className="block text-gray-700 mb-2">Dentist</label>
-                <select 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
-                  value={formData.dentist}
-                  onChange={(e) => setFormData({...formData, dentist: e.target.value})}
-                  required
-                >
-                  <option value="">Select Dentist</option>
-                  <option>Dr. Shabbir</option>
-                  <option>Dr. Israel</option>
-                  <option>Dr. Rashid</option>
-                  <option>Dr. Nyaki</option>
-                </select>
+
+              {/* Appointment Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-gray-700 mb-2">Dentist</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
+                    value={formData.dentist}
+                    onChange={(e) => setFormData({...formData, dentist: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Dentist</option>
+                    <option>Dr. Shabbir</option>
+                    <option>Dr. Israel</option>
+                    <option>Dr. Rashid</option>
+                    <option>Dr. Nyaki</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-2">Date</label>
+                  <input 
+                    type="date" 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-2">Time</label>
+                  <input 
+                    type="time" 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
+                    value={formData.time}
+                    onChange={(e) => setFormData({...formData, time: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-2">Treatment</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
+                    value={formData.treatment}
+                    onChange={(e) => setFormData({...formData, treatment: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Treatment</option>
+                    <option>Checkup</option>
+                    <option>Cleaning</option>
+                    <option>Filling</option>
+                    <option>Root Canal</option>
+                    <option>Extraction</option>
+                    <option>Whitening</option>
+                    <option>Braces</option>
+                    <option>Implant</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-2">Status</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value as any})}
+                  >
+                    <option>Pending</option>
+                    <option>Confirmed</option>
+                    <option>Cancelled</option>
+                    <option>Approved</option>
+                  </select>
+                </div>
               </div>
+              
               <div>
-                <label className="block text-gray-700 mb-2">Date</label>
-                <input 
-                  type="date" 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2">Time</label>
-                <input 
-                  type="time" 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
-                  value={formData.time}
-                  onChange={(e) => setFormData({...formData, time: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2">Treatment</label>
-                <select 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
-                  value={formData.treatment}
-                  onChange={(e) => setFormData({...formData, treatment: e.target.value})}
-                  required
-                >
-                  <option value="">Select Treatment</option>
-                  <option>Checkup</option>
-                  <option>Cleaning</option>
-                  <option>Filling</option>
-                  <option>Root Canal</option>
-                  <option>Extraction</option>
-                  <option>Whitening</option>
-                  <option>Braces</option>
-                  <option>Implant</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2">Status</label>
-                <select 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
-                  value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value as any})}
-                >
-                  <option>Pending</option>
-                  <option>Confirmed</option>
-                  <option>Cancelled</option>
-                  <option>Approved</option>
-                </select>
-              </div>
-              <div className="md:col-span-2">
                 <label className="block text-gray-700 mb-2">Notes</label>
                 <textarea 
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500" 
@@ -212,6 +333,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                 ></textarea>
               </div>
             </div>
+            
             <div className="flex justify-end border-t px-6 py-4 mt-6">
               <button 
                 type="button"
