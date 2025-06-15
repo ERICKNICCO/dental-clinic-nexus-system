@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { appointmentService } from '../services/appointmentService';
@@ -40,14 +41,31 @@ export const useNotifications = () => {
 
   const markAsRead = async (id: string) => {
     try {
+      // Optimistically update the UI first
+      const wasUnread = notifications.find(n => n.id === id && !n.read);
+      
       setNotifications(prev => prev.map(n =>
         n.id === id ? { ...n, read: true } : n
       ));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      // Only decrease count if notification was actually unread
+      if (wasUnread) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
 
+      // Then update in Firestore
       await notificationService.markNotificationAsRead(id);
+      console.log(`Notification ${id} marked as read, unread count updated`);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
+      // Revert optimistic update on error
+      const originalNotification = notificationsRef.current.find(n => n.id === id);
+      if (originalNotification) {
+        setNotifications(prev => prev.map(n =>
+          n.id === id ? originalNotification : n
+        ));
+        setUnreadCount(notificationsRef.current.filter(n => !n.read).length);
+      }
     }
   };
 
@@ -71,7 +89,7 @@ export const useNotifications = () => {
 
       await notificationService.markAllAsUnread(readNotifications.map(n => n.id));
       setNotifications(prev => prev.map(n => ({ ...n, read: false })));
-      setUnreadCount(readNotifications.length);
+      setUnreadCount(notifications.length);
     } catch (error) {
       console.error('Failed to mark all notifications as unread:', error);
     }
@@ -116,8 +134,11 @@ export const useNotifications = () => {
 
     const unsubscribe = notificationService.subscribeToNotifications(
       updatedNotifications => {
+        console.log('Notifications updated:', updatedNotifications.length);
         setNotifications(updatedNotifications);
-        setUnreadCount(updatedNotifications.filter(n => !n.read).length);
+        const newUnreadCount = updatedNotifications.filter(n => !n.read).length;
+        console.log('Unread count:', newUnreadCount);
+        setUnreadCount(newUnreadCount);
       },
       userProfile.role === 'doctor' ? userProfile.name : undefined
     );
