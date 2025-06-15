@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppointments } from '../../hooks/useAppointments';
@@ -7,6 +8,63 @@ const AppointmentCalendar: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState('June 2025');
   const { appointments, loading } = useAppointments();
   const { userProfile } = useAuth();
+
+  // Helper function to normalize doctor names for comparison
+  const normalizeDoctorName = (name: string) => {
+    if (!name) return '';
+    
+    // Remove "Dr." prefix and normalize
+    return name.toLowerCase()
+      .replace(/^dr\.?\s*/i, '') // Remove "Dr." or "Dr" prefix
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim();
+  };
+
+  // Helper function to check if two doctor names match
+  const isDoctorNameMatch = (appointmentDoctor: string, userDoctor: string) => {
+    const normalizedAppointmentDoctor = normalizeDoctorName(appointmentDoctor);
+    const normalizedUserDoctor = normalizeDoctorName(userDoctor);
+    
+    console.log('Calendar - Comparing normalized names:', normalizedAppointmentDoctor, 'vs', normalizedUserDoctor);
+    
+    // Exact match
+    if (normalizedAppointmentDoctor === normalizedUserDoctor) {
+      console.log('Calendar - Exact match found');
+      return true;
+    }
+    
+    // Split both names into words for better matching
+    const appointmentWords = normalizedAppointmentDoctor.split(' ').filter(word => word.length > 0);
+    const userWords = normalizedUserDoctor.split(' ').filter(word => word.length > 0);
+    
+    // Check if any word from appointment doctor matches any word from user doctor
+    for (const appointmentWord of appointmentWords) {
+      for (const userWord of userWords) {
+        if (appointmentWord === userWord) {
+          console.log('Calendar - Word match found:', appointmentWord, '=', userWord);
+          return true;
+        }
+      }
+    }
+    
+    // Check if appointment doctor contains any user word or vice versa
+    for (const appointmentWord of appointmentWords) {
+      if (normalizedUserDoctor.includes(appointmentWord)) {
+        console.log('Calendar - Appointment word found in user name:', appointmentWord);
+        return true;
+      }
+    }
+    
+    for (const userWord of userWords) {
+      if (normalizedAppointmentDoctor.includes(userWord)) {
+        console.log('Calendar - User word found in appointment name:', userWord);
+        return true;
+      }
+    }
+    
+    console.log('Calendar - No match found');
+    return false;
+  };
   
   // Filter appointments for the current doctor if they are a doctor
   const doctorAppointments = userProfile?.role === 'doctor' 
@@ -16,9 +74,8 @@ const AppointmentCalendar: React.FC = () => {
         
         console.log('Calendar filtering - Appointment doctor:', appointmentDoctor, 'User:', userDoctor);
         
-        return appointmentDoctor.includes(userDoctor) || 
-               userDoctor.includes(appointmentDoctor) ||
-               appointmentDoctor === userDoctor;
+        // Use the flexible matching function
+        return isDoctorNameMatch(appointment.dentist || '', userProfile.name || '');
       })
     : appointments;
 
@@ -36,6 +93,8 @@ const AppointmentCalendar: React.FC = () => {
              appointmentDate.getMonth() === today.getMonth() && 
              appointmentDate.getFullYear() === today.getFullYear();
     });
+    
+    console.log('Calendar - Current month appointments:', currentMonthAppointments);
     
     return currentMonthAppointments.map(appointment => {
       const date = new Date(appointment.date);
