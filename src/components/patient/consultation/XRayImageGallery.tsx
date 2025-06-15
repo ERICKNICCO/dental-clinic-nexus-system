@@ -158,7 +158,7 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
                   maxHeight: 'none',
                   width: 'auto',
                   height: 'auto',
-                  imageRendering: 'high-quality',
+                  imageRendering: 'crisp-edges',
                 }}
                 draggable={false}
               />
