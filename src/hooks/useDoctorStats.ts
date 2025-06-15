@@ -26,7 +26,10 @@ export const useDoctorStats = (doctorName: string, userRole?: string) => {
       const now = new Date();
       const currentMonth = now.getMonth(); // 0-11
       const currentYear = now.getFullYear();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at 00:00:00
+      const todayString = now.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      
+      console.log('Stats calculation - Today string:', todayString);
+      console.log('Stats calculation - User role:', userRole, 'Doctor name:', doctorName);
       
       // Helper function to normalize doctor names for comparison
       const normalizeDoctorName = (name: string) => {
@@ -87,7 +90,6 @@ export const useDoctorStats = (doctorName: string, userRole?: string) => {
       }
       // For admin or other roles, use all appointments (no filtering)
 
-      console.log('Stats calculation - User role:', userRole, 'Doctor name:', doctorName);
       console.log('Stats calculation - Total appointments:', appointments.length);
       console.log('Stats calculation - Filtered appointments:', filteredAppointments.length);
 
@@ -109,10 +111,9 @@ export const useDoctorStats = (doctorName: string, userRole?: string) => {
       } else {
         // For admin: Count today's appointments (any status)
         appointmentCount = filteredAppointments.filter(appointment => {
-          const appointmentDate = new Date(appointment.date);
-          const appointmentDateOnly = new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate());
-          
-          return appointmentDateOnly.getTime() === today.getTime();
+          const appointmentDateString = appointment.date; // Should be in YYYY-MM-DD format
+          console.log('Comparing appointment date:', appointmentDateString, 'with today:', todayString);
+          return appointmentDateString === todayString;
         }).length;
         console.log('Stats calculation - Today\'s appointments for admin:', appointmentCount);
       }
