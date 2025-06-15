@@ -78,7 +78,7 @@ function App() {
               } />
               <Route path="/pricing" element={
                 <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['admin']}>
+                  <RoleBasedRoute allowedRoles={['admin', 'doctor']}>
                     <TreatmentPricingPage />
                   </RoleBasedRoute>
                 </ProtectedRoute>
