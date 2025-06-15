@@ -63,7 +63,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const subject = getEmailSubject(emailType, patientName);
-    const htmlContent = getProfessionalEmailContent(emailType, patientName, appointmentDate, appointmentTime, treatment, dentist);
+    const htmlContent = getModernEmailContent(emailType, patientName, appointmentDate, appointmentTime, treatment, dentist);
 
     console.log('📬 Email subject:', subject);
     console.log('📮 About to send email via Resend...');
@@ -152,8 +152,7 @@ function getEmailSubject(emailType: string, patientName: string): string {
   }
 }
 
-// Fixed: More professional, modern styling for emails without undefined logoUrl
-function getProfessionalEmailContent(
+function getModernEmailContent(
   emailType: string,
   patientName: string,
   date: string,
@@ -161,106 +160,137 @@ function getProfessionalEmailContent(
   treatment: string,
   dentist: string
 ): string {
-  const clinicBrandColor = "#2563eb"; // brand blue
-  const secondaryColor = "#f4f8ff"; // pale blue bg box
-  const cardShadow = "0 4px 20px rgba(37,99,235,0.09)";
-  const now = new Date();
-  const year = now.getFullYear();
-
+  let headerTitle = "";
   let mainMessage = "";
+  let bottomMessage = "";
+
   switch (emailType) {
     case "confirmation":
-      mainMessage =
-        "Your appointment has been <span style='color:#249749; font-weight:600'>confirmed</span>! We look forward to seeing you.";
+      headerTitle = "Appointment Confirmed";
+      mainMessage = "We are pleased to confirm your dental appointment. Below are your appointment details:";
+      bottomMessage = "Please arrive <strong>15 minutes early</strong> for check-in. If you have any questions, feel free to contact us.";
       break;
     case "approval":
-      mainMessage =
-        "Great news! Your appointment request has been <span style='color:#249749; font-weight:600'>approved</span>.";
+      headerTitle = "Appointment Approved";
+      mainMessage = "Great news! Your appointment request has been approved. Below are your appointment details:";
+      bottomMessage = "Please arrive <strong>15 minutes early</strong> for check-in. If you have any questions, feel free to contact us.";
       break;
     case "reminder":
-      mainMessage =
-        "This is a friendly reminder about your upcoming dental appointment.";
+      headerTitle = "Appointment Reminder";
+      mainMessage = "This is a friendly reminder about your upcoming dental appointment:";
+      bottomMessage = "Please arrive <strong>15 minutes early</strong> for check-in. If you have any questions, feel free to contact us.";
       break;
     case "cancellation":
-      mainMessage =
-        "<span style='color:#e84141; font-weight:600'>We regret to inform you that your appointment has been cancelled.</span>";
+      headerTitle = "Appointment Cancelled";
+      mainMessage = "We regret to inform you that your appointment has been cancelled. Here were your appointment details:";
+      bottomMessage = "Please contact us to reschedule at your convenience. We apologize for any inconvenience.";
       break;
     default:
-      mainMessage = "Please see your appointment details below.";
+      headerTitle = "Appointment Update";
+      mainMessage = "Please see your appointment details below:";
+      bottomMessage = "Please arrive <strong>15 minutes early</strong> for check-in. If you have any questions, feel free to contact us.";
       break;
-  }
-
-  let bottomMessage = "";
-  if (emailType === "cancellation") {
-    bottomMessage =
-      "<p style='margin:18px 0 0 0'>Please contact us to reschedule at your convenience.</p>";
-  } else {
-    bottomMessage =
-      "<p style='margin:18px 0 0 0'>Please arrive <b>15 minutes early</b> for check-in.</p>";
   }
 
   return `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width,initial-scale=1" />
-      <title>Appointment Notification</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <title>${headerTitle}</title>
+      <style>
+        body {
+          background-color: #f3f4f6;
+          font-family: 'Helvetica Neue', Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+        }
+        .email-container {
+          max-width: 600px;
+          margin: 40px auto;
+          background-color: #ffffff;
+          border-radius: 10px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+          background-color: #007BFF;
+          padding: 30px 20px;
+          color: white;
+          text-align: center;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          letter-spacing: 1px;
+        }
+        .content {
+          padding: 30px 20px;
+          color: #333;
+        }
+        .content h2 {
+          font-size: 18px;
+          color: #007BFF;
+        }
+        .content p {
+          line-height: 1.6;
+          font-size: 15px;
+        }
+        .appointment-box {
+          background-color: #f1f5ff;
+          border-left: 5px solid #007BFF;
+          padding: 15px 20px;
+          margin-top: 20px;
+          border-radius: 8px;
+        }
+        .appointment-box p {
+          margin: 6px 0;
+          font-size: 15px;
+        }
+        .footer {
+          background-color: #f9fafb;
+          text-align: center;
+          font-size: 13px;
+          padding: 20px;
+          color: #777;
+        }
+        .footer a {
+          color: #007BFF;
+          text-decoration: none;
+        }
+      </style>
     </head>
-    <body style="background:${secondaryColor}; margin:0; padding:0; font-family:Segoe UI,Arial,sans-serif;">
-      <table align="center" width="100%" bgcolor="${secondaryColor}" style="padding:32px 0;">
-        <tr>
-          <td>
-            <table align="center" width="600" style="background:#fff; border-radius:14px; box-shadow:${cardShadow}; padding: 0 0 32px 0;">
-              <tr>
-                <td style="text-align:center; padding-top:32px;">
-                  <h1 style="margin:0; color:${clinicBrandColor}; font-family:Segoe UI,Arial,sans-serif; font-size:2rem; letter-spacing:1px;">SD Dental Clinic</h1>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px 48px 0 48px;">
-                  <h2 style="font-weight:600; color:#101828; font-size:1.18rem; margin: 0 0 12px 0;">Dear ${patientName},</h2>
-                  <p style="font-size: 1rem; color:#182136; margin:0 0 18px 0;">${mainMessage}</p>
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0; background:${secondaryColor}; border-radius:10px;">
-                    <tr>
-                      <td style="padding:18px 26px;">
-                        <h3 style="margin:0 0 10px 0; color:${clinicBrandColor}; font-size:1rem; font-weight:600; letter-spacing:0.5px;">Appointment Details</h3>
-                        <table style="color:#222; font-size:1rem;">
-                          <tr>
-                            <td style="padding: 4px 14px 4px 0;"><strong>Date:</strong></td>
-                            <td>${date}</td>
-                          </tr>
-                          <tr>
-                            <td style="padding: 4px 14px 4px 0;"><strong>Time:</strong></td>
-                            <td>${time}</td>
-                          </tr>
-                          <tr>
-                            <td style="padding: 4px 14px 4px 0;"><strong>Treatment:</strong></td>
-                            <td>${treatment}</td>
-                          </tr>
-                          <tr>
-                            <td style="padding: 4px 14px 4px 0;"><strong>Dentist:</strong></td>
-                            <td>${dentist}</td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
-                  ${bottomMessage}
-                  <p style="margin:18px 0 0 0; color:#536178;">If you have any questions, please contact our clinic.</p>
-                  <div style="margin:32px 0 0 0; border-top:1px solid #e5e8f2; padding-top:18px; text-align:left">
-                    <p style="color:#777d92; font-size:13px; margin:0;">
-                      Best regards,<br/>
-                      <span style="color:${clinicBrandColor}; font-weight:bold;">SD Dental Clinic Team</span>
-                    </p>
-                    <p style="color:#b4b4b4; font-size:11px; margin:14px 0 0 0;">© ${year} SD Dental Clinic. All rights reserved.</p>
-                  </div>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <h1>SD Dental Clinic</h1>
+        </div>
+
+        <div class="content">
+          <h2>${headerTitle}</h2>
+          <p>Dear <strong>${patientName}</strong>,</p>
+          <p>${mainMessage}</p>
+
+          <div class="appointment-box">
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Time:</strong> ${time}</p>
+            <p><strong>Treatment:</strong> ${treatment}</p>
+            <p><strong>Dentist:</strong> ${dentist}</p>
+          </div>
+
+          <p style="margin-top: 20px;">
+            ${bottomMessage}
+          </p>
+        </div>
+
+        <div class="footer">
+          Best regards,<br />
+          <strong>SD Dental Clinic Team</strong><br />
+          <a href="https://sddentalclinic.com">www.sddentalclinic.com</a><br /><br />
+          &copy; ${new Date().getFullYear()} SD Dental Clinic. All rights reserved.
+        </div>
+      </div>
     </body>
     </html>
   `;
