@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
 import { useAppointments } from '../../hooks/useAppointments';
@@ -223,7 +224,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                     value={formData.patient.name}
                     onChange={(e) => setFormData({...formData, patient: {...formData.patient, name: e.target.value}})}
                     required
-                    disabled={!isNewPatient && selectedPatientId}
+                    disabled={!isNewPatient && Boolean(selectedPatientId)}
                   />
                 </div>
                 <div>
@@ -234,7 +235,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                     value={formData.patient.phone}
                     onChange={(e) => setFormData({...formData, patient: {...formData.patient, phone: e.target.value}})}
                     required
-                    disabled={!isNewPatient && selectedPatientId}
+                    disabled={!isNewPatient && Boolean(selectedPatientId)}
                   />
                 </div>
               </div>
@@ -247,7 +248,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                   value={formData.patient.email}
                   onChange={(e) => setFormData({...formData, patient: {...formData.patient, email: e.target.value}})}
                   placeholder="Email for appointment notifications"
-                  disabled={!isNewPatient && selectedPatientId}
+                  disabled={!isNewPatient && Boolean(selectedPatientId)}
                 />
                 <p className="text-sm text-gray-500 mt-1">Email is required for appointment confirmation notifications</p>
               </div>
