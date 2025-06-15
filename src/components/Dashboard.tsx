@@ -1,128 +1,124 @@
-import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from './ui/button';
-import { Scan } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+
+import React, { useMemo } from 'react';
 import StatsCard from './dashboard/StatsCard';
-import AppointmentCalendar from './dashboard/Calendar';
+import Calendar from './dashboard/Calendar';
 import AppointmentsTable from './dashboard/AppointmentsTable';
-import RevenueChart from './dashboard/RevenueChart';
 import RecentPatients from './dashboard/RecentPatients';
-import { useDoctorStats } from '../hooks/useDoctorStats';
-import { useFinancialReports } from '../hooks/useFinancialReports';
-import { usePatients } from '../hooks/usePatients';
+import RevenueChart from './dashboard/RevenueChart';
 import { useAppointments } from '../hooks/useAppointments';
-import { Appointment } from '../types/appointment';
-import type { Patient } from '../types/appointment';
+import { useAuth } from '../contexts/AuthContext';
+import { Calendar as CalendarIcon, Users, DollarSign, AlertTriangle } from 'lucide-react';
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
+  const { appointments, loading } = useAppointments();
   const { userProfile } = useAuth();
-  const isRadiologist = userProfile?.role === 'radiologist';
-  const navigate = useNavigate();
 
-  if (isRadiologist) {
+  // Get today's date in YYYY-MM-DD format
+  const today = useMemo(() => {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  }, []);
+
+  // Calculate today's appointments count
+  const todaysAppointmentsCount = useMemo(() => {
+    return appointments.filter(appointment => 
+      appointment.date === today && 
+      (appointment.status === 'Confirmed' || appointment.status === 'Approved')
+    ).length;
+  }, [appointments, today]);
+
+  // Calculate total patients (unique patients from all appointments)
+  const totalPatients = useMemo(() => {
+    const uniquePatients = new Set(
+      appointments
+        .filter(appointment => appointment.status === 'Confirmed' || appointment.status === 'Approved')
+        .map(appointment => appointment.patient.name)
+    );
+    return uniquePatients.size;
+  }, [appointments]);
+
+  // Calculate pending treatments (appointments with Pending status)
+  const pendingTreatments = useMemo(() => {
+    return appointments.filter(appointment => appointment.status === 'Pending').length;
+  }, [appointments]);
+
+  const getDashboardTitle = () => {
+    if (userProfile?.role === 'doctor') {
+      return `Welcome back, ${userProfile.name}`;
+    }
+    return 'Dashboard Overview';
+  };
+
+  if (loading) {
     return (
-      <main className="flex-1 overflow-y-auto p-6 bg-gray-100 w-full flex flex-col items-center justify-center min-h-[65vh]">
-        <div className="bg-white rounded-lg shadow p-10 w-full max-w-xl flex flex-col items-center">
-          <div className="mb-4 flex items-center gap-3">
-            <Scan size={40} className="text-blue-500" />
-            <h2 className="text-2xl font-bold text-blue-700">Hello, {userProfile?.name || "Radiologist"}!</h2>
-          </div>
-          <p className="mb-6 text-gray-600 text-center">
-            Welcome to your radiology dashboard.<br/>
-            From here, you can quickly jump to the X-ray Room to process your studies.
-          </p>
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 text-lg rounded mb-6"
-            onClick={() => navigate("/xray-room")}
-          >
-            <Scan className="mr-2" />
-            Enter X-ray Room
-          </Button>
-          <div className="w-full mt-6">
-            <div className="text-center text-xs text-blue-500 p-4 border-t">
-              Recent activity will appear here soon.
-            </div>
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-dental-600"></div>
+            <span className="ml-2">Loading dashboard...</span>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
-  const { stats, loading } = useDoctorStats(userProfile?.name || '', userProfile?.role);
-  const { totalRevenue, loading: financialLoading } = useFinancialReports();
-  const { patients, loading: patientsLoading } = usePatients();
-  const { appointments, loading: appointmentsLoading } = useAppointments();
-
-  const isDoctor = userProfile?.role === 'doctor';
-
-  // Get current month name for display
-  const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
-
-  const upcomingAppointments = appointments
-    .filter((appt: Appointment) => new Date(appt.date) > new Date() && appt.status === 'Approved')
-    .sort((a: Appointment, b: Appointment) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 3);
-
   return (
-    <main className="flex-1 overflow-y-auto p-6 bg-gray-100 w-full">
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-semibold text-gray-900">{getDashboardTitle()}</h2>
+        <p className="text-gray-600 mt-1">
+          {new Date().toLocaleDateString('en-US', { 
+            weekday: 'long',
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
+        </p>
+      </div>
+
       {/* Stats Cards */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 ${isDoctor ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6 mb-6`}>
-        <StatsCard 
-          title={isDoctor ? `${currentMonthName} Confirmed Appointments` : "Today's Appointments"}
-          value={loading ? "..." : isDoctor ? stats.monthlyAppointments : stats.monthlyAppointments}
-          icon="calendar" 
-          color="bg-blue-100 text-blue-600" 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Today's Appointments"
+          value={todaysAppointmentsCount}
+          icon={CalendarIcon}
+          color="blue"
         />
-        <StatsCard 
-          title={isDoctor ? "My Total Patients" : "Total Patients"}
-          value={loading ? "..." : stats.totalPatients}
-          icon="user" 
-          color="bg-green-100 text-green-600" 
+        <StatsCard
+          title="Total Patients"
+          value={totalPatients}
+          icon={Users}
+          color="green"
         />
-        {!isDoctor && (
-          <StatsCard 
-            title="Total Revenue" 
-            value={financialLoading ? 'Loading...' : `Tsh ${totalRevenue.toLocaleString()}`}
-            icon="dollar" 
-            color="bg-yellow-100 text-yellow-600" 
-          />
-        )}
-        <StatsCard 
-          title={isDoctor ? "My Pending Treatments" : "Pending Treatments"}
-          value={loading ? "..." : stats.pendingTreatments}
-          icon="tooth" 
-          color="bg-red-100 text-red-600" 
+        <StatsCard
+          title="Total Revenue"
+          value="Tsh 0"
+          icon={DollarSign}
+          color="yellow"
+        />
+        <StatsCard
+          title="Pending Treatments"
+          value={pendingTreatments}
+          icon={AlertTriangle}
+          color="red"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Calendar Section */}
-        <div className="lg:col-span-1">
-          <AppointmentCalendar />
-        </div>
-
-        {/* Today's Appointments */}
-        <div className="lg:col-span-2">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Calendar and Today's Appointments */}
+        <div className="lg:col-span-2 space-y-6">
+          <Calendar />
           <AppointmentsTable />
         </div>
-      </div>
 
-      {/* Charts and Recent Patients - Hide revenue chart for doctors */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue Chart - Only show for admin/staff */}
-        {!isDoctor && (
-          <div className="lg:col-span-2">
-            <RevenueChart />
-          </div>
-        )}
-
-        {/* Recent Patients */}
-        <div className={isDoctor ? "lg:col-span-3" : "lg:col-span-1"}>
+        {/* Right Column - Charts and Recent Patients */}
+        <div className="space-y-6">
+          <RevenueChart />
           <RecentPatients />
         </div>
       </div>
-    </main>
+    </div>
   );
 };
 
