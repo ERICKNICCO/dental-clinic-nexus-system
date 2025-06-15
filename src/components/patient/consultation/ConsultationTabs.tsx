@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
@@ -37,9 +37,18 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
   onSendToXRay,
   xrayResult
 }) => {
+  const [diagnosisType, setDiagnosisType] = useState<'clinical' | 'xray'>(
+    consultationData.diagnosisType || 'clinical'
+  );
+
   const handlePaymentComplete = () => {
     // Could trigger appointment completion here
     console.log('Payment completed for patient:', patientName);
+  };
+
+  const handleDiagnosisTypeChange = (type: 'clinical' | 'xray') => {
+    setDiagnosisType(type);
+    onUpdateField('diagnosisType', type);
   };
 
   return (
@@ -140,7 +149,11 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
           <DiagnosisTab
             diagnosis={consultationData.diagnosis || ''}
             onChange={(value) => onUpdateField('diagnosis', value)}
+            diagnosisType={diagnosisType}
+            onDiagnosisTypeChange={handleDiagnosisTypeChange}
+            consultationStatus={consultationStatus}
             xrayResult={xrayResult}
+            onSendToXRay={onSendToXRay}
           />
         </TabsContent>
 
