@@ -17,11 +17,17 @@ interface PatientFileContentProps {
 }
 
 const PatientFileContent: React.FC<PatientFileContentProps> = ({ patientId }) => {
+  console.log("PatientFileContent: rendering for patientId", patientId);
+
   const [isEditing, setIsEditing] = useState(false);
   const { patient, loading, error } = usePatient(patientId);
   const { userProfile } = useAuth();
 
+  // Only doctors can edit patient files
+  const canEditPatientFile = userProfile?.role === 'doctor';
+
   if (loading) {
+    console.log("PatientFileContent: loading...");
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -31,6 +37,7 @@ const PatientFileContent: React.FC<PatientFileContentProps> = ({ patientId }) =>
   }
 
   if (error || !patient) {
+    console.log("PatientFileContent: error or missing patient", error);
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-red-500">{error || 'Patient not found'}</p>
@@ -38,8 +45,7 @@ const PatientFileContent: React.FC<PatientFileContentProps> = ({ patientId }) =>
     );
   }
 
-  // Only doctors can edit patient files
-  const canEditPatientFile = userProfile?.role === 'doctor';
+  console.log("PatientFileContent: loaded", patient);
 
   return (
     <div className="space-y-6">
@@ -80,7 +86,6 @@ const PatientFileContent: React.FC<PatientFileContentProps> = ({ patientId }) =>
         </div>
       </div>
 
-      {/* Patient File Tabs */}
       <Tabs defaultValue="consultation" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="consultation">Consultation</TabsTrigger>
@@ -93,7 +98,6 @@ const PatientFileContent: React.FC<PatientFileContentProps> = ({ patientId }) =>
         <TabsContent value="consultation">
           <ConsultationWorkflow patientId={patient.id} patientName={patient.name} />
         </TabsContent>
-
         <TabsContent value="info">
           <PatientInfo patient={patient} isEditing={isEditing && canEditPatientFile} />
         </TabsContent>
@@ -115,3 +119,4 @@ const PatientFileContent: React.FC<PatientFileContentProps> = ({ patientId }) =>
 };
 
 export default PatientFileContent;
+
