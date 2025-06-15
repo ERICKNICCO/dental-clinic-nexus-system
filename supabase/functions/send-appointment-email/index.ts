@@ -17,10 +17,16 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log("🚀 Email function called with method:", req.method);
+    console.log("🔑 RESEND_API_KEY available:", !!Deno.env.get("RESEND_API_KEY"));
+    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
+
+    const requestBody = await req.json();
+    console.log("📨 Request body received:", JSON.stringify(requestBody, null, 2));
 
     const { 
       appointmentId, 
@@ -40,12 +46,27 @@ serve(async (req: Request): Promise<Response> => {
       treatment: string;
       dentist: string;
       emailType: 'confirmation' | 'approval' | 'reminder' | 'cancellation';
-    } = await req.json();
+    } = requestBody;
 
-    console.log('Sending email for appointment:', appointmentId);
+    console.log('📧 Sending email for appointment:', appointmentId);
+    console.log('📧 Recipient email:', recipientEmail);
+    console.log('📧 Email type:', emailType);
+
+    if (!recipientEmail) {
+      console.error('❌ No recipient email provided');
+      throw new Error('Recipient email is required');
+    }
+
+    if (!Deno.env.get("RESEND_API_KEY")) {
+      console.error('❌ RESEND_API_KEY is not set');
+      throw new Error('RESEND_API_KEY environment variable is not set');
+    }
 
     const subject = getEmailSubject(emailType, patientName);
     const htmlContent = getProfessionalEmailContent(emailType, patientName, appointmentDate, appointmentTime, treatment, dentist);
+
+    console.log('📬 Email subject:', subject);
+    console.log('📮 About to send email via Resend...');
 
     const emailResponse = await resend.emails.send({
       from: "SD Dental Clinic <info@sddentalclinic.com>",
@@ -54,7 +75,7 @@ serve(async (req: Request): Promise<Response> => {
       html: htmlContent,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("✅ Email sent successfully:", emailResponse);
 
     // Log the email notification in the database
     const { error: logError } = await supabase
@@ -68,7 +89,9 @@ serve(async (req: Request): Promise<Response> => {
       });
 
     if (logError) {
-      console.error('Error logging email notification:', logError);
+      console.error('⚠️ Error logging email notification:', logError);
+    } else {
+      console.log('📝 Email notification logged successfully');
     }
 
     return new Response(JSON.stringify({ success: true, emailId: emailResponse.data?.id }), {
@@ -79,7 +102,9 @@ serve(async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error('Error in send-appointment-email:', error);
+    console.error('❌ Error in send-appointment-email:', error);
+    console.error('❌ Error stack:', error.stack);
+    
     try {
       // Try logging the failing email to the DB
       const body = await req.clone().json();
@@ -97,8 +122,9 @@ serve(async (req: Request): Promise<Response> => {
           status: 'failed',
           error_message: error.message
         });
+      console.log('📝 Failed email logged to database');
     } catch (logError) {
-      console.error('Error logging failed email:', logError);
+      console.error('❌ Error logging failed email:', logError);
     }
     // Always return CORS headers even on error!
     return new Response(
