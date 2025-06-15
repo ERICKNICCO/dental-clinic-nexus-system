@@ -91,6 +91,70 @@ export const usePatients = () => {
     }
   };
 
+  const cleanupDuplicatePatients = useCallback(async () => {
+    try {
+      console.log('Starting duplicate patient cleanup...');
+      const q = query(collection(db, 'patients'));
+      const querySnapshot = await getDocs(q);
+      
+      const patientMap = new Map();
+      const duplicatesToDelete: string[] = [];
+      
+      querySnapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
+        const uniqueKey = `${data.name?.toLowerCase()?.trim()}-${data.phone?.trim()}`;
+        
+        if (patientMap.has(uniqueKey)) {
+          // This is a duplicate - mark for deletion
+          const existing = patientMap.get(uniqueKey);
+          
+          // Keep the one with the earlier creation date or the one with more complete data
+          const currentCreatedAt = data.createdAt?.toDate?.() || new Date(data.createdAt) || new Date(0);
+          const existingCreatedAt = existing.data.createdAt?.toDate?.() || new Date(existing.data.createdAt) || new Date(0);
+          
+          if (currentCreatedAt < existingCreatedAt) {
+            // Current record is older, keep it and delete the existing one
+            duplicatesToDelete.push(existing.id);
+            patientMap.set(uniqueKey, { id: docSnapshot.id, data });
+          } else {
+            // Existing record is older, delete current one
+            duplicatesToDelete.push(docSnapshot.id);
+          }
+        } else {
+          patientMap.set(uniqueKey, { id: docSnapshot.id, data });
+        }
+      });
+      
+      // Delete duplicates
+      const deletePromises = duplicatesToDelete.map(async (docId) => {
+        console.log('Deleting duplicate patient with ID:', docId);
+        await deleteDoc(doc(db, 'patients', docId));
+      });
+      
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+        console.log(`Successfully deleted ${deletePromises.length} duplicate patients`);
+        toast({
+          title: "Duplicates Cleaned",
+          description: `Removed ${deletePromises.length} duplicate patient records`,
+        });
+      } else {
+        console.log('No duplicate patients found');
+        toast({
+          title: "No Duplicates Found",
+          description: "All patient records are unique",
+        });
+      }
+    } catch (error) {
+      console.error('Error during duplicate cleanup:', error);
+      toast({
+        title: "Cleanup Error",
+        description: "Failed to clean up duplicate patients",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   const migrateExistingPatients = useCallback(async () => {
     try {
       console.log('Starting patient migration...');
@@ -235,6 +299,7 @@ export const usePatients = () => {
         emergencyContact: newPatientData.emergencyContact,
         emergencyPhone: newPatientData.emergencyPhone,
         insurance: newPatientData.insurance,
+        patientType: newPatientData.patientType,
         lastVisit: now.toISOString().split('T')[0],
         nextAppointment: null,
         createdAt: now,
@@ -310,5 +375,6 @@ export const usePatients = () => {
     updatePatient,
     deletePatient,
     migrateExistingPatients,
+    cleanupDuplicatePatients,
   };
 };
