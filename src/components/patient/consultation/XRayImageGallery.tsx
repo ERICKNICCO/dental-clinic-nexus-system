@@ -30,44 +30,15 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
             />
           </DialogTrigger>
           <DialogContent
-            // Remove custom styles, rely on tailwind for full-viewport centering.
-            className="
-              !p-0 !rounded-none !shadow-none !m-0
-              fixed inset-0 z-[9999] bg-black flex items-center justify-center
-              overflow-hidden
-            "
-            style={{
-              padding: 0,
-              margin: 0,
-              width: "100vw",
-              height: "100vh",
-              minWidth: 0,
-              minHeight: 0,
-              backgroundColor: "black",
-              overflow: "hidden",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-            }}
+            className="!p-0 !m-0 !max-w-none !w-screen !h-screen !border-0 !bg-black fixed inset-0 z-[9999] flex items-center justify-center"
           >
-            {/* TRUE fullscreen centered image */}
             <img
               src={img}
               alt={`X-ray ${idx + 1}`}
-              className="
-                block 
-                max-w-screen max-h-screen w-auto h-auto 
-                m-0 p-0 bg-black border-0
-                object-contain
-                animate-scale-in
-              "
+              className="max-w-full max-h-full object-contain"
               style={{
-                display: "block",
-                background: "black",
-                margin: 0,
-                padding: 0,
-                border: 0,
+                maxWidth: '100vw',
+                maxHeight: '100vh',
               }}
             />
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-gray-300 bg-black/60 px-3 py-1 rounded pointer-events-none select-none z-[10001]">
@@ -79,4 +50,3 @@ export const XRayImageGallery: React.FC<XRayImageGalleryProps> = ({ images }) =>
     </div>
   );
 };
-
