@@ -211,14 +211,16 @@ const PatientList: React.FC = () => {
                     File
                   </Button>
                 </Link>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleEditPatient(patient)}
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
+                {userProfile?.role === 'admin' && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleEditPatient(patient)}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
                 {userProfile?.role === 'admin' && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -266,15 +268,17 @@ const PatientList: React.FC = () => {
         onAddPatient={handleAddPatient}
       />
 
-      <EditPatientModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedPatient(null);
-        }}
-        onUpdatePatient={handleUpdatePatient}
-        patient={selectedPatient}
-      />
+      {userProfile?.role === 'admin' && (
+        <EditPatientModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedPatient(null);
+          }}
+          onUpdatePatient={handleUpdatePatient}
+          patient={selectedPatient}
+        />
+      )}
     </div>
   );
 };
