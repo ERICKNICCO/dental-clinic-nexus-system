@@ -23,12 +23,18 @@ const AppointmentCalendar: React.FC = () => {
       })
     : appointments;
 
-  // Get days with appointments for the current month
+  // Get days with appointments for the current month, only from today onwards
   const getDaysWithAppointments = () => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+    
     const currentMonthAppointments = doctorAppointments.filter(appointment => {
       const appointmentDate = new Date(appointment.date);
-      return appointmentDate.getMonth() === today.getMonth() && 
+      appointmentDate.setHours(0, 0, 0, 0); // Reset time for comparison
+      
+      // Only include appointments from today onwards
+      return appointmentDate >= today &&
+             appointmentDate.getMonth() === today.getMonth() && 
              appointmentDate.getFullYear() === today.getFullYear();
     });
     
@@ -100,14 +106,14 @@ const AppointmentCalendar: React.FC = () => {
         </h2>
         <div className="flex space-x-2 items-center">
           <button 
-            onClick={handlePreviousMonth}
+            onClick={() => setCurrentMonth('May 2023')}
             className="p-1 rounded hover:bg-gray-100"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <span className="font-medium">{currentMonth}</span>
           <button 
-            onClick={handleNextMonth}
+            onClick={() => setCurrentMonth('July 2023')}
             className="p-1 rounded hover:bg-gray-100"
           >
             <ChevronRight className="w-4 h-4" />
@@ -141,9 +147,9 @@ const AppointmentCalendar: React.FC = () => {
       
       {userProfile?.role === 'doctor' && (
         <div className="mt-4 text-sm text-gray-600">
-          Showing appointments for {userProfile.name}
+          Showing upcoming appointments for {userProfile.name}
           <div className="text-xs text-gray-500 mt-1">
-            Found {doctorAppointments.length} total appointments
+            Found {doctorAppointments.filter(appt => new Date(appt.date) >= new Date()).length} upcoming appointments
           </div>
         </div>
       )}
