@@ -49,7 +49,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const { stats, loading } = useDoctorStats(userProfile?.name || '');
+  const { stats, loading } = useDoctorStats(userProfile?.name || '', userProfile?.role);
   const { totalRevenue, loading: financialLoading } = useFinancialReports();
   const { patients, loading: patientsLoading } = usePatients();
   const { appointments, loading: appointmentsLoading } = useAppointments();

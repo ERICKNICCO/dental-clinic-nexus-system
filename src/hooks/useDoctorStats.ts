@@ -9,7 +9,7 @@ interface DoctorStats {
   pendingTreatments: number;
 }
 
-export const useDoctorStats = (doctorName: string) => {
+export const useDoctorStats = (doctorName: string, userRole?: string) => {
   const [stats, setStats] = useState<DoctorStats>({
     monthlyAppointments: 0,
     totalPatients: 0,
@@ -21,11 +21,6 @@ export const useDoctorStats = (doctorName: string) => {
   const { patients } = usePatients();
 
   useEffect(() => {
-    if (!doctorName) {
-      setLoading(false);
-      return;
-    }
-
     try {
       // Get current month and year
       const now = new Date();
@@ -80,13 +75,23 @@ export const useDoctorStats = (doctorName: string) => {
         return false;
       };
 
-      // Filter appointments for this doctor
-      const doctorAppointments = appointments.filter(appointment => 
-        isDoctorNameMatch(appointment.dentist || '', doctorName)
-      );
+      // Filter appointments based on user role
+      let filteredAppointments = appointments;
+      
+      if (userRole === 'doctor' && doctorName) {
+        // For doctors, filter by their name
+        filteredAppointments = appointments.filter(appointment => 
+          isDoctorNameMatch(appointment.dentist || '', doctorName)
+        );
+      }
+      // For admin or other roles, use all appointments (no filtering)
+
+      console.log('Stats calculation - User role:', userRole, 'Doctor name:', doctorName);
+      console.log('Stats calculation - Total appointments:', appointments.length);
+      console.log('Stats calculation - Filtered appointments:', filteredAppointments.length);
 
       // Count current month's confirmed appointments
-      const monthlyAppointments = doctorAppointments.filter(appointment => {
+      const monthlyAppointments = filteredAppointments.filter(appointment => {
         const appointmentDate = new Date(appointment.date);
         const appointmentMonth = appointmentDate.getMonth();
         const appointmentYear = appointmentDate.getFullYear();
@@ -96,16 +101,29 @@ export const useDoctorStats = (doctorName: string) => {
                appointment.status === 'Confirmed';
       }).length;
 
-      // Count unique patients for this doctor
-      const uniquePatientNames = new Set(
-        doctorAppointments.map(appointment => appointment.patient.name.toLowerCase())
-      );
-      const totalPatients = uniquePatientNames.size;
+      console.log('Stats calculation - Monthly confirmed appointments:', monthlyAppointments);
+
+      // Count unique patients
+      let totalPatients = 0;
+      if (userRole === 'doctor' && doctorName) {
+        // For doctors, count unique patients from their appointments
+        const uniquePatientNames = new Set(
+          filteredAppointments.map(appointment => appointment.patient.name.toLowerCase())
+        );
+        totalPatients = uniquePatientNames.size;
+      } else {
+        // For admin, use total patients from patients hook
+        totalPatients = patients.length;
+      }
+
+      console.log('Stats calculation - Total patients:', totalPatients);
 
       // Count pending treatments (appointments with status 'Approved' or 'Pending')
-      const pendingTreatments = doctorAppointments.filter(appointment => 
+      const pendingTreatments = filteredAppointments.filter(appointment => 
         appointment.status === 'Approved' || appointment.status === 'Pending'
       ).length;
+
+      console.log('Stats calculation - Pending treatments:', pendingTreatments);
 
       setStats({
         monthlyAppointments,
@@ -115,10 +133,10 @@ export const useDoctorStats = (doctorName: string) => {
       
       setLoading(false);
     } catch (error) {
-      console.error('Error calculating doctor stats:', error);
+      console.error('Error calculating stats:', error);
       setLoading(false);
     }
-  }, [appointments, patients, doctorName]);
+  }, [appointments, patients, doctorName, userRole]);
 
   return { stats, loading };
 };
