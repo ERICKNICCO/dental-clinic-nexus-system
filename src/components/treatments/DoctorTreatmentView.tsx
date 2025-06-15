@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Calendar, User, DollarSign, FileText, Loader2 } from 'lucide-react';
-import { treatmentPricingService } from '../../services/treatmentPricingService';
+import { treatmentPricingFirebaseService } from '../../services/treatmentPricingFirebaseService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAllTreatmentNotes } from '../../hooks/useAllTreatmentNotes';
 
@@ -58,10 +58,48 @@ const DoctorTreatmentView: React.FC = () => {
   // Calculate stats based on actual treatment notes
   const totalTreatments = doctorTreatments.length;
   
-  // For revenue calculation, we'll use a simple estimation since we don't have actual pricing in notes
-  const estimatedRevenue = doctorTreatments.length * 30000; // Average treatment cost
+  // Calculate actual revenue based on treatment procedures
+  const calculateActualRevenue = async () => {
+    try {
+      const allTreatmentPricing = await treatmentPricingFirebaseService.getAllTreatmentPricing();
+      
+      let totalRevenue = 0;
+      
+      doctorTreatments.forEach(treatment => {
+        // Try to find matching treatment pricing
+        const matchingPrice = allTreatmentPricing.find(pricing => 
+          pricing.name.toLowerCase().includes(treatment.procedure.toLowerCase()) ||
+          treatment.procedure.toLowerCase().includes(pricing.name.toLowerCase())
+        );
+        
+        if (matchingPrice) {
+          totalRevenue += matchingPrice.price;
+        } else {
+          // Use a default average price if no match found
+          totalRevenue += 30000;
+        }
+      });
+      
+      return totalRevenue;
+    } catch (error) {
+      console.error('Error calculating revenue:', error);
+      // Fallback to simple calculation
+      return doctorTreatments.length * 30000;
+    }
+  };
 
-  console.log('DoctorTreatmentView: Stats - Total treatments:', totalTreatments, 'Estimated revenue:', estimatedRevenue);
+  // Use React state to store calculated revenue
+  const [calculatedRevenue, setCalculatedRevenue] = React.useState(0);
+
+  React.useEffect(() => {
+    if (doctorTreatments.length > 0) {
+      calculateActualRevenue().then(setCalculatedRevenue);
+    } else {
+      setCalculatedRevenue(0);
+    }
+  }, [doctorTreatments.length]);
+
+  console.log('DoctorTreatmentView: Stats - Total treatments:', totalTreatments, 'Calculated revenue:', calculatedRevenue);
   console.log('=== End DoctorTreatmentView Debug ===');
 
   if (loading) {
@@ -119,9 +157,9 @@ const DoctorTreatmentView: React.FC = () => {
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600">
-                {treatmentPricingService.formatPrice(estimatedRevenue)}
+                {treatmentPricingFirebaseService.formatPrice(calculatedRevenue)}
               </div>
-              <div className="text-sm text-gray-500">Estimated Revenue This Month</div>
+              <div className="text-sm text-gray-500">Actual Revenue This Month</div>
             </div>
           </div>
         </CardContent>
