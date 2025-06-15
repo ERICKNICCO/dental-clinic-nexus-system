@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -9,13 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
-import { Plus, Edit, Trash2, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, DollarSign, Download } from 'lucide-react';
 import { treatmentPricingFirebaseService } from '../../services/treatmentPricingFirebaseService';
 import { useToast } from '../../hooks/use-toast';
+import { importTreatmentPricingData } from '../../utils/importTreatmentPricing';
 
 const TreatmentPricingManagement: React.FC = () => {
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTreatment, setEditingTreatment] = useState(null);
   const [formData, setFormData] = useState({
@@ -29,14 +30,16 @@ const TreatmentPricingManagement: React.FC = () => {
   const { toast } = useToast();
 
   const categories = [
-    'Preventive Care',
+    'Preventive',
     'Restorative',
-    'Oral Surgery',
-    'Orthodontics',
+    'Surgical', 
+    'Cosmetic',
+    'Diagnostic',
+    'Anesthesia',
+    'Orthodontic',
     'Periodontics',
     'Endodontics',
     'Prosthodontics',
-    'Cosmetic',
     'Emergency',
     'Other'
   ];
@@ -59,6 +62,30 @@ const TreatmentPricingManagement: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImportPricing = async () => {
+    try {
+      setImporting(true);
+      const result = await importTreatmentPricingData();
+      
+      toast({
+        title: "Import Successful",
+        description: `Imported ${result.importedCount} treatments. ${result.skippedCount} were skipped as they already exist.`,
+      });
+      
+      // Reload the treatments to show the imported data
+      await loadTreatments();
+    } catch (error) {
+      console.error('Error importing treatments:', error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to import treatment pricing data",
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -178,10 +205,21 @@ const TreatmentPricingManagement: React.FC = () => {
           <h2 className="text-2xl font-bold">Treatment Pricing Management</h2>
           <p className="text-gray-600">Manage treatment prices and categories</p>
         </div>
-        <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Treatment
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleImportPricing} 
+            disabled={importing}
+            variant="outline"
+            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {importing ? 'Importing...' : 'Import Price List'}
+          </Button>
+          <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Treatment
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -196,7 +234,15 @@ const TreatmentPricingManagement: React.FC = () => {
             <div className="text-center py-8 text-gray-500">
               <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-medium mb-2">No treatments found</h3>
-              <p className="text-sm">Add your first treatment pricing to get started.</p>
+              <p className="text-sm mb-4">Add your first treatment pricing to get started.</p>
+              <Button 
+                onClick={handleImportPricing} 
+                disabled={importing}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {importing ? 'Importing...' : 'Import Price List'}
+              </Button>
             </div>
           ) : (
             <Table>
