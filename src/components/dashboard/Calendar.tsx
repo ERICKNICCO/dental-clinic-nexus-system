@@ -1,161 +1,214 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppointments } from '../../hooks/useAppointments';
+import { useAuth } from '../../contexts/AuthContext';
 
-const Calendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [realTimeDate, setRealTimeDate] = useState(new Date());
-  const { appointments } = useAppointments();
+const AppointmentCalendar: React.FC = () => {
+  const [currentMonth, setCurrentMonth] = useState('June 2025');
+  const { appointments, loading } = useAppointments();
+  const { userProfile } = useAuth();
 
-  // Update real-time date every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRealTimeDate(new Date());
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Get appointments for the current month and year
-  const monthlyAppointments = useMemo(() => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+  // Helper function to normalize doctor names for comparison
+  const normalizeDoctorName = (name: string) => {
+    if (!name) return '';
     
-    return appointments.filter(appointment => {
+    // Remove "Dr." prefix and normalize
+    return name.toLowerCase()
+      .replace(/^dr\.?\s*/i, '') // Remove "Dr." or "Dr" prefix
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim();
+  };
+
+  // Helper function to check if two doctor names match
+  const isDoctorNameMatch = (appointmentDoctor: string, userDoctor: string) => {
+    const normalizedAppointmentDoctor = normalizeDoctorName(appointmentDoctor);
+    const normalizedUserDoctor = normalizeDoctorName(userDoctor);
+    
+    console.log('Calendar - Comparing normalized names:', normalizedAppointmentDoctor, 'vs', normalizedUserDoctor);
+    
+    // Exact match
+    if (normalizedAppointmentDoctor === normalizedUserDoctor) {
+      console.log('Calendar - Exact match found');
+      return true;
+    }
+    
+    // Split both names into words for better matching
+    const appointmentWords = normalizedAppointmentDoctor.split(' ').filter(word => word.length > 0);
+    const userWords = normalizedUserDoctor.split(' ').filter(word => word.length > 0);
+    
+    // Check if any word from appointment doctor matches any word from user doctor
+    for (const appointmentWord of appointmentWords) {
+      for (const userWord of userWords) {
+        if (appointmentWord === userWord) {
+          console.log('Calendar - Word match found:', appointmentWord, '=', userWord);
+          return true;
+        }
+      }
+    }
+    
+    // Check if appointment doctor contains any user word or vice versa
+    for (const appointmentWord of appointmentWords) {
+      if (normalizedUserDoctor.includes(appointmentWord)) {
+        console.log('Calendar - Appointment word found in user name:', appointmentWord);
+        return true;
+      }
+    }
+    
+    for (const userWord of userWords) {
+      if (normalizedAppointmentDoctor.includes(userWord)) {
+        console.log('Calendar - User word found in appointment name:', userWord);
+        return true;
+      }
+    }
+    
+    console.log('Calendar - No match found');
+    return false;
+  };
+  
+  // Filter appointments for the current doctor if they are a doctor
+  const doctorAppointments = userProfile?.role === 'doctor' 
+    ? appointments.filter(appointment => {
+        const appointmentDoctor = appointment.dentist?.toLowerCase() || '';
+        const userDoctor = userProfile.name?.toLowerCase() || '';
+        
+        console.log('Calendar filtering - Appointment doctor:', appointmentDoctor, 'User:', userDoctor);
+        
+        // Use the flexible matching function
+        return isDoctorNameMatch(appointment.dentist || '', userProfile.name || '');
+      })
+    : appointments;
+
+  // Get days with appointments for the current month, only from today onwards
+  const getDaysWithAppointments = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+    
+    const currentMonthAppointments = doctorAppointments.filter(appointment => {
       const appointmentDate = new Date(appointment.date);
-      return appointmentDate.getFullYear() === year && 
-             appointmentDate.getMonth() === month &&
-             (appointment.status === 'Confirmed' || appointment.status === 'Approved');
+      appointmentDate.setHours(0, 0, 0, 0); // Reset time for comparison
+      
+      // Only include appointments from today onwards
+      return appointmentDate >= today &&
+             appointmentDate.getMonth() === today.getMonth() && 
+             appointmentDate.getFullYear() === today.getFullYear();
     });
-  }, [appointments, currentDate]);
-
-  // Get appointments count for each day
-  const appointmentsByDay = useMemo(() => {
-    const dayMap: { [key: number]: number } = {};
-    monthlyAppointments.forEach(appointment => {
-      const day = new Date(appointment.date).getDate();
-      dayMap[day] = (dayMap[day] || 0) + 1;
+    
+    console.log('Calendar - Current month appointments:', currentMonthAppointments);
+    
+    return currentMonthAppointments.map(appointment => {
+      const date = new Date(appointment.date);
+      return date.getDate();
     });
-    return dayMap;
-  }, [monthlyAppointments]);
+  };
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  const daysWithAppointments = getDaysWithAppointments();
+  const today = new Date().getDate();
 
-  const firstDayOfMonth = new Date(year, month, 1);
-  const lastDayOfMonth = new Date(year, month + 1, 0);
-  const startDate = new Date(firstDayOfMonth);
-  startDate.setDate(startDate.getDate() - firstDayOfMonth.getDay());
+  const handlePreviousMonth = () => {
+    setCurrentMonth('May 2025');
+  };
 
-  const days = [];
-  const currentIterDate = new Date(startDate);
+  const handleNextMonth = () => {
+    setCurrentMonth('July 2025');
+  };
 
-  for (let i = 0; i < 42; i++) {
-    days.push(new Date(currentIterDate));
-    currentIterDate.setDate(currentIterDate.getDate() + 1);
+  // Generate days for June 2025 (June 1st is a Sunday)
+  const generateCalendarDays = () => {
+    const days = [];
+    const previousMonthDays = []; // No previous month days needed since June 1st is Sunday
+    const currentMonthDays = Array.from({ length: 30 }, (_, i) => i + 1); // June has 30 days
+    
+    // Add current month days (June 1-30, 2025)
+    for (const day of currentMonthDays) {
+      days.push({
+        day,
+        isCurrentMonth: true,
+        hasAppointment: daysWithAppointments.includes(day),
+        isToday: day === today
+      });
+    }
+    
+    // Fill remaining slots with next month days (July 1-12)
+    const remainingSlots = 42 - currentMonthDays.length; // 6 rows × 7 days = 42 total slots
+    for (let day = 1; day <= remainingSlots; day++) {
+      days.push({ day, isCurrentMonth: false });
+    }
+    
+    return days;
+  };
+
+  const calendarDays = generateCalendarDays();
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6 h-full">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-dental-600"></div>
+          <span className="ml-2">Loading calendar...</span>
+        </div>
+      </div>
+    );
   }
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev);
-      if (direction === 'prev') {
-        newDate.setMonth(newDate.getMonth() - 1);
-      } else {
-        newDate.setMonth(newDate.getMonth() + 1);
-      }
-      return newDate;
-    });
-  };
-
-  const isToday = (date: Date) => {
-    return date.toDateString() === realTimeDate.toDateString();
-  };
-
-  const isCurrentMonth = (date: Date) => {
-    return date.getMonth() === month;
-  };
-
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Appointment Calendar</h3>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => navigateMonth('prev')}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+    <div className="bg-white rounded-lg shadow p-6 h-full">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">
+          {userProfile?.role === 'doctor' ? 'My Appointments' : 'Appointment Calendar'}
+        </h2>
+        <div className="flex space-x-2 items-center">
+          <button 
+            onClick={() => setCurrentMonth('May 2025')}
+            className="p-1 rounded hover:bg-gray-100"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="font-medium min-w-[140px] text-center">
-            {monthNames[month]} {year}
-          </span>
-          <button
-            onClick={() => navigateMonth('next')}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+          <span className="font-medium">{currentMonth}</span>
+          <button 
+            onClick={() => setCurrentMonth('July 2025')}
+            className="p-1 rounded hover:bg-gray-100"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
-
+      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+        <div className="text-xs font-medium text-gray-500 py-1">Sun</div>
+        <div className="text-xs font-medium text-gray-500 py-1">Mon</div>
+        <div className="text-xs font-medium text-gray-500 py-1">Tue</div>
+        <div className="text-xs font-medium text-gray-500 py-1">Wed</div>
+        <div className="text-xs font-medium text-gray-500 py-1">Thu</div>
+        <div className="text-xs font-medium text-gray-500 py-1">Fri</div>
+        <div className="text-xs font-medium text-gray-500 py-1">Sat</div>
+      </div>
       <div className="grid grid-cols-7 gap-1">
-        {dayNames.map(day => (
-          <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
-            {day}
+        {calendarDays.map((day, index) => (
+          <div 
+            key={index}
+            className={`
+              calendar-day py-2 rounded cursor-pointer text-center
+              ${!day.isCurrentMonth ? 'text-gray-400' : ''}
+              ${day.hasAppointment ? 'has-appointment' : ''}
+              ${day.isToday ? 'today' : ''}
+            `}
+          >
+            {day.day}
           </div>
         ))}
-        
-        {days.map((day, index) => {
-          const dayNumber = day.getDate();
-          const appointmentCount = appointmentsByDay[dayNumber] || 0;
-          const hasAppointments = appointmentCount > 0 && isCurrentMonth(day);
-          
-          return (
-            <div
-              key={index}
-              className={`
-                relative p-2 text-center text-sm cursor-pointer rounded-lg
-                ${isCurrentMonth(day) ? 'text-gray-900' : 'text-gray-400'}
-                ${isToday(day) ? 'bg-dental-600 text-white font-semibold' : 'hover:bg-gray-100'}
-                ${hasAppointments && !isToday(day) ? 'bg-blue-50 text-blue-900' : ''}
-              `}
-            >
-              {dayNumber}
-              {hasAppointments && (
-                <div className={`absolute bottom-1 right-1 w-2 h-2 rounded-full ${
-                  isToday(day) ? 'bg-white' : 'bg-blue-500'
-                }`} />
-              )}
-              {hasAppointments && appointmentCount > 1 && (
-                <div className={`absolute top-1 right-1 text-xs ${
-                  isToday(day) ? 'text-white' : 'text-blue-600'
-                }`}>
-                  {appointmentCount}
-                </div>
-              )}
-            </div>
-          );
-        })}
       </div>
       
-      <div className="mt-4 text-xs text-gray-500 text-center">
-        Today: {realTimeDate.toLocaleDateString('en-US', { 
-          weekday: 'long',
-          month: 'long', 
-          day: 'numeric',
-          year: 'numeric'
-        })}
-      </div>
+      {userProfile?.role === 'doctor' && (
+        <div className="mt-4 text-sm text-gray-600">
+          Showing upcoming appointments for {userProfile.name}
+          <div className="text-xs text-gray-500 mt-1">
+            Found {doctorAppointments.filter(appt => new Date(appt.date) >= new Date()).length} upcoming appointments
+            <br />
+            Including Confirmed and Approved appointments
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default Calendar;
+export default AppointmentCalendar;
