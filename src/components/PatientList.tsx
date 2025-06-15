@@ -63,30 +63,14 @@ const PatientList: React.FC = () => {
   const { todaysAppointments, loading: appointmentsLoading } = useDoctorAppointments(userProfile?.name || '');
   const { appointments } = useAppointments();
 
-  // Filter patients to show only those assigned to the current doctor
+  // Updated: Allow non-admin users (including doctor) to see ALL patients (not just filtered)
   const getFilteredPatientsByDoctor = () => {
-    if (userProfile?.role === 'admin') {
-      // Admins can see all patients
-      return patients;
-    }
-
-    if (!todaysAppointments || todaysAppointments.length === 0) {
-      return [];
-    }
-
-    // Get unique patient names that have appointments with this doctor
-    const doctorPatientNames = new Set(
-      todaysAppointments.map(appointment => appointment.patient.name)
-    );
-
-    // Filter patients to only include those with appointments with this doctor
-    return patients.filter(patient => doctorPatientNames.has(patient.name));
+    // All users (admins, doctors, staff) see all patients
+    return patients;
   };
 
-  const doctorFilteredPatients = getFilteredPatientsByDoctor();
-
   // Filter patients based on search term
-  const filteredPatients = doctorFilteredPatients.filter(patient => 
+  const filteredPatients = getFilteredPatientsByDoctor().filter(patient => 
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.phone.includes(searchTerm) ||
