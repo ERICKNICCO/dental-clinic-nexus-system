@@ -4,7 +4,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export const xrayImageService = {
-  // Upload X-ray images and radiologist's note, then update consultation status and add result to consultation
+  // Upload X-ray images and update consultation status
   async uploadXrayResult(consultationId: string, files: File[], note: string, radiologist: string) {
     // 1. Upload images to storage
     const uploadedUrls: string[] = [];
@@ -18,7 +18,7 @@ export const xrayImageService = {
       uploadedUrls.push(publicUrl);
     }
     // 2. Store X-ray result in consultation (Firestore)
-    // PATCH consultation with images, note, radiologist, and set status to xray-done
+    // PATCH consultation with images and set status to xray-done
     if (uploadedUrls.length > 0) {
       try {
         const consultRef = doc(db, "consultations", consultationId);
@@ -26,7 +26,7 @@ export const xrayImageService = {
           status: "xray-done",
           xrayResult: {
             images: uploadedUrls,
-            note,
+            note: "", // Empty note
             radiologist,
           },
           updatedAt: new Date(),

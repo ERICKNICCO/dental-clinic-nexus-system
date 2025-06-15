@@ -14,7 +14,6 @@ import XRayUploadPanel from "./XRayUploadPanel";
 const steps = [
   { key: "select", label: "Select Patient" },
   { key: "upload", label: "Upload Images" },
-  { key: "note", label: "Radiologist Notes" },
   { key: "done", label: "Finish" },
 ];
 
@@ -25,7 +24,6 @@ export const XRayRoomPage: React.FC = () => {
   const [selectedPatientName, setSelectedPatientName] = useState<string>("");
 
   const [images, setImages] = useState<File[]>([]);
-  const [note, setNote] = useState("");
   const [uploading, setUploading] = useState(false);
   const [stepIndex, setStepIndex] = useState<number>(0);
 
@@ -91,15 +89,13 @@ export const XRayRoomPage: React.FC = () => {
     // Update step index based on UI
     if (!selectedConsultation) setStepIndex(0);
     else if (images.length === 0) setStepIndex(1);
-    else if (note.length < 5) setStepIndex(2);
-    else setStepIndex(3);
-  }, [selectedConsultation, images, note]);
+    else setStepIndex(2);
+  }, [selectedConsultation, images]);
 
   const handleSelectPatient = (consultationId: string, patientName: string) => {
     setSelectedConsultation(consultationId);
     setSelectedPatientName(patientName);
     setImages([]);
-    setNote("");
     setStepIndex(1);
   };
 
@@ -115,14 +111,13 @@ export const XRayRoomPage: React.FC = () => {
       await xrayImageService.uploadXrayResult(
         selectedConsultation,
         images,
-        note,
+        "", // Empty note
         userProfile?.name || "Radiologist"
       );
       toast({ title: "X-ray uploaded and marked as complete." });
       setSelectedConsultation(null);
       setSelectedPatientName("");
       setImages([]);
-      setNote("");
       // Reload waiting patients, removing the completed one
       setWaitingPatients((prev) =>
         prev.filter((p) => p.consultationId !== selectedConsultation)
@@ -145,7 +140,7 @@ export const XRayRoomPage: React.FC = () => {
       <ol className="list-decimal list-inside space-y-1 pl-1">
         <li>Select the next patient waiting for X-ray review.</li>
         <li>Export X-ray images from EZ-dent (or your imaging software).</li>
-        <li>Upload those images below and add your findings or notes.</li>
+        <li>Upload those images below.</li>
         <li>Click "Complete X-ray" to finish and move to the next patient.</li>
       </ol>
     </div>
@@ -170,7 +165,6 @@ export const XRayRoomPage: React.FC = () => {
             setSelectedConsultation(null);
             setSelectedPatientName("");
             setImages([]);
-            setNote("");
             setStepIndex(0);
           }}
           type="button"
@@ -192,16 +186,13 @@ export const XRayRoomPage: React.FC = () => {
           selectedPatientName={selectedPatientName}
           selectedConsultation={selectedConsultation}
           images={images}
-          note={note}
           uploading={uploading}
           onImagesChange={setImages}
-          onNoteChange={setNote}
           onRemoveImages={handleRemoveImages}
           onComplete={handleCompleteXRay}
           onCancel={() => {
             setSelectedConsultation(null);
             setImages([]);
-            setNote("");
             setStepIndex(0);
           }}
         />

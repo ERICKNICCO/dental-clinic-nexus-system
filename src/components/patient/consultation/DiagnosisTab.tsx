@@ -38,7 +38,7 @@ const DiagnosisTab: React.FC<DiagnosisTabProps> = ({
     // eslint-disable-next-line
   }, []);
 
-  // Show X-ray images and notes if available (after X-ray)
+  // Show X-ray images if available (after X-ray)
   return (
     <div className="space-y-4 mt-6">
       {/* Diagnosis Type Selector */}
@@ -65,7 +65,7 @@ const DiagnosisTab: React.FC<DiagnosisTabProps> = ({
             <div className="p-3 bg-blue-50 border border-blue-100 rounded text-blue-700">
               <strong>Waiting for X-ray…</strong>
               <div>
-                Patient is being processed in the X-ray room. Images and report will be attached below when complete.
+                Patient is being processed in the X-ray room. Images will be attached below when complete.
               </div>
             </div>
           )}
@@ -74,11 +74,6 @@ const DiagnosisTab: React.FC<DiagnosisTabProps> = ({
               <Label>X-ray Results</Label>
               <div className="border rounded p-2 mb-2">
                 <XRayImageGallery images={xrayResult.images} />
-                <div className="text-sm text-gray-900 mt-2">
-                  <strong>Radiologist Notes:</strong>
-                  <div className="whitespace-pre-line">{xrayResult.note}</div>
-                  <div className="text-xs mt-1 text-gray-500">By {xrayResult.radiologist}</div>
-                </div>
               </div>
             </div>
           )}
@@ -115,4 +110,3 @@ const DiagnosisTab: React.FC<DiagnosisTabProps> = ({
 };
 
 export default DiagnosisTab;
-

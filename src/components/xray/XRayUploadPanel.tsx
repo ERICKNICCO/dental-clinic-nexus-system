@@ -8,10 +8,8 @@ interface XRayUploadPanelProps {
   selectedPatientName: string;
   selectedConsultation: string;
   images: File[];
-  note: string;
   uploading: boolean;
   onImagesChange: (files: File[]) => void;
-  onNoteChange: (note: string) => void;
   onRemoveImages: () => void;
   onComplete: () => void;
   onCancel: () => void;
@@ -21,10 +19,8 @@ const XRayUploadPanel: React.FC<XRayUploadPanelProps> = ({
   selectedPatientName,
   selectedConsultation,
   images,
-  note,
   uploading,
   onImagesChange,
-  onNoteChange,
   onRemoveImages,
   onComplete,
   onCancel,
@@ -91,26 +87,9 @@ const XRayUploadPanel: React.FC<XRayUploadPanelProps> = ({
         )}
       </div>
 
-      <div>
-        <label htmlFor="radiologist-note" className="block font-semibold mb-1">
-          Radiologist Notes
-        </label>
-        <textarea
-          id="radiologist-note"
-          className="w-full border rounded p-2 min-h-[80px] focus:ring focus:ring-blue-100"
-          rows={3}
-          placeholder="Enter radiologist findings or comments here…"
-          value={note}
-          onChange={(e) => onNoteChange(e.target.value)}
-          disabled={uploading}
-          maxLength={1000}
-        />
-        <div className="text-xs text-gray-400 mt-1">e.g. caries, fracture, impacted tooth, etc</div>
-      </div>
-
       <div className="flex space-x-2 mt-5">
         <Button
-          disabled={uploading || images.length === 0 || note.length < 5}
+          disabled={uploading || images.length === 0}
           onClick={onComplete}
           className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
         >
