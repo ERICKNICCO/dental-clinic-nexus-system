@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AppointmentCalendar: React.FC = () => {
-  const [currentMonth, setCurrentMonth] = useState('June 2023');
+  const [currentMonth, setCurrentMonth] = useState('June 2025');
   const { appointments, loading } = useAppointments();
   const { userProfile } = useAuth();
   
@@ -48,11 +47,11 @@ const AppointmentCalendar: React.FC = () => {
   const today = new Date().getDate();
 
   const handlePreviousMonth = () => {
-    setCurrentMonth('May 2023');
+    setCurrentMonth('May 2025');
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth('July 2023');
+    setCurrentMonth('July 2025');
   };
 
   // Generate days for the demo calendar view
@@ -106,14 +105,14 @@ const AppointmentCalendar: React.FC = () => {
         </h2>
         <div className="flex space-x-2 items-center">
           <button 
-            onClick={() => setCurrentMonth('May 2023')}
+            onClick={() => setCurrentMonth('May 2025')}
             className="p-1 rounded hover:bg-gray-100"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <span className="font-medium">{currentMonth}</span>
           <button 
-            onClick={() => setCurrentMonth('July 2023')}
+            onClick={() => setCurrentMonth('July 2025')}
             className="p-1 rounded hover:bg-gray-100"
           >
             <ChevronRight className="w-4 h-4" />
