@@ -28,17 +28,15 @@ const DiagnosisTab: React.FC<DiagnosisTabProps> = ({
   xrayResult,
   onSendToXRay,
 }) => {
-
   const [buttonLoading, setButtonLoading] = useState(false);
 
+  // Move useEffect to the top, before any conditional logic
   useEffect(() => {
     if (diagnosisType === undefined && onDiagnosisTypeChange) {
       onDiagnosisTypeChange('clinical');
     }
-    // eslint-disable-next-line
-  }, []);
+  }, [diagnosisType, onDiagnosisTypeChange]);
 
-  // Show X-ray images if available (after X-ray)
   return (
     <div className="space-y-4 mt-6">
       {/* Diagnosis Type Selector */}
