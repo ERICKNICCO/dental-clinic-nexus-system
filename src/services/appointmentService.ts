@@ -23,7 +23,7 @@ const sendAppointmentStatusEmail = async (
   appointment: Appointment,
   newStatus: string
 ) => {
-  if (!appointment?.patient?.email) {
+  if (!appointment?.patient?.email && !appointment?.patient_email) {
     console.warn('[sendAppointmentStatusEmail] No patient email for appointment, skipping email notification');
     return;
   }
@@ -61,8 +61,8 @@ const sendAppointmentStatusEmail = async (
     const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsa25scmNrYnJ3a3hwYWtkcmZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNDc1NDgsImV4cCI6MjA2NDgyMzU0OH0.U1uH3mNtoK8IM7xwc4ZZ8881ezXFWSPO7gTmkBew9xE";
     const payload = {
       appointmentId: appointment.id,
-      recipientEmail: appointment.patient.email,
-      patientName: appointment.patient.name,
+      recipientEmail: appointment.patient?.email || appointment.patient_email,
+      patientName: appointment.patient?.name || appointment.patient_name,
       appointmentDate: appointment.date,
       appointmentTime: appointment.time,
       treatment: appointment.treatment,
@@ -89,7 +89,7 @@ const sendAppointmentStatusEmail = async (
       console.log(`[sendAppointmentStatusEmail] Function response:`, data);
       console.log(
         `[sendAppointmentStatusEmail] Appointment status email (${emailType}) sent to`,
-        appointment.patient.email
+        appointment.patient?.email || appointment.patient_email
       );
     }
   } catch (err) {
@@ -102,7 +102,7 @@ const sendAppointmentConfirmationEmail = async (
   appointment: Appointment
 ): Promise<boolean> => {
   try {
-    if (!appointment || !appointment.patient || !appointment.patient.email) {
+    if (!appointment || (!appointment.patient?.email && !appointment.patient_email)) {
       console.warn(
         'Cannot send confirmation email: Invalid or missing patient email'
       );
@@ -195,22 +195,10 @@ export const appointmentService = {
   },
 
   // Transform Firebase data to match our Appointment interface
-  transformFirebaseData(docId: string, data: {
-    date?: string;
-    time?: string;
-    patient?: { name?: string; phone?: string; email?: string; };
-    email?: string; // Direct email field
-    name?: string; // Direct patient name field
-    phone?: string; // Direct phone field
-    treatment?: string;
-    doctor?: string; // Could be 'doctor' or 'dentist'
-    dentist?: string;
-    status?: string;
-    patientId?: string;
-  }): Appointment {
-    const patientEmail = data.email || data.patient?.email || '';
-    const patientName = data.name || data.patient?.name || 'Unknown Patient';
-    const patientPhone = data.phone || data.patient?.phone || 'No phone';
+  transformFirebaseData(docId: string, data: any): Appointment {
+    const patientEmail = data.email || data.patient?.email || data.patient_email || '';
+    const patientName = data.name || data.patient?.name || data.patient_name || 'Unknown Patient';
+    const patientPhone = data.phone || data.patient?.phone || data.patient_phone || 'No phone';
     
     // Try to get profile picture from email, fallback to placeholder
     let profileImage = '';
@@ -226,6 +214,14 @@ export const appointmentService = {
       id: docId, // Use the actual Firebase document ID as string
       date: data.date || '',
       time: data.time || '',
+      patient_name: patientName,
+      patient_phone: patientPhone,
+      patient_email: patientEmail,
+      treatment: data.treatment || 'General Consultation',
+      dentist: data.doctor || data.dentist || 'Unknown Doctor',
+      status: appointmentStatus,
+      notes: data.notes || '',
+      // Legacy patient object for backward compatibility
       patient: {
         name: patientName,
         phone: patientPhone,
@@ -233,9 +229,6 @@ export const appointmentService = {
         email: patientEmail,
         initials: this.getInitials(patientName)
       },
-      treatment: data.treatment || 'General Consultation',
-      dentist: data.doctor || data.dentist || 'Unknown Doctor',
-      status: appointmentStatus,
       patientId: data.patientId
     };
   },
@@ -296,8 +289,7 @@ export const appointmentService = {
         console.log('[updateAppointment] Will trigger status-change email for:', updatedAppointmentData);
         if (
           updatedAppointmentData &&
-          updatedAppointmentData.patient &&
-          updatedAppointmentData.patient.email
+          (updatedAppointmentData.patient?.email || updatedAppointmentData.patient_email)
         ) {
           await sendAppointmentStatusEmail(updatedAppointmentData, newStatus);
         } else {
@@ -327,11 +319,12 @@ export const appointmentService = {
 
       // Trigger notification for the doctor (if data is available and dentist exists)
       if (appointmentData && appointmentData.dentist) {
-        await notificationService.addNotification({
+        await supabaseNotificationService.createNotification({
           type: 'appointment_approved',
           title: 'Appointment Approved',
-          message: `Your appointment with ${appointmentData.patient.name} for ${new Date(appointmentData.date).toLocaleDateString()} at ${appointmentData.time} has been approved.`, // More detailed message
-          appointmentId: appointmentData.id,
+          message: `Your appointment with ${appointmentData.patient_name || appointmentData.patient?.name} for ${new Date(appointmentData.date).toLocaleDateString()} at ${appointmentData.time} has been approved.`,
+          appointment_id: appointmentData.id,
+          target_doctor_name: appointmentData.dentist,
         });
         console.log(`Notification sent to doctor ${appointmentData.dentist} for approved appointment ${appointmentId}`);
       }

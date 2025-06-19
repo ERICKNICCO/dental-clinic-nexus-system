@@ -45,8 +45,8 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ patientId, isEd
     const unsubscribe = supabaseAppointmentService.subscribeToAppointments((allAppointments) => {
       // Filter appointments for this specific patient
       const patientAppointments = allAppointments.filter(
-        appointment => appointment.patient.name && 
-        appointment.patient.name.toLowerCase().includes(patientId.toLowerCase())
+        appointment => appointment.patient_name && 
+        appointment.patient_name.toLowerCase().includes(patientId.toLowerCase())
       );
       
       console.log('Patient appointments:', patientAppointments);
@@ -66,9 +66,15 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ patientId, isEd
       await supabaseAppointmentService.addAppointment({
         ...newAppointment,
         dentist: userProfile?.name || 'Unknown Doctor',
+        patient_name: 'Patient Name', // This should be dynamically set
+        patient_phone: '',
+        patient_email: '',
+        treatment: newAppointment.treatment,
+        // Legacy patient object for backward compatibility
         patient: {
-          name: 'Patient Name', // This should be dynamically set
+          name: 'Patient Name',
           phone: '',
+          email: '',
           image: ''
         }
       });
@@ -330,12 +336,12 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ patientId, isEd
                   </div>
                   <div className="flex items-center">
                     <span className="font-medium text-sm">Patient:</span>
-                    <span className="text-sm text-gray-600 ml-2">{appointment.patient.name}</span>
+                    <span className="text-sm text-gray-600 ml-2">{appointment.patient_name || appointment.patient?.name}</span>
                   </div>
-                  {appointment.patient.phone && (
+                  {(appointment.patient_phone || appointment.patient?.phone) && (
                     <div className="flex items-center">
                       <span className="font-medium text-sm">Phone:</span>
-                      <span className="text-sm text-gray-600 ml-2">{appointment.patient.phone}</span>
+                      <span className="text-sm text-gray-600 ml-2">{appointment.patient_phone || appointment.patient?.phone}</span>
                     </div>
                   )}
                 </div>

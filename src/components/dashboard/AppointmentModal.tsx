@@ -43,10 +43,10 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
     if (appointment) {
       setFormData({
         patient: {
-          name: appointment.patient.name,
-          image: appointment.patient.image,
-          phone: appointment.patient.phone,
-          email: appointment.patient.email || ''
+          name: appointment.patient_name || appointment.patient?.name || '',
+          image: appointment.patient?.image || '',
+          phone: appointment.patient_phone || appointment.patient?.phone || '',
+          email: appointment.patient_email || appointment.patient?.email || ''
         },
         dentist: appointment.dentist,
         date: appointment.date,
@@ -98,8 +98,18 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
     
     try {
       const appointmentData = {
-        ...formData,
+        date: formData.date,
         time: formData.time + (parseInt(formData.time.split(':')[0]) >= 12 ? ' PM' : ' AM'),
+        patient_name: formData.patient.name,
+        patient_phone: formData.patient.phone,
+        patient_email: formData.patient.email,
+        treatment: formData.treatment,
+        dentist: formData.dentist,
+        status: formData.status,
+        notes: formData.notes,
+        patientType: formData.patientType,
+        insurance: formData.insurance,
+        // Legacy patient object for backward compatibility
         patient: {
           ...formData.patient,
           image: formData.patient.image || 'https://randomuser.me/api/portraits/men/32.jpg'

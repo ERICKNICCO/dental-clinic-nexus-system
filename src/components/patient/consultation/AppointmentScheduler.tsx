@@ -47,17 +47,22 @@ const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
       const appointmentToCreate = {
         date: appointmentData.date,
         time: appointmentData.time,
+        patient_name: patientName,
+        patient_phone: 'From consultation',
+        patient_email: '',
+        treatment: appointmentData.treatment,
+        dentist: userProfile?.name || 'Unknown Doctor',
+        status: 'Pending' as const,
+        notes: '',
+        patientId: patientId,
+        // Legacy patient object for backward compatibility
         patient: {
           name: patientName,
           phone: 'From consultation',
           email: '',
           image: '',
           initials: patientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-        },
-        treatment: appointmentData.treatment,
-        dentist: userProfile?.name || 'Unknown Doctor',
-        status: 'Pending' as const,
-        patientId: patientId
+        }
       };
 
       await supabaseAppointmentService.addAppointment(appointmentToCreate);
