@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabaseAppointmentService } from '../services/supabaseAppointmentService';
@@ -147,11 +148,7 @@ export const useAppointments = () => {
 
   const addAppointment = async (appointment: Omit<Appointment, 'id'>) => {
     try {
-      const appointmentId = await supabaseAppointmentService.addAppointment(appointment);
-      const newAppointment = {
-        ...appointment,
-        id: appointmentId
-      } as Appointment;
+      const newAppointment = await supabaseAppointmentService.addAppointment(appointment);
       setAppointments((prev) => [...prev, newAppointment]);
       return newAppointment;
     } catch (err) {
@@ -163,11 +160,11 @@ export const useAppointments = () => {
   const updateAppointment = async (id: string, updates: Partial<Appointment>) => {
     try {
       console.log("🔥🔥 [useAppointments] updateAppointment called!", { id, updates });
-      await supabaseAppointmentService.updateAppointment(id, updates);
+      const updatedAppointment = await supabaseAppointmentService.updateAppointment(id, updates);
       setAppointments((prev) =>
         prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
       );
-      return { ...updates, id } as Appointment;
+      return updatedAppointment;
     } catch (err) {
       console.error("🔥🔥 [useAppointments] ERROR during updateAppointment:", err);
       setError('Failed to update appointment');

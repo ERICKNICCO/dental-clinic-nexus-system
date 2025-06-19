@@ -56,7 +56,7 @@ export const supabaseAppointmentService = {
   async updateAppointment(id: string, updates: Partial<Appointment>): Promise<Appointment> {
     console.log('Updating appointment in Supabase:', id, updates);
     
-    const supabaseUpdates = appointmentTransformers.toSupabasePartial(updates);
+    const supabaseUpdates = appointmentTransformers.toSupabaseUpdate(updates);
     const { data, error } = await supabase
       .from('appointments')
       .update(supabaseUpdates)
