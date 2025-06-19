@@ -1,0 +1,495 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
+import { Button } from '../../ui/button';
+import { Input } from '../../ui/input';
+import { Label } from '../../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+import { Badge } from '../../ui/badge';
+import { AlertCircle, CheckCircle, CreditCard, DollarSign, Lock } from 'lucide-react';
+import { paymentService } from '../../../services/paymentService';
+import { paymentUtils } from '../../../utils/paymentUtils';
+import { treatmentPricingService } from '../../../services/treatmentPricingService';
+import { supabaseAppointmentService } from '../../../services/supabaseAppointmentService';
+import { supabaseConsultationService } from '../../../services/supabaseConsultationService';
+import { useAuth } from '../../../contexts/AuthContext';
+import { toast } from 'sonner';
+import { Consultation } from '../../../types/consultation';
+
+interface CheckoutTabProps {
+  patientId: string;
+  patientName: string;
+  consultationData: Consultation;
+  onPaymentComplete: () => void;
+  selectedAppointment: string;
+}
+
+const CheckoutTab: React.FC<CheckoutTabProps> = ({
+  patientId,
+  patientName,
+  consultationData,
+  onPaymentComplete,
+  selectedAppointment
+}) => {
+  const { userProfile } = useAuth();
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'insurance'>('cash');
+  const [insuranceProvider, setInsuranceProvider] = useState('');
+  const [amountPaid, setAmountPaid] = useState('');
+  const [collectedBy, setCollectedBy] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Check if diagnosis and treatment are complete
+  const isDiagnosisComplete = consultationData.diagnosis && consultationData.diagnosis.trim() !== '';
+  const isTreatmentComplete = consultationData.treatmentPlan && consultationData.treatmentPlan.trim() !== '';
+  
+  // More robust check for estimated cost
+  const estimatedCost = consultationData.estimatedCost;
+  const hasEstimatedCost = estimatedCost && (typeof estimatedCost === 'string' ? parseFloat(estimatedCost) > 0 : estimatedCost > 0);
+  const totalAmount = hasEstimatedCost ? (typeof estimatedCost === 'string' ? Math.round(parseFloat(estimatedCost)) : estimatedCost) : 0;
+  
+  console.log('CheckoutTab - consultationData:', consultationData);
+  console.log('CheckoutTab - estimatedCost:', estimatedCost, 'hasEstimatedCost:', hasEstimatedCost, 'totalAmount:', totalAmount);
+  
+  const isReadyForPayment = isDiagnosisComplete && isTreatmentComplete && hasEstimatedCost;
+  const isAdmin = userProfile?.role === 'admin';
+
+  const handleCheckoutProcess = async () => {
+    try {
+      console.log('🔥 CheckoutTab: Starting checkout process for appointment:', selectedAppointment);
+      
+      // Update appointment status to completed
+      if (selectedAppointment) {
+        console.log('🔥 CheckoutTab: Updating appointment status to Completed for ID:', selectedAppointment);
+        await supabaseAppointmentService.updateAppointment(selectedAppointment, { 
+          status: 'Completed' 
+        });
+        console.log('✅ CheckoutTab: Appointment status updated successfully');
+      }
+
+      // Complete consultation if consultation_id exists
+      if (consultationData.id) {
+        console.log('🔥 CheckoutTab: Completing consultation for ID:', consultationData.id);
+        await supabaseConsultationService.completeConsultation(consultationData.id, {});
+        console.log('✅ CheckoutTab: Consultation completed successfully');
+      } else if (patientId) {
+        // Try to find and complete active consultation by patient_id
+        try {
+          console.log('🔥 CheckoutTab: Looking for active consultation for patient:', patientId);
+          const activeConsultation = await supabaseConsultationService.getActiveConsultation(patientId);
+          if (activeConsultation) {
+            console.log('🔥 CheckoutTab: Found active consultation, completing:', activeConsultation.id);
+            await supabaseConsultationService.completeConsultation(activeConsultation.id, {});
+            console.log('✅ CheckoutTab: Active consultation completed successfully');
+          }
+        } catch (consultationError) {
+          console.warn('⚠️ CheckoutTab: Could not complete consultation:', consultationError);
+        }
+      }
+
+      toast.success('Patient has been checked out successfully');
+    } catch (error) {
+      console.error('❌ CheckoutTab: Error during checkout:', error);
+      toast.error('Failed to check out patient');
+      throw error;
+    }
+  };
+
+  const handleCreatePaymentRecord = async () => {
+    if (!isAdmin) {
+      toast.error('Only administrators can create payment records');
+      return;
+    }
+
+    if (!isReadyForPayment) {
+      toast.error('Please complete diagnosis and treatment cost estimation first');
+      return;
+    }
+
+    if (!collectedBy.trim()) {
+      toast.error('Please enter who is collecting the payment');
+      return;
+    }
+
+    if (paymentMethod === 'insurance' && !insuranceProvider.trim()) {
+      toast.error('Please select an insurance provider');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Validate and correct patient ID
+      const validatedPatientId = await paymentService.validateAndCorrectPatientId(patientName, patientId);
+      console.log('✅ CheckoutTab: Validated patient ID:', validatedPatientId);
+
+      // Validate appointment ID if provided
+      let validatedAppointmentId = selectedAppointment;
+      if (selectedAppointment) {
+        console.log('🔥 CheckoutTab: Validating appointment ID:', selectedAppointment);
+        // Check if appointment_id is a valid UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(selectedAppointment)) {
+          console.warn('⚠️ CheckoutTab: Invalid appointment_id format, searching by patient name');
+          const foundAppointmentId = await paymentService.findAppointmentIdByPatientName(patientName);
+          if (foundAppointmentId) {
+            validatedAppointmentId = foundAppointmentId;
+            console.log('✅ CheckoutTab: Found valid appointment ID:', validatedAppointmentId);
+          } else {
+            console.warn('⚠️ CheckoutTab: Could not find valid appointment ID');
+            validatedAppointmentId = undefined;
+          }
+        }
+      }
+
+      // Create payment record
+      const paymentData = {
+        patient_id: validatedPatientId,
+        patient_name: patientName,
+        treatment_name: consultationData.diagnosis || 'General consultation',
+        total_amount: totalAmount,
+        amount_paid: 0, // Initially no payment made
+        payment_status: 'pending' as const,
+        payment_method: paymentMethod,
+        insurance_provider: paymentMethod === 'insurance' ? insuranceProvider : undefined,
+        collected_by: collectedBy,
+        notes: notes || undefined,
+        appointment_id: validatedAppointmentId,
+        consultation_id: consultationData.id
+      };
+
+      console.log("✅ CheckoutTab: Creating payment record with validated data:", paymentData);
+      await paymentService.createPayment(paymentData);
+      toast.success('Payment record created successfully');
+      onPaymentComplete();
+    } catch (error) {
+      console.error('Failed to create payment record:', error);
+      toast.error('Failed to create payment record');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecordPayment = async () => {
+    if (!isAdmin) {
+      toast.error('Only administrators can record payments');
+      return;
+    }
+
+    if (!amountPaid || parseFloat(amountPaid) <= 0) {
+      toast.error('Please enter a valid payment amount');
+      return;
+    }
+
+    if (!collectedBy.trim()) {
+      toast.error('Please enter who is collecting the payment');
+      return;
+    }
+
+    if (paymentMethod === 'insurance' && !insuranceProvider.trim()) {
+      toast.error('Please select an insurance provider');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const paymentAmount = Math.round(parseFloat(amountPaid) * 100); // Convert to cents
+      
+      // Validate and correct patient ID
+      const validatedPatientId = await paymentService.validateAndCorrectPatientId(patientName, patientId);
+      console.log('✅ CheckoutTab: Validated patient ID for payment:', validatedPatientId);
+
+      // Validate appointment ID if provided
+      let validatedAppointmentId = selectedAppointment;
+      if (selectedAppointment) {
+        console.log('🔥 CheckoutTab: Validating appointment ID for payment:', selectedAppointment);
+        // Check if appointment_id is a valid UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(selectedAppointment)) {
+          console.warn('⚠️ CheckoutTab: Invalid appointment_id format for payment, searching by patient name');
+          const foundAppointmentId = await paymentService.findAppointmentIdByPatientName(patientName);
+          if (foundAppointmentId) {
+            validatedAppointmentId = foundAppointmentId;
+            console.log('✅ CheckoutTab: Found valid appointment ID for payment:', validatedAppointmentId);
+          } else {
+            console.warn('⚠️ CheckoutTab: Could not find valid appointment ID for payment');
+            validatedAppointmentId = undefined;
+          }
+        }
+      }
+      
+      const paymentData = {
+        patient_id: validatedPatientId,
+        patient_name: patientName,
+        treatment_name: consultationData.diagnosis || 'General consultation',
+        total_amount: totalAmount,
+        amount_paid: paymentAmount,
+        payment_status: paymentAmount >= totalAmount ? 'paid' as const : 'partial' as const,
+        payment_method: paymentMethod,
+        insurance_provider: paymentMethod === 'insurance' ? insuranceProvider : undefined,
+        collected_by: collectedBy,
+        notes: notes || undefined,
+        appointment_id: validatedAppointmentId,
+        consultation_id: consultationData.id
+      };
+
+      console.log("🔥 CheckoutTab: Recording payment with validated data:", paymentData);
+      const createdPayment = await paymentService.createPayment(paymentData);
+      
+      // If payment is complete, the paymentService will automatically handle checkout
+      // through the handleCheckoutProcess method
+      if (paymentAmount >= totalAmount) {
+        console.log('🔥 CheckoutTab: Payment is complete, checkout should be handled automatically');
+      }
+      
+      toast.success('Payment recorded successfully');
+      onPaymentComplete();
+    } catch (error) {
+      console.error('Failed to record payment:', error);
+      toast.error('Failed to record payment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteWithoutPayment = async () => {
+    if (!isAdmin) {
+      toast.error('Only administrators can complete consultations');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await handleCheckoutProcess();
+      onPaymentComplete();
+    } catch (error) {
+      console.error('Failed to complete consultation:', error);
+      toast.error('Failed to complete consultation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 mt-6">
+      {/* Completion Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            Consultation Completion Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span>Diagnosis completed</span>
+            {isDiagnosisComplete ? (
+              <Badge variant="default" className="bg-green-100 text-green-800">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Complete
+              </Badge>
+            ) : (
+              <Badge variant="destructive">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Incomplete
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Treatment plan created</span>
+            {isTreatmentComplete ? (
+              <Badge variant="default" className="bg-green-100 text-green-800">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Complete
+              </Badge>
+            ) : (
+              <Badge variant="destructive">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Incomplete
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Treatment cost estimated</span>
+            {hasEstimatedCost ? (
+              <Badge variant="default" className="bg-green-100 text-green-800">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                {treatmentPricingService.formatPrice(totalAmount)}
+              </Badge>
+            ) : (
+              <Badge variant="destructive">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                No cost estimated
+              </Badge>
+            )}
+          </div>
+
+          {!isReadyForPayment && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium">Complete the following to create payment record:</p>
+                  <ul className="mt-1 space-y-1">
+                    {!isDiagnosisComplete && <li>• Fill in diagnosis in the Diagnosis tab</li>}
+                    {!isTreatmentComplete && <li>• Create treatment plan in the Treatment tab</li>}
+                    {!hasEstimatedCost && <li>• Add treatment items with costs in the Treatment tab (click "Show Treatment Costs" button)</li>}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Admin Access Control Notice */}
+      {!isAdmin && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <Lock className="h-5 w-5 text-blue-600" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium">Administrator Access Required</p>
+                <p>Only administrators can create payment records and process payments.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Payment Form */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Complete Consultation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isReadyForPayment && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="paymentMethod">Payment Method</Label>
+                    <Select value={paymentMethod} onValueChange={(value: 'cash' | 'insurance') => setPaymentMethod(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="insurance">Insurance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {paymentMethod === 'insurance' && (
+                    <div>
+                      <Label htmlFor="insuranceProvider">Insurance Provider</Label>
+                      <Select value={insuranceProvider} onValueChange={setInsuranceProvider}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select insurance provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NHIF">NHIF (National Health Insurance Fund)</SelectItem>
+                          <SelectItem value="Jubilee">Jubilee Insurance</SelectItem>
+                          <SelectItem value="AAR">AAR Insurance</SelectItem>
+                          <SelectItem value="Britam">Britam Insurance</SelectItem>
+                          <SelectItem value="Madison">Madison Insurance</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="collectedBy">Collected By</Label>
+                    <Input
+                      id="collectedBy"
+                      placeholder="Staff member name"
+                      value={collectedBy}
+                      onChange={(e) => setCollectedBy(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="amountPaid">Amount Paid (Optional)</Label>
+                    <Input
+                      id="amountPaid"
+                      type="number"
+                      placeholder="0.00"
+                      value={amountPaid}
+                      onChange={(e) => setAmountPaid(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Input
+                    id="notes"
+                    placeholder="Payment notes or comments"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <div>
+                    <p className="text-lg font-semibold">
+                      Total Amount: {treatmentPricingService.formatPrice(totalAmount)}
+                    </p>
+                    {amountPaid && (
+                      <p className="text-sm text-gray-600">
+                        Amount to pay: {treatmentPricingService.formatPrice(Math.round(parseFloat(amountPaid) * 100))}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleCreatePaymentRecord}
+                      disabled={loading || !collectedBy.trim()}
+                    >
+                      Create Payment Record Only
+                    </Button>
+                    <Button
+                      onClick={handleRecordPayment}
+                      disabled={loading || !amountPaid || !collectedBy.trim()}
+                      className="flex items-center gap-2"
+                    >
+                      <DollarSign className="h-4 w-4" />
+                      {loading ? 'Processing...' : 'Record Payment & Complete'}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Complete without payment option */}
+            <div className="pt-4 border-t">
+              <Button
+                onClick={handleCompleteWithoutPayment}
+                disabled={loading}
+                variant="outline"
+                className="w-full"
+              >
+                {loading ? 'Processing...' : 'Complete Consultation Without Payment'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Payment History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500">No payment records found</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default CheckoutTab;

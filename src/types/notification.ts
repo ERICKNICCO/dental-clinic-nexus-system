@@ -1,0 +1,22 @@
+export interface Notification {
+  id: string;
+  type: 'appointment' | 'new_appointment' | 'appointment_approved' | 'appointment_cancelled';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+  appointmentId?: string;
+  targetDoctorName?: string;
+}
+
+// For Supabase notifications (snake_case for DB, camelCase for app)
+export interface SupabaseNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string; // ISO string from Supabase
+  read: boolean;
+  appointment_id?: string;
+  target_doctor_name?: string;
+} 

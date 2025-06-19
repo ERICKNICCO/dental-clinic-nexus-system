@@ -1,0 +1,5 @@
+
+project_id = "ulknlrckbrwkxpakdrfn"
+
+[functions.send-appointment-email]
+verify_jwt = false
