@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabaseNotificationService } from '../services/supabaseNotificationService';
 import { Notification } from '../types/notification';
@@ -9,7 +10,11 @@ export const useNotifications = () => {
   const { userProfile } = useAuth();
 
   useEffect(() => {
-    if (!userProfile?.name) return;
+    if (!userProfile?.name) {
+      console.log('No user profile, skipping notifications setup');
+      setLoading(false);
+      return;
+    }
 
     console.log('Loading notifications for:', userProfile.name);
     
@@ -28,7 +33,7 @@ export const useNotifications = () => {
 
     loadNotifications();
 
-    // Subscribe to new notifications
+    // Subscribe to new notifications with enhanced real-time updates
     console.log('Setting up notifications subscription for:', userProfile.name);
     const { unsubscribe } = supabaseNotificationService.subscribeToNotifications(
       userProfile.name,
@@ -38,29 +43,62 @@ export const useNotifications = () => {
           // Check if notification already exists
           const exists = prev.some(n => n.id === newNotification.id);
           if (exists) {
+            console.log('Notification already exists, skipping');
             return prev;
           }
+          console.log('Adding new notification to list');
           return [newNotification, ...prev];
         });
       }
     );
 
+    // Also subscribe to all notification changes for instant updates
+    const { unsubscribe: unsubscribeAll } = supabaseNotificationService.subscribeToAllNotifications(
+      (allNotifications) => {
+        console.log('Received all notifications update:', allNotifications);
+        // Filter for current user's notifications
+        const userNotifications = allNotifications.filter(
+          notification => 
+            !notification.targetDoctorName || 
+            notification.targetDoctorName === userProfile.name
+        );
+        setNotifications(userNotifications);
+      },
+      userProfile.name
+    );
+
     return () => {
-      console.log('Cleaning up notifications subscription');
+      console.log('Cleaning up notifications subscriptions');
       unsubscribe();
+      unsubscribeAll();
     };
   }, [userProfile?.name]);
 
   const markAsRead = async (notificationId: string) => {
     try {
+      console.log('Marking notification as read:', notificationId);
       await supabaseNotificationService.markAsRead(notificationId);
       setNotifications((prev) =>
         prev.map((n) =>
           n.id === notificationId ? { ...n, read: true } : n
         )
       );
+      console.log('Notification marked as read successfully');
     } catch (error) {
       console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      console.log('Marking all notifications as read');
+      await supabaseNotificationService.markAllNotificationsAsRead();
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read: true }))
+      );
+      console.log('All notifications marked as read successfully');
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
     }
   };
 
@@ -68,5 +106,6 @@ export const useNotifications = () => {
     notifications,
     loading,
     markAsRead,
+    markAllAsRead,
   };
 };

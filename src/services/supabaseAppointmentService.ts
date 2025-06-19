@@ -1,107 +1,49 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
-import { emailNotificationService } from './emailNotificationService';
 import { supabaseNotificationService } from './supabaseNotificationService';
 
-export interface SupabaseAppointment {
-  id: string;
-  date: string;
-  time: string;
-  patient_name: string;
-  patient_phone?: string;
-  patient_email?: string;
-  patient_id?: string;
-  treatment: string;
-  dentist: string;
-  status: 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved' | 'Checked In' | 'In Progress' | 'Completed';
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export const supabaseAppointmentService = {
-  // Transform Supabase appointment to app appointment
-  transformToAppointment(data: SupabaseAppointment): Appointment {
-    return {
-      id: data.id,
-      date: data.date,
-      time: data.time,
-      patient: {
-        name: data.patient_name,
-        phone: data.patient_phone || '',
-        email: data.patient_email || '',
-        image: '',
-      },
-      treatment: data.treatment,
-      dentist: data.dentist,
-      status: data.status,
-      patientId: data.patient_id,
-      notes: data.notes,
-    };
-  },
-
-  // Add appointment
-  async addAppointment(appointmentData: Omit<Appointment, 'id'>) {
-    console.log('🔥 SupabaseAppointmentService: Adding appointment with data:', appointmentData);
+  // Add appointment and trigger notification
+  async addAppointment(appointment: Omit<Appointment, 'id'>): Promise<string> {
+    console.log('Adding appointment:', appointment);
     
-    // Try to find patient_id by patient name if not provided
-    let patientId = appointmentData.patientId;
-    if (!patientId && appointmentData.patient?.name) {
-      console.log('🔥 SupabaseAppointmentService: Looking up patient_id for:', appointmentData.patient.name);
-      try {
-        const { data: patientData, error: patientError } = await supabase
-          .from('patients')
-          .select('patient_id')
-          .eq('name', appointmentData.patient.name)
-          .single();
-        
-        if (!patientError && patientData) {
-          patientId = patientData.patient_id;
-          console.log('✅ SupabaseAppointmentService: Found patient_id:', patientId);
-        } else {
-          console.warn('⚠️ SupabaseAppointmentService: Could not find patient_id for:', appointmentData.patient.name);
-        }
-      } catch (error) {
-        console.warn('⚠️ SupabaseAppointmentService: Error looking up patient_id:', error);
-      }
-    }
-
     const { data, error } = await supabase
       .from('appointments')
       .insert({
-        date: appointmentData.date,
-        time: appointmentData.time,
-        patient_name: appointmentData.patient.name,
-        patient_phone: appointmentData.patient.phone,
-        patient_email: appointmentData.patient.email,
-        patient_id: patientId,
-        treatment: appointmentData.treatment,
-        dentist: appointmentData.dentist,
-        status: appointmentData.status,
-        notes: appointmentData.notes
+        date: appointment.date,
+        time: appointment.time,
+        patient_name: appointment.patientName,
+        patient_phone: appointment.patientPhone || null,
+        patient_email: appointment.patientEmail || null,
+        dentist: appointment.dentist,
+        treatment: appointment.treatment,
+        status: appointment.status || 'Pending',
+        notes: appointment.notes || null,
       })
       .select()
       .single();
 
     if (error) {
-      console.error('❌ SupabaseAppointmentService: Error adding appointment:', error);
+      console.error('Error adding appointment:', error);
       throw error;
     }
-    
-    console.log('✅ SupabaseAppointmentService: Appointment added successfully:', data);
 
-    // Create notification for the dentist
+    console.log('Appointment added successfully:', data);
+    
+    // Create notification for the assigned doctor
     try {
       await supabaseNotificationService.createNotification({
-        type: 'appointment',
-        title: 'New Appointment',
-        message: `New appointment scheduled with ${appointmentData.patient.name} for ${appointmentData.date} at ${appointmentData.time}`,
-        target_doctor_name: appointmentData.dentist,
-        appointment_id: data.id
+        type: 'new_appointment',
+        title: 'New Appointment Scheduled',
+        message: `New appointment with ${appointment.patientName} on ${appointment.date} at ${appointment.time}`,
+        appointment_id: data.id,
+        target_doctor_name: appointment.dentist,
       });
-      console.log('✅ SupabaseAppointmentService: Created notification for new appointment');
-    } catch (error) {
-      console.error('❌ SupabaseAppointmentService: Error creating notification:', error);
+      console.log('Notification created for new appointment');
+    } catch (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      // Don't throw here to avoid failing the appointment creation
     }
 
     return data.id;
@@ -109,139 +51,198 @@ export const supabaseAppointmentService = {
 
   // Get all appointments
   async getAppointments(): Promise<Appointment[]> {
-    const { data, error } = await supabase
-      .from('appointments')
-      .select('*')
-      .order('date', { ascending: true });
-
-    if (error) throw error;
-    return data.map(item => this.transformToAppointment(item));
-  },
-
-  // Get appointments by patient ID
-  async getAppointmentsByPatientId(patientId: string): Promise<Appointment[]> {
-    console.log('🔥 SupabaseAppointmentService: Getting appointments for patient_id:', patientId);
+    console.log('Fetching appointments from Supabase');
     
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
-      .eq('patient_id', patientId)
-      .order('date', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('❌ SupabaseAppointmentService: Error getting appointments by patient_id:', error);
+      console.error('Error fetching appointments:', error);
       throw error;
     }
-    
-    console.log('✅ SupabaseAppointmentService: Found appointments:', data);
-    return data.map(item => this.transformToAppointment(item));
-  },
 
-  // Get appointments by patient name (fallback method)
-  async getAppointmentsByPatientName(patientName: string): Promise<Appointment[]> {
-    console.log('🔥 SupabaseAppointmentService: Getting appointments for patient_name:', patientName);
+    console.log('Fetched appointments from Supabase:', data);
     
-    const { data, error } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('patient_name', patientName)
-      .order('date', { ascending: false });
-
-    if (error) {
-      console.error('❌ SupabaseAppointmentService: Error getting appointments by patient_name:', error);
-      throw error;
-    }
-    
-    console.log('✅ SupabaseAppointmentService: Found appointments by name:', data);
-    return data.map(item => this.transformToAppointment(item));
+    return data.map(this.transformFromSupabase);
   },
 
   // Update appointment
   async updateAppointment(id: string, updates: Partial<Appointment>) {
-    console.log('🔥 SupabaseAppointmentService: Updating appointment:', { id, updates });
+    console.log('Updating appointment:', id, updates);
+    
+    const updateData: any = {};
+    
+    if (updates.date) updateData.date = updates.date;
+    if (updates.time) updateData.time = updates.time;
+    if (updates.patientName) updateData.patient_name = updates.patientName;
+    if (updates.patientPhone !== undefined) updateData.patient_phone = updates.patientPhone;
+    if (updates.patientEmail !== undefined) updateData.patient_email = updates.patientEmail;
+    if (updates.dentist) updateData.dentist = updates.dentist;
+    if (updates.treatment) updateData.treatment = updates.treatment;
+    if (updates.status) updateData.status = updates.status;
+    if (updates.notes !== undefined) updateData.notes = updates.notes;
 
     const { data, error } = await supabase
       .from('appointments')
-      .update({
-        date: updates.date,
-        time: updates.time,
-        patient_name: updates.patient?.name,
-        patient_phone: updates.patient?.phone,
-        patient_email: updates.patient?.email,
-        treatment: updates.treatment,
-        dentist: updates.dentist,
-        status: updates.status,
-        notes: updates.notes
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
     if (error) {
-      console.error('❌ SupabaseAppointmentService: Error updating appointment:', error);
+      console.error('Error updating appointment:', error);
       throw error;
     }
 
-    console.log('✅ SupabaseAppointmentService: Appointment updated successfully:', data);
+    console.log('Appointment updated successfully:', data);
 
-    // Create notification for status updates
-    if (updates.status) {
+    // Create notification for status changes
+    if (updates.status && ['Approved', 'Cancelled'].includes(updates.status)) {
       try {
         await supabaseNotificationService.createNotification({
-          type: 'appointment',
-          title: 'Appointment Updated',
-          message: `Appointment status updated to ${updates.status}`,
+          type: updates.status === 'Approved' ? 'appointment_approved' : 'appointment_cancelled',
+          title: `Appointment ${updates.status}`,
+          message: `Your appointment has been ${updates.status.toLowerCase()}`,
+          appointment_id: id,
           target_doctor_name: data.dentist,
-          appointment_id: id
         });
-        console.log('✅ SupabaseAppointmentService: Created notification for appointment update');
-      } catch (error) {
-        console.error('❌ SupabaseAppointmentService: Error creating notification:', error);
+        console.log('Notification created for appointment status change');
+      } catch (notificationError) {
+        console.error('Error creating notification:', notificationError);
       }
     }
 
-    return this.transformToAppointment(data);
+    return data;
   },
 
   // Delete appointment
   async deleteAppointment(id: string) {
+    console.log('Deleting appointment:', id);
+    
     const { error } = await supabase
       .from('appointments')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('❌ SupabaseAppointmentService: Error deleting appointment:', error);
+      console.error('Error deleting appointment:', error);
       throw error;
     }
 
-    console.log('✅ SupabaseAppointmentService: Appointment deleted successfully:', id);
+    console.log('Appointment deleted successfully');
   },
 
-  // Subscribe to appointments
+  // Transform Supabase data to app format
+  transformFromSupabase(data: any): Appointment {
+    return {
+      id: data.id,
+      date: data.date,
+      time: data.time,
+      patientName: data.patient_name,
+      patientPhone: data.patient_phone || '',
+      patientEmail: data.patient_email || '',
+      dentist: data.dentist,
+      treatment: data.treatment,
+      status: data.status,
+      notes: data.notes || '',
+    };
+  },
+
+  // Subscribe to appointment changes with real-time updates
   subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
-    console.log('🔥 SupabaseAppointmentService: Setting up appointments subscription');
-    return supabase
-      .channel('appointments')
+    console.log('Setting up appointments subscription');
+    
+    const channel = supabase
+      .channel('appointments_changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'appointments'
+          table: 'appointments',
         },
-        async () => {
-          // Fetch updated appointments list
-          const { data } = await supabase
-            .from('appointments')
-            .select('*')
-            .order('date', { ascending: true });
-
-          if (data) {
-            callback(data.map(this.transformToAppointment));
+        async (payload) => {
+          console.log('Appointments change detected:', payload);
+          
+          // Fetch all appointments and update the callback
+          try {
+            const appointments = await this.getAppointments();
+            callback(appointments);
+          } catch (error) {
+            console.error('Error fetching appointments after change:', error);
           }
         }
       )
       .subscribe();
+
+    // Initial fetch
+    this.getAppointments()
+      .then(callback)
+      .catch(error => console.error('Error in initial appointments fetch:', error));
+
+    return () => {
+      console.log('Unsubscribing from appointments changes');
+      supabase.removeChannel(channel);
+    };
+  },
+
+  // Check in patient
+  async checkInPatient(appointmentId: string) {
+    console.log('Checking in patient for appointment:', appointmentId);
+    
+    const { data, error } = await supabase
+      .from('appointments')
+      .update({ status: 'Checked In' })
+      .eq('id', appointmentId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error checking in patient:', error);
+      throw error;
+    }
+
+    console.log('Patient checked in successfully:', data);
+    return data;
+  },
+
+  // Row-level subscription for better performance
+  subscribeToAppointmentsRowLevel(callback: (event: any) => void) {
+    console.log('Setting up row-level appointments subscription');
+    
+    const channel = supabase
+      .channel('appointments_row_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+        },
+        (payload) => {
+          console.log('Row-level appointment change:', payload);
+          
+          let transformedData = null;
+          if (payload.new) {
+            transformedData = this.transformFromSupabase(payload.new);
+          }
+          
+          const event = {
+            type: payload.eventType,
+            newRow: transformedData,
+            oldRow: payload.old ? this.transformFromSupabase(payload.old) : null
+          };
+          
+          callback(event);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Unsubscribing from row-level appointments changes');
+      supabase.removeChannel(channel);
+    };
   }
 };

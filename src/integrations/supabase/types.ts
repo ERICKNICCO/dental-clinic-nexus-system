@@ -173,6 +173,45 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          target_doctor_name: string | null
+          timestamp: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          target_doctor_name?: string | null
+          timestamp?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          target_doctor_name?: string | null
+          timestamp?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           address: string
@@ -332,40 +371,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      },
-      notifications: {
-        Row: {
-          id: string;
-          type: string;
-          title: string;
-          message: string;
-          timestamp: string;
-          read: boolean;
-          appointment_id?: string | null;
-          target_doctor_name?: string | null;
-        };
-        Insert: {
-          id?: string;
-          type: string;
-          title: string;
-          message: string;
-          timestamp?: string;
-          read?: boolean;
-          appointment_id?: string | null;
-          target_doctor_name?: string | null;
-        };
-        Update: {
-          id?: string;
-          type?: string;
-          title?: string;
-          message?: string;
-          timestamp?: string;
-          read?: boolean;
-          appointment_id?: string | null;
-          target_doctor_name?: string | null;
-        };
-        Relationships: [];
-      },
+      }
     }
     Views: {
       [_ in never]: never
