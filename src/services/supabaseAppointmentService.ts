@@ -13,9 +13,9 @@ export const supabaseAppointmentService = {
       .insert({
         date: appointment.date,
         time: appointment.time,
-        patient_name: appointment.patientName,
-        patient_phone: appointment.patientPhone || null,
-        patient_email: appointment.patientEmail || null,
+        patient_name: appointment.patient_name,
+        patient_phone: appointment.patient_phone || null,
+        patient_email: appointment.patient_email || null,
         dentist: appointment.dentist,
         treatment: appointment.treatment,
         status: appointment.status || 'Pending',
@@ -36,7 +36,7 @@ export const supabaseAppointmentService = {
       await supabaseNotificationService.createNotification({
         type: 'new_appointment',
         title: 'New Appointment Scheduled',
-        message: `New appointment with ${appointment.patientName} on ${appointment.date} at ${appointment.time}`,
+        message: `New appointment with ${appointment.patient_name} on ${appointment.date} at ${appointment.time}`,
         appointment_id: data.id,
         target_doctor_name: appointment.dentist,
       });
@@ -76,9 +76,9 @@ export const supabaseAppointmentService = {
     
     if (updates.date) updateData.date = updates.date;
     if (updates.time) updateData.time = updates.time;
-    if (updates.patientName) updateData.patient_name = updates.patientName;
-    if (updates.patientPhone !== undefined) updateData.patient_phone = updates.patientPhone;
-    if (updates.patientEmail !== undefined) updateData.patient_email = updates.patientEmail;
+    if (updates.patient_name) updateData.patient_name = updates.patient_name;
+    if (updates.patient_phone !== undefined) updateData.patient_phone = updates.patient_phone;
+    if (updates.patient_email !== undefined) updateData.patient_email = updates.patient_email;
     if (updates.dentist) updateData.dentist = updates.dentist;
     if (updates.treatment) updateData.treatment = updates.treatment;
     if (updates.status) updateData.status = updates.status;
@@ -140,9 +140,9 @@ export const supabaseAppointmentService = {
       id: data.id,
       date: data.date,
       time: data.time,
-      patientName: data.patient_name,
-      patientPhone: data.patient_phone || '',
-      patientEmail: data.patient_email || '',
+      patient_name: data.patient_name,
+      patient_phone: data.patient_phone || '',
+      patient_email: data.patient_email || '',
       dentist: data.dentist,
       treatment: data.treatment,
       status: data.status,

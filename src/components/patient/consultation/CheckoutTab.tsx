@@ -117,8 +117,8 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
 
     setLoading(true);
     try {
-      // Validate and correct patient ID
-      const validatedPatientId = await paymentService.validateAndCorrectPatientId(patientName, patientId);
+      // Validate and correct patient ID using paymentUtils
+      const validatedPatientId = await paymentUtils.validateAndCorrectPatientId(patientName, patientId);
       console.log('✅ CheckoutTab: Validated patient ID:', validatedPatientId);
 
       // Validate appointment ID if provided
@@ -126,10 +126,9 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
       if (selectedAppointment) {
         console.log('🔥 CheckoutTab: Validating appointment ID:', selectedAppointment);
         // Check if appointment_id is a valid UUID format
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(selectedAppointment)) {
+        if (!paymentUtils.isValidUUID(selectedAppointment)) {
           console.warn('⚠️ CheckoutTab: Invalid appointment_id format, searching by patient name');
-          const foundAppointmentId = await paymentService.findAppointmentIdByPatientName(patientName);
+          const foundAppointmentId = await paymentUtils.findAppointmentIdByPatientName(patientName);
           if (foundAppointmentId) {
             validatedAppointmentId = foundAppointmentId;
             console.log('✅ CheckoutTab: Found valid appointment ID:', validatedAppointmentId);
@@ -193,8 +192,8 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
     try {
       const paymentAmount = Math.round(parseFloat(amountPaid) * 100); // Convert to cents
       
-      // Validate and correct patient ID
-      const validatedPatientId = await paymentService.validateAndCorrectPatientId(patientName, patientId);
+      // Validate and correct patient ID using paymentUtils
+      const validatedPatientId = await paymentUtils.validateAndCorrectPatientId(patientName, patientId);
       console.log('✅ CheckoutTab: Validated patient ID for payment:', validatedPatientId);
 
       // Validate appointment ID if provided
@@ -202,10 +201,9 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
       if (selectedAppointment) {
         console.log('🔥 CheckoutTab: Validating appointment ID for payment:', selectedAppointment);
         // Check if appointment_id is a valid UUID format
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(selectedAppointment)) {
+        if (!paymentUtils.isValidUUID(selectedAppointment)) {
           console.warn('⚠️ CheckoutTab: Invalid appointment_id format for payment, searching by patient name');
-          const foundAppointmentId = await paymentService.findAppointmentIdByPatientName(patientName);
+          const foundAppointmentId = await paymentUtils.findAppointmentIdByPatientName(patientName);
           if (foundAppointmentId) {
             validatedAppointmentId = foundAppointmentId;
             console.log('✅ CheckoutTab: Found valid appointment ID for payment:', validatedAppointmentId);
