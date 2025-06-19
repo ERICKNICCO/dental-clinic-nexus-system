@@ -16,11 +16,12 @@ export const useNotifications = () => {
       return;
     }
 
-    console.log('Loading notifications for:', userProfile.name);
+    console.log('Setting up notifications for user:', userProfile.name);
     
     // Load initial unread notifications
     const loadNotifications = async () => {
       try {
+        console.log('Loading initial notifications for:', userProfile.name);
         const unreadNotifications = await supabaseNotificationService.getUnreadNotifications(userProfile.name);
         console.log('Loaded unread notifications:', unreadNotifications);
         setNotifications(unreadNotifications);
@@ -35,15 +36,14 @@ export const useNotifications = () => {
 
     // Generate unique channel names with timestamp to avoid conflicts
     const timestamp = Date.now();
-    const newNotificationsChannelName = `notifications_${userProfile.name}_${timestamp}`;
-    const allNotificationsChannelName = `notifications_all_${userProfile.name}_${timestamp}`;
+    const randomId = Math.random().toString(36).substr(2, 9);
 
     // Subscribe to new notifications with unique channel name
-    console.log('Setting up notifications subscription for:', userProfile.name);
+    console.log('Setting up real-time notifications subscription for:', userProfile.name);
     const subscriptionResult = supabaseNotificationService.subscribeToNotifications(
       userProfile.name,
       (newNotification) => {
-        console.log('Received new notification:', newNotification);
+        console.log('Received new notification via subscription:', newNotification);
         setNotifications((prev) => {
           // Check if notification already exists
           const exists = prev.some(n => n.id === newNotification.id);
@@ -67,13 +67,14 @@ export const useNotifications = () => {
             !notification.targetDoctorName || 
             notification.targetDoctorName === userProfile.name
         );
+        console.log('Filtered notifications for user:', userNotifications);
         setNotifications(userNotifications);
       },
       userProfile.name
     );
 
     return () => {
-      console.log('Cleaning up notifications subscriptions');
+      console.log('Cleaning up notifications subscriptions for:', userProfile.name);
       subscriptionResult.unsubscribe();
       unsubscribeAllNotifications();
     };

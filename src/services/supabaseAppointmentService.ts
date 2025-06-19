@@ -43,9 +43,11 @@ export const supabaseAppointmentService = {
 
     // Create notification for new appointment
     try {
+      console.log('Creating notification for new appointment...');
       await appointmentNotifications.notifyNewAppointment(appointment, data.id);
+      console.log('Notification created successfully');
     } catch (notificationError) {
-      console.error('Error creating notification:', notificationError);
+      console.error('Error creating notification, but appointment was created:', notificationError);
       // Don't throw here to avoid failing the appointment creation
     }
 
@@ -75,9 +77,11 @@ export const supabaseAppointmentService = {
     // Create notification for status changes
     if (updates.status && ['Approved', 'Cancelled'].includes(updates.status)) {
       try {
+        console.log('Creating notification for status change...');
         await appointmentNotifications.notifyStatusChange(id, updates.status, updatedAppointment.dentist);
+        console.log('Status change notification created successfully');
       } catch (notificationError) {
-        console.error('Error creating notification:', notificationError);
+        console.error('Error creating status change notification:', notificationError);
       }
     }
 

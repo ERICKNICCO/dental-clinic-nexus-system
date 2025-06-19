@@ -19,7 +19,7 @@ export const supabaseNotificationService = {
 
   // Create a new notification
   async createNotification(notification: Omit<SupabaseNotification, 'id' | 'timestamp' | 'read'>) {
-    console.log('Creating notification:', notification);
+    console.log('Creating notification in database:', notification);
     const { data, error } = await supabase
       .from('notifications')
       .insert({
@@ -31,11 +31,11 @@ export const supabaseNotificationService = {
       .single();
 
     if (error) {
-      console.error('Error creating notification:', error);
+      console.error('Error creating notification in database:', error);
       throw error;
     }
 
-    console.log('Created notification:', data);
+    console.log('Successfully created notification in database:', data);
     return this.transformToNotification(data);
   },
 
@@ -77,7 +77,8 @@ export const supabaseNotificationService = {
   subscribeToNotifications(doctorName: string, callback: (notification: Notification) => void) {
     console.log('Setting up notification subscription for doctor:', doctorName);
     const timestamp = Date.now();
-    const channelName = `notifications_${doctorName}_${timestamp}`;
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const channelName = `notifications_${doctorName}_${timestamp}_${randomId}`;
     
     const channel = supabase
       .channel(channelName)
@@ -90,7 +91,7 @@ export const supabaseNotificationService = {
           filter: `target_doctor_name=eq.${doctorName}`,
         },
         (payload) => {
-          console.log('Received notification payload:', payload);
+          console.log('Received notification payload for doctor:', doctorName, payload);
           const notification = this.transformToNotification(payload.new as SupabaseNotification);
           console.log('Transformed notification:', notification);
           callback(notification);
@@ -151,9 +152,10 @@ export const supabaseNotificationService = {
   // Subscribe to all notifications with optional doctor filter and unique channel names
   subscribeToAllNotifications(callback: (notifications: Notification[]) => void, targetDoctorName?: string) {
     const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
     const channelName = targetDoctorName 
-      ? `notifications_all_${targetDoctorName}_${timestamp}`
-      : `notifications_all_${timestamp}`;
+      ? `notifications_all_${targetDoctorName}_${timestamp}_${randomId}`
+      : `notifications_all_${timestamp}_${randomId}`;
     
     console.log('Setting up all notifications subscription:', channelName);
     const channel = supabase
