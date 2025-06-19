@@ -1,54 +1,144 @@
 
+import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
-import { appointmentCrud } from './supabase/appointmentCrud';
 import { appointmentTransformers } from './supabase/appointmentTransformers';
-import { appointmentSubscriptions } from './supabase/appointmentSubscriptions';
 import { appointmentNotifications } from './supabase/appointmentNotifications';
 
 export const supabaseAppointmentService = {
-  // Add appointment and trigger notification
-  async addAppointment(appointment: Omit<Appointment, 'id'>): Promise<string> {
-    const appointmentId = await appointmentCrud.create(appointment);
-    
-    // Create notification for the assigned doctor
-    await appointmentNotifications.notifyNewAppointment(appointment, appointmentId);
-
-    return appointmentId;
-  },
-
   // Get all appointments
   async getAppointments(): Promise<Appointment[]> {
-    return appointmentCrud.getAll();
+    console.log('Fetching appointments from Supabase...');
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching appointments:', error);
+      throw error;
+    }
+
+    console.log('Fetched appointments from Supabase:', data);
+    return data.map(appointmentTransformers.fromSupabase);
   },
 
-  // Update appointment
-  async updateAppointment(id: string, updates: Partial<Appointment>) {
-    const data = await appointmentCrud.update(id, updates);
+  // Add a new appointment
+  async addAppointment(appointment: Omit<Appointment, 'id'>): Promise<Appointment> {
+    console.log('Adding appointment to Supabase:', appointment);
+    
+    const supabaseData = appointmentTransformers.toSupabase(appointment);
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert(supabaseData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding appointment:', error);
+      throw error;
+    }
+
+    console.log('Added appointment to Supabase:', data);
+    const newAppointment = appointmentTransformers.fromSupabase(data);
+
+    // Create notification for new appointment
+    try {
+      await appointmentNotifications.notifyNewAppointment(appointment, data.id);
+    } catch (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      // Don't throw here to avoid failing the appointment creation
+    }
+
+    return newAppointment;
+  },
+
+  // Update an appointment
+  async updateAppointment(id: string, updates: Partial<Appointment>): Promise<Appointment> {
+    console.log('Updating appointment in Supabase:', id, updates);
+    
+    const supabaseUpdates = appointmentTransformers.toSupabasePartial(updates);
+    const { data, error } = await supabase
+      .from('appointments')
+      .update(supabaseUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating appointment:', error);
+      throw error;
+    }
+
+    console.log('Updated appointment in Supabase:', data);
+    const updatedAppointment = appointmentTransformers.fromSupabase(data);
 
     // Create notification for status changes
     if (updates.status && ['Approved', 'Cancelled'].includes(updates.status)) {
-      await appointmentNotifications.notifyStatusChange(id, updates.status, data.dentist);
+      try {
+        await appointmentNotifications.notifyStatusChange(id, updates.status, updatedAppointment.dentist);
+      } catch (notificationError) {
+        console.error('Error creating notification:', notificationError);
+      }
     }
 
-    return data;
+    return updatedAppointment;
   },
 
-  // Delete appointment
-  async deleteAppointment(id: string) {
-    return appointmentCrud.delete(id);
+  // Delete an appointment
+  async deleteAppointment(id: string): Promise<void> {
+    console.log('Deleting appointment from Supabase:', id);
+    
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting appointment:', error);
+      throw error;
+    }
+
+    console.log('Deleted appointment from Supabase:', id);
   },
 
-  // Transform Supabase data to app format
-  transformFromSupabase: appointmentTransformers.fromSupabase,
+  // Subscribe to appointment changes with unique channel names
+  subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
+    console.log('Setting up appointments subscription');
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const channelName = `appointments_${timestamp}_${randomId}`;
+    
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+        },
+        async (payload) => {
+          console.log('Appointments change detected:', payload);
+          
+          // Fetch all appointments and update the callback
+          try {
+            const appointments = await this.getAppointments();
+            callback(appointments);
+          } catch (error) {
+            console.error('Error fetching appointments after change:', error);
+          }
+        }
+      )
+      .subscribe();
 
-  // Subscribe to appointment changes with real-time updates
-  subscribeToAppointments: appointmentSubscriptions.subscribeToAppointments,
+    // Initial fetch
+    this.getAppointments()
+      .then(callback)
+      .catch(error => console.error('Error in initial appointments fetch:', error));
 
-  // Check in patient
-  async checkInPatient(appointmentId: string) {
-    return appointmentCrud.checkIn(appointmentId);
+    return () => {
+      console.log('Unsubscribing from appointments changes:', channelName);
+      supabase.removeChannel(channel);
+    };
   },
-
-  // Row-level subscription for better performance
-  subscribeToAppointmentsRowLevel: appointmentSubscriptions.subscribeToAppointmentsRowLevel
 };

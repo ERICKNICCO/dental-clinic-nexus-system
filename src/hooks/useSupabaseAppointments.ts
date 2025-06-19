@@ -17,9 +17,12 @@ export const useSupabaseAppointments = () => {
     setLoading(true);
 
     let unsubscribe: (() => void) | null = null;
+    let isSubscribed = true; // Flag to prevent state updates after cleanup
 
     const setupSubscription = () => {
       unsubscribe = supabaseAppointmentService.subscribeToAppointments((appointmentsList) => {
+        if (!isSubscribed) return; // Prevent updates if component unmounted
+        
         console.log('Received appointments from Supabase:', appointmentsList);
         
         // Filter appointments based on user role
@@ -41,6 +44,8 @@ export const useSupabaseAppointments = () => {
       try {
         const appointmentsList = await supabaseAppointmentService.getAppointments();
         
+        if (!isSubscribed) return; // Prevent updates if component unmounted
+        
         // Filter appointments based on user role
         let filteredAppointments = appointmentsList;
         if (userProfile?.role === 'doctor') {
@@ -56,6 +61,7 @@ export const useSupabaseAppointments = () => {
         // Setup subscription after initial load
         setupSubscription();
       } catch (err) {
+        if (!isSubscribed) return;
         console.error('Error loading appointments:', err);
         setError('Failed to load appointments');
         setLoading(false);
@@ -66,6 +72,7 @@ export const useSupabaseAppointments = () => {
 
     return () => {
       console.log('Cleaning up Supabase appointments subscription');
+      isSubscribed = false; // Prevent any further state updates
       if (unsubscribe) {
         unsubscribe();
       }
