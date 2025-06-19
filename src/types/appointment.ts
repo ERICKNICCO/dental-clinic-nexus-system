@@ -1,3 +1,4 @@
+
 export interface Patient {
   name: string;
   image: string;
@@ -7,10 +8,12 @@ export interface Patient {
 }
 
 export interface Appointment {
-  id: string; // Changed from number to string to match Firebase document IDs
+  id: string;
   date: string;
   time: string;
-  patient: Patient;
+  patient_name: string; // Updated to match database schema
+  patient_phone: string; // Updated to match database schema
+  patient_email: string; // Updated to match database schema
   treatment: string;
   dentist: string;
   status: 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved' | 'Checked In' | 'In Progress' | 'Completed';
@@ -18,4 +21,6 @@ export interface Appointment {
   patientType?: 'cash' | 'insurance';
   insurance?: string;
   notes?: string;
+  // Legacy patient object for backward compatibility
+  patient?: Patient;
 }

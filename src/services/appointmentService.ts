@@ -16,6 +16,7 @@ import { db } from '../lib/firebase';
 import { Appointment } from '../types/appointment';
 import { notificationService } from './notificationService';
 import { supabaseAppointmentService } from './supabaseAppointmentService';
+import { supabaseNotificationService } from './supabaseNotificationService';
 
 // Helper to send email notification for any status update
 const sendAppointmentStatusEmail = async (
@@ -341,11 +342,32 @@ export const appointmentService = {
     }
   },
 
-  // Check in a patient for their appointment
-  async checkInPatient(appointmentId: string | number) {
+  // Check in patient
+  async checkInPatient(appointmentId: string) {
+    console.log('Checking in patient for appointment:', appointmentId);
+    
     try {
-      await this.updateAppointment(appointmentId, { status: 'Checked In' });
-      console.log('Patient checked in for appointment:', appointmentId);
+      const docRef = doc(db, 'appointments', appointmentId);
+      await updateDoc(docRef, { 
+        status: 'Checked In',
+        updatedAt: new Date()
+      });
+      
+      console.log('Patient checked in successfully');
+      
+      // Create notification for check-in
+      try {
+        await supabaseNotificationService.createNotification({
+          type: 'patient_checkin',
+          title: 'Patient Checked In',
+          message: 'A patient has checked in and is ready for consultation',
+          appointment_id: appointmentId,
+        });
+        console.log('Check-in notification created');
+      } catch (notificationError) {
+        console.error('Error creating check-in notification:', notificationError);
+        // Don't throw here to avoid failing the check-in
+      }
     } catch (error) {
       console.error('Error checking in patient:', error);
       throw error;
