@@ -7,9 +7,12 @@ import { appointmentCrud } from './appointmentCrud';
 export const appointmentSubscriptions = {
   // Subscribe to appointment changes with real-time updates using unique channel names
   subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
-    console.log('Setting up appointments subscription');
+    console.log('Setting up appointments subscription with enhanced real-time');
     const timestamp = Date.now();
-    const channelName = `appointments_changes_${timestamp}`;
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const channelName = `appointments_enhanced_${timestamp}_${randomId}`;
+    
+    let isSubscribed = true;
     
     const channel = supabase
       .channel(channelName)
@@ -21,35 +24,52 @@ export const appointmentSubscriptions = {
           table: 'appointments',
         },
         async (payload) => {
-          console.log('Appointments change detected:', payload);
+          if (!isSubscribed) return;
+          
+          console.log('Enhanced real-time appointment change detected:', payload);
           
           // Fetch all appointments and update the callback
           try {
             const appointments = await appointmentCrud.getAll();
+            console.log('Fetched appointments after enhanced real-time change:', appointments);
             callback(appointments);
           } catch (error) {
-            console.error('Error fetching appointments after change:', error);
+            console.error('Error fetching appointments after enhanced real-time change:', error);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Enhanced appointment subscription status:', status);
+      });
 
     // Initial fetch
     appointmentCrud.getAll()
-      .then(callback)
-      .catch(error => console.error('Error in initial appointments fetch:', error));
+      .then((appointments) => {
+        if (isSubscribed) {
+          callback(appointments);
+        }
+      })
+      .catch(error => {
+        if (isSubscribed) {
+          console.error('Error in initial enhanced appointments fetch:', error);
+        }
+      });
 
     return () => {
-      console.log('Unsubscribing from appointments changes');
+      console.log('Unsubscribing from enhanced appointments changes');
+      isSubscribed = false;
       supabase.removeChannel(channel);
     };
   },
 
   // Row-level subscription for better performance with unique channel names
   subscribeToAppointmentsRowLevel(callback: (event: any) => void) {
-    console.log('Setting up row-level appointments subscription');
+    console.log('Setting up enhanced row-level appointments subscription');
     const timestamp = Date.now();
-    const channelName = `appointments_row_changes_${timestamp}`;
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const channelName = `appointments_row_enhanced_${timestamp}_${randomId}`;
+    
+    let isSubscribed = true;
     
     const channel = supabase
       .channel(channelName)
@@ -61,7 +81,9 @@ export const appointmentSubscriptions = {
           table: 'appointments',
         },
         (payload) => {
-          console.log('Row-level appointment change:', payload);
+          if (!isSubscribed) return;
+          
+          console.log('Enhanced row-level appointment change:', payload);
           
           let transformedData = null;
           if (payload.new) {
@@ -77,10 +99,13 @@ export const appointmentSubscriptions = {
           callback(event);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Enhanced row-level subscription status:', status);
+      });
 
     return () => {
-      console.log('Unsubscribing from row-level appointments changes');
+      console.log('Unsubscribing from enhanced row-level appointments changes');
+      isSubscribed = false;
       supabase.removeChannel(channel);
     };
   }

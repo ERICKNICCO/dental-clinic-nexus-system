@@ -70,88 +70,73 @@ export const useAppointments = () => {
     return false;
   };
 
+  // Filter appointments based on user role
+  const filterAppointments = (allAppointments: Appointment[]) => {
+    if (!userProfile) return allAppointments;
+
+    if (userProfile.role === 'doctor') {
+      const filtered = allAppointments.filter((appt) => {
+        const appointmentDoctor = appt.dentist || '';
+        const userDoctor = userProfile.name || '';
+        
+        console.log('useAppointments filtering - Appointment doctor:', appointmentDoctor);
+        console.log('useAppointments filtering - User doctor:', userDoctor);
+        
+        const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
+        const isValidStatus = ['Approved', 'Confirmed', 'Checked In', 'In Progress'].includes(appt.status);
+        
+        console.log('Doctor match:', isDoctorMatch, 'Status valid:', isValidStatus, 'Status:', appt.status);
+        
+        return isValidStatus && isDoctorMatch;
+      });
+      
+      console.log('useAppointments filtered appointments for doctor:', filtered);
+      return filtered;
+    }
+    
+    return allAppointments; // Admin and other roles see all
+  };
+
   useEffect(() => {
     if (!userProfile) return;
 
-    const loadAppointments = async () => {
-      try {
-        setLoading(true);
-        // Always fetch all appointments, then filter locally
-        const allAppointments = await supabaseAppointmentService.getAppointments();
+    console.log('Setting up appointments subscription for user:', userProfile);
+    setLoading(true);
+    
+    let isSubscribed = true; // Flag to prevent state updates after cleanup
 
-        const filteredAppointments = allAppointments.filter((appt) => {
-          if (userProfile.role === 'doctor') {
-            // Filter by doctor's name using flexible matching
-            // Include 'Approved', 'Confirmed', 'Checked In', and 'In Progress' statuses
-            // This ensures patients remain visible until consultation is fully completed
-            const appointmentDoctor = appt.dentist || '';
-            const userDoctor = userProfile.name || '';
-            
-            console.log('useAppointments filtering - Appointment doctor:', appointmentDoctor);
-            console.log('useAppointments filtering - User doctor:', userDoctor);
-            
-            const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
-            const isValidStatus = ['Approved', 'Confirmed', 'Checked In', 'In Progress'].includes(appt.status);
-            
-            console.log('Doctor match:', isDoctorMatch, 'Status valid:', isValidStatus, 'Status:', appt.status);
-            
-            return isValidStatus && isDoctorMatch;
-          }
-          return true; // Admin and other roles see all
-        });
+    // Subscribe to real-time updates
+    const unsubscribe = supabaseAppointmentService.subscribeToAppointments((allAppointments) => {
+      if (!isSubscribed) return; // Prevent updates if component unmounted
+      
+      console.log('Received real-time appointments update:', allAppointments);
+      
+      const filteredAppointments = filterAppointments(allAppointments);
+      console.log('Filtered appointments after real-time update:', filteredAppointments);
+      
+      setAppointments(filteredAppointments);
+      setLoading(false);
+      setError(null);
+    });
 
-        console.log('useAppointments filtered appointments:', filteredAppointments);
-        setAppointments(filteredAppointments);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load appointments');
-        console.error('Error loading appointments:', err);
-      } finally {
-        setLoading(false);
+    return () => {
+      console.log('Cleaning up appointments subscription');
+      isSubscribed = false; // Prevent any further state updates
+      if (unsubscribe) {
+        unsubscribe();
       }
     };
-
-    loadAppointments();
-
-    // Subscribe to real-time updates for all appointments, then filter locally
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const subscribeToAppointmentsRowLevel = (supabaseAppointmentService as any).subscribeToAppointmentsRowLevel;
-    if (subscribeToAppointmentsRowLevel) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const unsubscribe = subscribeToAppointmentsRowLevel((event: any) => {
-        setAppointments((prev) => {
-          let updated = [...prev];
-          if (event.type === 'INSERT' && event.newRow) {
-            updated.push(event.newRow);
-          } else if (event.type === 'UPDATE' && event.newRow) {
-            updated = updated.map((appt) => appt.id === event.newRow!.id ? { ...appt, ...event.newRow } : appt);
-          } else if (event.type === 'DELETE' && event.oldRow) {
-            updated = updated.filter((appt) => appt.id !== event.oldRow!.id);
-          }
-          // Apply filtering as before
-          const filtered = updated.filter((appt) => {
-            if (userProfile?.role === 'doctor') {
-              const appointmentDoctor = appt.dentist || '';
-              const userDoctor = userProfile.name || '';
-              const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
-              const isValidStatus = ['Approved', 'Confirmed', 'Checked In', 'In Progress'].includes(appt.status);
-              return isValidStatus && isDoctorMatch;
-            }
-            return true;
-          });
-          return filtered;
-        });
-      });
-      return () => unsubscribe();
-    }
-  }, [userProfile]);
+  }, [userProfile?.role, userProfile?.name]);
 
   const addAppointment = async (appointment: Omit<Appointment, 'id'>) => {
     try {
+      console.log('Adding new appointment:', appointment);
       const newAppointment = await supabaseAppointmentService.addAppointment(appointment);
-      setAppointments((prev) => [...prev, newAppointment]);
+      console.log('Appointment added successfully:', newAppointment);
+      // Note: Real-time subscription will automatically update the list
       return newAppointment;
     } catch (err) {
+      console.error('Error adding appointment:', err);
       setError('Failed to create appointment');
       throw err;
     }
@@ -161,9 +146,8 @@ export const useAppointments = () => {
     try {
       console.log("🔥🔥 [useAppointments] updateAppointment called!", { id, updates });
       const updatedAppointment = await supabaseAppointmentService.updateAppointment(id, updates);
-      setAppointments((prev) =>
-        prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
-      );
+      console.log('Appointment updated successfully:', updatedAppointment);
+      // Note: Real-time subscription will automatically update the list
       return updatedAppointment;
     } catch (err) {
       console.error("🔥🔥 [useAppointments] ERROR during updateAppointment:", err);
@@ -174,9 +158,12 @@ export const useAppointments = () => {
 
   const deleteAppointment = async (id: string) => {
     try {
+      console.log('Deleting appointment:', id);
       await supabaseAppointmentService.deleteAppointment(id);
-      setAppointments((prev) => prev.filter((app) => app.id !== id));
+      console.log('Appointment deleted successfully');
+      // Note: Real-time subscription will automatically update the list
     } catch (err) {
+      console.error('Error deleting appointment:', err);
       setError('Failed to delete appointment');
       throw err;
     }

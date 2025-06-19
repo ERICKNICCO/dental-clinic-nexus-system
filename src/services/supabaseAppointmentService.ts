@@ -107,10 +107,26 @@ export const supabaseAppointmentService = {
 
   // Subscribe to appointment changes with unique channel names
   subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
-    console.log('Setting up appointments subscription');
+    console.log('Setting up appointments subscription with real-time updates');
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
-    const channelName = `appointments_${timestamp}_${randomId}`;
+    const channelName = `appointments_realtime_${timestamp}_${randomId}`;
+    
+    let isSubscribed = true;
+    
+    // Initial fetch
+    this.getAppointments()
+      .then((appointments) => {
+        if (isSubscribed) {
+          console.log('Initial appointments loaded:', appointments);
+          callback(appointments);
+        }
+      })
+      .catch(error => {
+        if (isSubscribed) {
+          console.error('Error in initial appointments fetch:', error);
+        }
+      });
     
     const channel = supabase
       .channel(channelName)
@@ -122,26 +138,27 @@ export const supabaseAppointmentService = {
           table: 'appointments',
         },
         async (payload) => {
-          console.log('Appointments change detected:', payload);
+          if (!isSubscribed) return;
+          
+          console.log('Real-time appointment change detected:', payload);
           
           // Fetch all appointments and update the callback
           try {
             const appointments = await this.getAppointments();
+            console.log('Fetched updated appointments after real-time change:', appointments);
             callback(appointments);
           } catch (error) {
-            console.error('Error fetching appointments after change:', error);
+            console.error('Error fetching appointments after real-time change:', error);
           }
         }
       )
-      .subscribe();
-
-    // Initial fetch
-    this.getAppointments()
-      .then(callback)
-      .catch(error => console.error('Error in initial appointments fetch:', error));
+      .subscribe((status) => {
+        console.log('Appointment subscription status:', status, 'for channel:', channelName);
+      });
 
     return () => {
       console.log('Unsubscribing from appointments changes:', channelName);
+      isSubscribed = false;
       supabase.removeChannel(channel);
     };
   },
