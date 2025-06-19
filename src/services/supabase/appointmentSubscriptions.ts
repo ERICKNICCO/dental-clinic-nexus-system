@@ -5,12 +5,14 @@ import { appointmentTransformers } from './appointmentTransformers';
 import { appointmentCrud } from './appointmentCrud';
 
 export const appointmentSubscriptions = {
-  // Subscribe to appointment changes with real-time updates
+  // Subscribe to appointment changes with real-time updates using unique channel names
   subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
     console.log('Setting up appointments subscription');
+    const timestamp = Date.now();
+    const channelName = `appointments_changes_${timestamp}`;
     
     const channel = supabase
-      .channel('appointments_changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -43,12 +45,14 @@ export const appointmentSubscriptions = {
     };
   },
 
-  // Row-level subscription for better performance
+  // Row-level subscription for better performance with unique channel names
   subscribeToAppointmentsRowLevel(callback: (event: any) => void) {
     console.log('Setting up row-level appointments subscription');
+    const timestamp = Date.now();
+    const channelName = `appointments_row_changes_${timestamp}`;
     
     const channel = supabase
-      .channel('appointments_row_changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

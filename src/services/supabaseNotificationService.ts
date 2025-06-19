@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { Notification, SupabaseNotification } from '../types/notification';
 
@@ -72,10 +73,12 @@ export const supabaseNotificationService = {
     console.log('Marked notification as read:', notificationId);
   },
 
-  // Subscribe to notifications for a specific doctor
+  // Subscribe to notifications for a specific doctor with unique channel names
   subscribeToNotifications(doctorName: string, callback: (notification: Notification) => void) {
     console.log('Setting up notification subscription for doctor:', doctorName);
-    const channelName = `notifications_${doctorName}`;
+    const timestamp = Date.now();
+    const channelName = `notifications_${doctorName}_${timestamp}`;
+    
     const channel = supabase
       .channel(channelName)
       .on(
@@ -145,11 +148,12 @@ export const supabaseNotificationService = {
     return (data as SupabaseNotification[]).map(this.transformToNotification);
   },
 
-  // Subscribe to all notifications with optional doctor filter
+  // Subscribe to all notifications with optional doctor filter and unique channel names
   subscribeToAllNotifications(callback: (notifications: Notification[]) => void, targetDoctorName?: string) {
+    const timestamp = Date.now();
     const channelName = targetDoctorName 
-      ? `notifications_all_${targetDoctorName}`
-      : `notifications_all`;
+      ? `notifications_all_${targetDoctorName}_${timestamp}`
+      : `notifications_all_${timestamp}`;
     
     console.log('Setting up all notifications subscription:', channelName);
     const channel = supabase

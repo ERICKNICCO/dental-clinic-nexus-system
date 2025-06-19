@@ -33,7 +33,12 @@ export const useNotifications = () => {
 
     loadNotifications();
 
-    // Subscribe to new notifications with enhanced real-time updates
+    // Generate unique channel names with timestamp to avoid conflicts
+    const timestamp = Date.now();
+    const newNotificationsChannelName = `notifications_${userProfile.name}_${timestamp}`;
+    const allNotificationsChannelName = `notifications_all_${userProfile.name}_${timestamp}`;
+
+    // Subscribe to new notifications with unique channel name
     console.log('Setting up notifications subscription for:', userProfile.name);
     const subscriptionResult = supabaseNotificationService.subscribeToNotifications(
       userProfile.name,
@@ -52,7 +57,7 @@ export const useNotifications = () => {
       }
     );
 
-    // Also subscribe to all notification changes for instant updates
+    // Subscribe to all notification changes for instant updates with unique channel name
     const unsubscribeAllNotifications = supabaseNotificationService.subscribeToAllNotifications(
       (allNotifications) => {
         console.log('Received all notifications update:', allNotifications);
