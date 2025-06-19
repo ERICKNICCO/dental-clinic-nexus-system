@@ -35,7 +35,7 @@ export const useNotifications = () => {
 
     // Subscribe to new notifications with enhanced real-time updates
     console.log('Setting up notifications subscription for:', userProfile.name);
-    const unsubscribeNewNotifications = supabaseNotificationService.subscribeToNotifications(
+    const subscriptionResult = supabaseNotificationService.subscribeToNotifications(
       userProfile.name,
       (newNotification) => {
         console.log('Received new notification:', newNotification);
@@ -69,7 +69,7 @@ export const useNotifications = () => {
 
     return () => {
       console.log('Cleaning up notifications subscriptions');
-      unsubscribeNewNotifications();
+      subscriptionResult.unsubscribe();
       unsubscribeAllNotifications();
     };
   }, [userProfile?.name]);
