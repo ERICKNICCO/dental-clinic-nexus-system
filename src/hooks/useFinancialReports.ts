@@ -1,5 +1,5 @@
-
 import { useEffect, useState } from 'react';
+import { financeService } from '../services/financeService';
 import { paymentService } from '../services/paymentService';
 
 export function useFinancialReports() {
@@ -26,10 +26,10 @@ export function useFinancialReports() {
         });
         // Sum up amount_paid (in cents)
         const revenueCents = paymentsThisYear.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0);
-        // Convert to currency
+        // Convert to Tsh
         setTotalRevenue(Math.round(revenueCents / 100));
 
-        // Set monthly data and calculate profit
+        // Optionally, set monthlyData for charts (not implemented here)
         setMonthlyData([]);
         setTotalExpenses(0);
         setNetProfit(Math.round(revenueCents / 100));
@@ -45,4 +45,4 @@ export function useFinancialReports() {
   }, []);
 
   return { monthlyData, totalRevenue, totalExpenses, netProfit, loading, error };
-}
+} 

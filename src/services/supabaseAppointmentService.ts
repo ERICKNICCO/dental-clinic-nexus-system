@@ -12,7 +12,7 @@ type SupabaseAppointmentRow = {
   patient_name: string;
   patient_phone: string | null;
   patient_email: string | null;
-  patient_id?: string | null;
+  patient_id?: string;
   treatment: string;
   dentist: string;
   status: string;
@@ -161,26 +161,36 @@ export const supabaseAppointmentService = {
     return data.map(transformToAppointment);
   },
 
-  // Update appointment with simplified typing
+  // Update appointment
   async updateAppointment(id: string, updates: Partial<Appointment>): Promise<Appointment> {
     console.log('🔥 SupabaseAppointmentService: Updating appointment:', { id, updates });
 
-    // Use simple object with any typing to avoid deep instantiation
-    const updateData: any = {};
+    // Build update object with explicit properties to avoid type inference issues
+    const updateFields: {
+      date?: string;
+      time?: string;
+      patient_name?: string;
+      patient_phone?: string;
+      patient_email?: string;
+      treatment?: string;
+      dentist?: string;
+      status?: string;
+      notes?: string;
+    } = {};
     
-    if (updates.date !== undefined) updateData.date = updates.date;
-    if (updates.time !== undefined) updateData.time = updates.time;
-    if (updates.patient?.name !== undefined) updateData.patient_name = updates.patient.name;
-    if (updates.patient?.phone !== undefined) updateData.patient_phone = updates.patient.phone;
-    if (updates.patient?.email !== undefined) updateData.patient_email = updates.patient.email;
-    if (updates.treatment !== undefined) updateData.treatment = updates.treatment;
-    if (updates.dentist !== undefined) updateData.dentist = updates.dentist;
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.notes !== undefined) updateData.notes = updates.notes;
+    if (updates.date !== undefined) updateFields.date = updates.date;
+    if (updates.time !== undefined) updateFields.time = updates.time;
+    if (updates.patient?.name !== undefined) updateFields.patient_name = updates.patient.name;
+    if (updates.patient?.phone !== undefined) updateFields.patient_phone = updates.patient.phone;
+    if (updates.patient?.email !== undefined) updateFields.patient_email = updates.patient.email;
+    if (updates.treatment !== undefined) updateFields.treatment = updates.treatment;
+    if (updates.dentist !== undefined) updateFields.dentist = updates.dentist;
+    if (updates.status !== undefined) updateFields.status = updates.status;
+    if (updates.notes !== undefined) updateFields.notes = updates.notes;
 
     const { data, error } = await supabase
       .from('appointments')
-      .update(updateData)
+      .update(updateFields)
       .eq('id', id)
       .select()
       .single();
