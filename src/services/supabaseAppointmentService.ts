@@ -241,8 +241,8 @@ export const supabaseAppointmentService = {
     console.log('✅ SupabaseAppointmentService: Appointment deleted successfully:', id);
   },
 
-  // Subscribe to appointments
-  subscribeToAppointments(callback: (appointments: Appointment[]) => void): RealtimeChannel {
+  // Subscribe to appointments - simplified return type
+  subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
     console.log('🔥 SupabaseAppointmentService: Setting up appointments subscription');
     return supabase
       .channel('appointments')

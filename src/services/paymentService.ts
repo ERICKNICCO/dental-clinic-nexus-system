@@ -1,5 +1,7 @@
 import { supabase } from '../integrations/supabase/client';
 import { paymentUtils } from '../utils/paymentUtils';
+import { supabaseAppointmentService } from './supabaseAppointmentService';
+import { supabaseConsultationService } from './supabaseConsultationService';
 
 export interface Payment {
   id: string;
