@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { appointmentService } from '../services/appointmentService';
 import { Appointment } from '../types/appointment';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 export const useDoctorAppointments = (doctorName: string) => {
   const [todaysAppointments, setTodaysAppointments] = useState<Appointment[]>([]);
@@ -12,7 +13,9 @@ export const useDoctorAppointments = (doctorName: string) => {
   useEffect(() => {
     if (!doctorName) return;
 
-    const unsubscribe = appointmentService.subscribeToAppointments((appointments) => {
+    let channel: RealtimeChannel | null = null;
+
+    channel = appointmentService.subscribeToAppointments((appointments) => {
       try {
         const today = new Date().toISOString().split('T')[0];
         
@@ -55,7 +58,11 @@ export const useDoctorAppointments = (doctorName: string) => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (channel && typeof channel.unsubscribe === 'function') {
+        channel.unsubscribe();
+      }
+    };
   }, [doctorName]);
 
   const checkInPatient = async (appointmentId: string) => {

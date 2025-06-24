@@ -2,7 +2,6 @@ import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { emailNotificationService } from './emailNotificationService';
 import { supabaseNotificationService } from './supabaseNotificationService';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface SupabaseAppointment {
   id: string;
@@ -241,7 +240,7 @@ export const supabaseAppointmentService = {
     console.log('✅ SupabaseAppointmentService: Appointment deleted successfully:', id);
   },
 
-  // Subscribe to appointments - simplified return type
+  // Subscribe to appointments - return the channel directly
   subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
     console.log('🔥 SupabaseAppointmentService: Setting up appointments subscription');
     return supabase
