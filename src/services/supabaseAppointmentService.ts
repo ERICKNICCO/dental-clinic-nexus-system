@@ -2,6 +2,7 @@ import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { emailNotificationService } from './emailNotificationService';
 import { supabaseNotificationService } from './supabaseNotificationService';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface SupabaseAppointment {
   id: string;
@@ -241,7 +242,7 @@ export const supabaseAppointmentService = {
   },
 
   // Subscribe to appointments
-  subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
+  subscribeToAppointments(callback: (appointments: Appointment[]) => void): RealtimeChannel {
     console.log('🔥 SupabaseAppointmentService: Setting up appointments subscription');
     return supabase
       .channel('appointments')

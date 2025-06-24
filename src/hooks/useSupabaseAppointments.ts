@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabaseAppointmentService } from '../services/supabaseAppointmentService';
 import { Appointment } from '../types/appointment';
 import { useAuth } from '../contexts/AuthContext';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 export const useSupabaseAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -16,10 +17,10 @@ export const useSupabaseAppointments = () => {
     console.log('Setting up Supabase appointments subscription...');
     setLoading(true);
 
-    let unsubscribe: (() => void) | null = null;
+    let channel: RealtimeChannel | null = null;
 
     const setupSubscription = () => {
-      unsubscribe = supabaseAppointmentService.subscribeToAppointments((appointmentsList) => {
+      channel = supabaseAppointmentService.subscribeToAppointments((appointmentsList) => {
         console.log('Received appointments from Supabase:', appointmentsList);
         
         // Filter appointments based on user role
@@ -66,8 +67,8 @@ export const useSupabaseAppointments = () => {
 
     return () => {
       console.log('Cleaning up Supabase appointments subscription');
-      if (unsubscribe) {
-        unsubscribe();
+      if (channel && typeof channel.unsubscribe === 'function') {
+        channel.unsubscribe();
       }
     };
   }, [userProfile?.role, userProfile?.name]);

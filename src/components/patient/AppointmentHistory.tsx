@@ -42,7 +42,7 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ patientId, isEd
     console.log('Setting up appointments subscription for patient:', patientId);
     setLoading(true);
     
-    const unsubscribe = supabaseAppointmentService.subscribeToAppointments((allAppointments) => {
+    const channel = supabaseAppointmentService.subscribeToAppointments((allAppointments) => {
       // Filter appointments for this specific patient
       const patientAppointments = allAppointments.filter(
         appointment => appointment.patient.name && 
@@ -57,7 +57,9 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ patientId, isEd
 
     return () => {
       console.log('Cleaning up appointments subscription');
-      unsubscribe();
+      if (channel && typeof channel.unsubscribe === 'function') {
+        channel.unsubscribe();
+      }
     };
   }, [patientId]);
 

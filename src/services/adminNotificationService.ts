@@ -22,8 +22,7 @@ export const adminNotificationService = {
         title: 'Payment Collection Required',
         message: `Patient ${notification.patientName} needs payment collection for ${notification.diagnosis}. Amount: $${(notification.estimatedCost / 100).toFixed(2)}`,
         target_doctor_name: 'admin', // Target admin users
-        appointment_id: notification.appointmentId,
-        consultation_id: notification.consultationId
+        appointment_id: notification.appointmentId
       });
 
       // Send email to admin (you can configure admin email addresses)

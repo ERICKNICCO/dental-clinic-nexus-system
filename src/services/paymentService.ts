@@ -1,6 +1,4 @@
 import { supabase } from '../integrations/supabase/client';
-import { supabaseAppointmentService } from './supabaseAppointmentService';
-import { supabaseConsultationService } from './supabaseConsultationService';
 import { paymentUtils } from '../utils/paymentUtils';
 
 export interface Payment {
@@ -237,5 +235,13 @@ export const paymentService = {
   },
 
   // Use the utility function for formatting
-  formatPrice: paymentUtils.formatPrice
+  formatPrice: paymentUtils.formatPrice,
+
+  async validateAndCorrectPatientId(patientName: string, providedPatientId?: string): Promise<string> {
+    return paymentUtils.validateAndCorrectPatientId(patientName, providedPatientId);
+  },
+
+  async findAppointmentIdByPatientName(patientName: string): Promise<string | null> {
+    return paymentUtils.findAppointmentIdByPatientName(patientName);
+  }
 };
