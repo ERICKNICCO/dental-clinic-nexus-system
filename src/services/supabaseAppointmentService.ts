@@ -1,26 +1,28 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { emailNotificationService } from './emailNotificationService';
 import { supabaseNotificationService } from './supabaseNotificationService';
 
-export interface SupabaseAppointment {
+// Use the actual Supabase database row type instead of custom interface
+type SupabaseAppointmentRow = {
   id: string;
   date: string;
   time: string;
   patient_name: string;
-  patient_phone?: string;
-  patient_email?: string;
+  patient_phone: string | null;
+  patient_email: string | null;
   patient_id?: string;
   treatment: string;
   dentist: string;
-  status: 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved' | 'Checked In' | 'In Progress' | 'Completed';
-  notes?: string;
+  status: string;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
 
 // Transform function outside the service object to avoid circular references
-const transformToAppointment = (data: SupabaseAppointment): Appointment => {
+const transformToAppointment = (data: SupabaseAppointmentRow): Appointment => {
   return {
     id: data.id,
     date: data.date,
@@ -33,7 +35,7 @@ const transformToAppointment = (data: SupabaseAppointment): Appointment => {
     },
     treatment: data.treatment,
     dentist: data.dentist,
-    status: data.status,
+    status: data.status as 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved' | 'Checked In' | 'In Progress' | 'Completed',
     patientId: data.patient_id,
     notes: data.notes,
   };
@@ -163,18 +165,18 @@ export const supabaseAppointmentService = {
   async updateAppointment(id: string, updates: Partial<Appointment>): Promise<Appointment> {
     console.log('🔥 SupabaseAppointmentService: Updating appointment:', { id, updates });
 
-    // Explicitly type the update object to avoid deep type instantiation
-    const updateData: any = {
-      date: updates.date,
-      time: updates.time,
-      patient_name: updates.patient?.name,
-      patient_phone: updates.patient?.phone,
-      patient_email: updates.patient?.email,
-      treatment: updates.treatment,
-      dentist: updates.dentist,
-      status: updates.status,
-      notes: updates.notes
-    };
+    // Create update object with proper typing
+    const updateData: Record<string, any> = {};
+    
+    if (updates.date !== undefined) updateData.date = updates.date;
+    if (updates.time !== undefined) updateData.time = updates.time;
+    if (updates.patient?.name !== undefined) updateData.patient_name = updates.patient.name;
+    if (updates.patient?.phone !== undefined) updateData.patient_phone = updates.patient.phone;
+    if (updates.patient?.email !== undefined) updateData.patient_email = updates.patient.email;
+    if (updates.treatment !== undefined) updateData.treatment = updates.treatment;
+    if (updates.dentist !== undefined) updateData.dentist = updates.dentist;
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.notes !== undefined) updateData.notes = updates.notes;
 
     const { data, error } = await supabase
       .from('appointments')
