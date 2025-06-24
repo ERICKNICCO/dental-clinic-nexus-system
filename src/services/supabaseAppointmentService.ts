@@ -1,4 +1,3 @@
-
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { emailNotificationService } from './emailNotificationService';
@@ -20,26 +19,29 @@ export interface SupabaseAppointment {
   updated_at: string;
 }
 
+// Transform function outside the service object to avoid circular references
+const transformToAppointment = (data: SupabaseAppointment): Appointment => {
+  return {
+    id: data.id,
+    date: data.date,
+    time: data.time,
+    patient: {
+      name: data.patient_name,
+      phone: data.patient_phone || '',
+      email: data.patient_email || '',
+      image: '',
+    },
+    treatment: data.treatment,
+    dentist: data.dentist,
+    status: data.status,
+    patientId: data.patient_id,
+    notes: data.notes,
+  };
+};
+
 export const supabaseAppointmentService = {
   // Transform Supabase appointment to app appointment
-  transformToAppointment(data: SupabaseAppointment): Appointment {
-    return {
-      id: data.id,
-      date: data.date,
-      time: data.time,
-      patient: {
-        name: data.patient_name,
-        phone: data.patient_phone || '',
-        email: data.patient_email || '',
-        image: '',
-      },
-      treatment: data.treatment,
-      dentist: data.dentist,
-      status: data.status,
-      patientId: data.patient_id,
-      notes: data.notes,
-    };
-  },
+  transformToAppointment,
 
   // Add appointment
   async addAppointment(appointmentData: Omit<Appointment, 'id'>) {
@@ -116,7 +118,7 @@ export const supabaseAppointmentService = {
       .order('date', { ascending: true });
 
     if (error) throw error;
-    return data.map(item => this.transformToAppointment(item));
+    return data.map(transformToAppointment);
   },
 
   // Get appointments by patient ID
@@ -135,7 +137,7 @@ export const supabaseAppointmentService = {
     }
     
     console.log('✅ SupabaseAppointmentService: Found appointments:', data);
-    return data.map(item => this.transformToAppointment(item));
+    return data.map(transformToAppointment);
   },
 
   // Get appointments by patient name (fallback method)
@@ -154,7 +156,7 @@ export const supabaseAppointmentService = {
     }
     
     console.log('✅ SupabaseAppointmentService: Found appointments by name:', data);
-    return data.map(item => this.transformToAppointment(item));
+    return data.map(transformToAppointment);
   },
 
   // Update appointment
@@ -226,7 +228,7 @@ export const supabaseAppointmentService = {
       }
     }
 
-    return this.transformToAppointment(data);
+    return transformToAppointment(data);
   },
 
   // Delete appointment
@@ -264,7 +266,7 @@ export const supabaseAppointmentService = {
             .order('date', { ascending: true });
 
           if (data) {
-            callback(data.map(this.transformToAppointment));
+            callback(data.map(transformToAppointment));
           }
         }
       )
