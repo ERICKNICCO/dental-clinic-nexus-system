@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { emailNotificationService } from './emailNotificationService';
@@ -157,22 +158,25 @@ export const supabaseAppointmentService = {
   },
 
   // Update appointment
-  async updateAppointment(id: string, updates: Partial<Appointment>) {
+  async updateAppointment(id: string, updates: Partial<Appointment>): Promise<Appointment> {
     console.log('🔥 SupabaseAppointmentService: Updating appointment:', { id, updates });
+
+    // Explicitly type the update object to avoid deep type instantiation
+    const updateData: any = {
+      date: updates.date,
+      time: updates.time,
+      patient_name: updates.patient?.name,
+      patient_phone: updates.patient?.phone,
+      patient_email: updates.patient?.email,
+      treatment: updates.treatment,
+      dentist: updates.dentist,
+      status: updates.status,
+      notes: updates.notes
+    };
 
     const { data, error } = await supabase
       .from('appointments')
-      .update({
-        date: updates.date,
-        time: updates.time,
-        patient_name: updates.patient?.name,
-        patient_phone: updates.patient?.phone,
-        patient_email: updates.patient?.email,
-        treatment: updates.treatment,
-        dentist: updates.dentist,
-        status: updates.status,
-        notes: updates.notes
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
