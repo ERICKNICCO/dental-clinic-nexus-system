@@ -210,6 +210,30 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
         toast.error('Failed to create treatment note: ' + (treatmentNoteError?.message || 'Unknown error'));
       }
 
+      // Notify admin for payment collection if there's an estimated cost
+      if (consultationData.estimatedCost && consultationData.estimatedCost > 0) {
+        try {
+          const { adminNotificationService } = await import('../../services/adminNotificationService');
+          
+          await adminNotificationService.notifyAdminForPaymentCollection({
+            patientId: patientId,
+            patientName: patientName,
+            diagnosis: consultationData.diagnosis || 'General consultation',
+            estimatedCost: typeof consultationData.estimatedCost === 'string' 
+              ? Math.round(parseFloat(consultationData.estimatedCost) * 100) 
+              : consultationData.estimatedCost,
+            consultationId: activeConsultation.id,
+            appointmentId: selectedAppointment || undefined
+          });
+          
+          console.log('Admin notified for payment collection');
+          toast.success('Admin has been notified for payment collection');
+        } catch (notificationError) {
+          console.error('Error notifying admin:', notificationError);
+          toast.error('Failed to notify admin for payment collection');
+        }
+      }
+
       // Create payment record if there's an estimated cost
       if (consultationData.estimatedCost && consultationData.estimatedCost > 0) {
         try {
@@ -217,13 +241,16 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
             patient_id: patientId,
             patient_name: patientName,
             treatment_name: consultationData.diagnosis || 'General consultation',
-            total_amount: Math.round(consultationData.estimatedCost * 100), // Convert to cents
+            total_amount: typeof consultationData.estimatedCost === 'string' 
+              ? Math.round(parseFloat(consultationData.estimatedCost) * 100) 
+              : consultationData.estimatedCost,
             amount_paid: 0,
             payment_status: 'pending' as const,
             payment_method: 'cash' as const, // Default to cash, admin can change later
             collected_by: userProfile.name || userProfile.email,
             notes: 'Payment record created from consultation completion',
-            appointment_id: selectedAppointment
+            appointment_id: selectedAppointment,
+            consultation_id: activeConsultation.id
           };
 
           await paymentService.createPayment(paymentData);
@@ -239,7 +266,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       setConsultationData({});
       setCurrentStep('examination');
       
-      toast.success('Consultation completed and added to medical history');
+      toast.success('Consultation completed and sent to admin for payment collection');
     } catch (error) {
       console.error('Failed to complete consultation:', error);
       console.error('Consultation completion error details:', error?.message);

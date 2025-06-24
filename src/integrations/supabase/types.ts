@@ -173,6 +173,89 @@ export type Database = {
           },
         ]
       }
+      medical_history: {
+        Row: {
+          condition: string
+          created_at: string | null
+          date: string
+          description: string | null
+          doctor: string | null
+          id: string
+          patient_id: string | null
+          treatment: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          condition: string
+          created_at?: string | null
+          date: string
+          description?: string | null
+          doctor?: string | null
+          id?: string
+          patient_id?: string | null
+          treatment?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          condition?: string
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          doctor?: string | null
+          id?: string
+          patient_id?: string | null
+          treatment?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_history_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          target_doctor_name: string | null
+          timestamp: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          target_doctor_name?: string | null
+          timestamp?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          target_doctor_name?: string | null
+          timestamp?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           address: string
@@ -332,40 +415,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      },
-      notifications: {
+      }
+      treatment_notes: {
         Row: {
-          id: string;
-          type: string;
-          title: string;
-          message: string;
-          timestamp: string;
-          read: boolean;
-          appointment_id?: string | null;
-          target_doctor_name?: string | null;
-        };
+          created_at: string | null
+          date: string
+          doctor: string
+          follow_up: string | null
+          id: string
+          notes: string | null
+          patient_id: string | null
+          procedure: string
+          updated_at: string | null
+        }
         Insert: {
-          id?: string;
-          type: string;
-          title: string;
-          message: string;
-          timestamp?: string;
-          read?: boolean;
-          appointment_id?: string | null;
-          target_doctor_name?: string | null;
-        };
+          created_at?: string | null
+          date: string
+          doctor: string
+          follow_up?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          procedure: string
+          updated_at?: string | null
+        }
         Update: {
-          id?: string;
-          type?: string;
-          title?: string;
-          message?: string;
-          timestamp?: string;
-          read?: boolean;
-          appointment_id?: string | null;
-          target_doctor_name?: string | null;
-        };
-        Relationships: [];
-      },
+          created_at?: string | null
+          date?: string
+          doctor?: string
+          follow_up?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          procedure?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_notes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          name: string | null
+          role: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          name?: string | null
+          role?: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -184,6 +184,28 @@ export const supabaseAppointmentService = {
 
     console.log('✅ SupabaseAppointmentService: Appointment updated successfully:', data);
 
+    // Send confirmation email if status changed to "Confirmed"
+    if (updates.status === 'Confirmed' && data.patient_email) {
+      try {
+        const { emailNotificationService } = await import('./emailNotificationService');
+        
+        await emailNotificationService.sendAppointmentConfirmation({
+          to: data.patient_email,
+          subject: 'Appointment Confirmed',
+          appointmentDate: data.date,
+          appointmentTime: data.time,
+          patientName: data.patient_name,
+          dentistName: data.dentist,
+          treatment: data.treatment,
+          appointmentId: data.id
+        });
+        
+        console.log('✅ SupabaseAppointmentService: Confirmation email sent to patient');
+      } catch (emailError) {
+        console.error('❌ SupabaseAppointmentService: Error sending confirmation email:', emailError);
+      }
+    }
+
     // Create notification for status updates
     if (updates.status) {
       try {
