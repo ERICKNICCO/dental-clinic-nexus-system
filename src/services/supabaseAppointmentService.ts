@@ -165,22 +165,32 @@ export const supabaseAppointmentService = {
   async updateAppointment(id: string, updates: Partial<Appointment>): Promise<Appointment> {
     console.log('🔥 SupabaseAppointmentService: Updating appointment:', { id, updates });
 
-    // Create update object with proper typing
-    const updateData: Record<string, any> = {};
+    // Build update object with explicit properties to avoid type inference issues
+    const updateFields: {
+      date?: string;
+      time?: string;
+      patient_name?: string;
+      patient_phone?: string;
+      patient_email?: string;
+      treatment?: string;
+      dentist?: string;
+      status?: string;
+      notes?: string;
+    } = {};
     
-    if (updates.date !== undefined) updateData.date = updates.date;
-    if (updates.time !== undefined) updateData.time = updates.time;
-    if (updates.patient?.name !== undefined) updateData.patient_name = updates.patient.name;
-    if (updates.patient?.phone !== undefined) updateData.patient_phone = updates.patient.phone;
-    if (updates.patient?.email !== undefined) updateData.patient_email = updates.patient.email;
-    if (updates.treatment !== undefined) updateData.treatment = updates.treatment;
-    if (updates.dentist !== undefined) updateData.dentist = updates.dentist;
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.notes !== undefined) updateData.notes = updates.notes;
+    if (updates.date !== undefined) updateFields.date = updates.date;
+    if (updates.time !== undefined) updateFields.time = updates.time;
+    if (updates.patient?.name !== undefined) updateFields.patient_name = updates.patient.name;
+    if (updates.patient?.phone !== undefined) updateFields.patient_phone = updates.patient.phone;
+    if (updates.patient?.email !== undefined) updateFields.patient_email = updates.patient.email;
+    if (updates.treatment !== undefined) updateFields.treatment = updates.treatment;
+    if (updates.dentist !== undefined) updateFields.dentist = updates.dentist;
+    if (updates.status !== undefined) updateFields.status = updates.status;
+    if (updates.notes !== undefined) updateFields.notes = updates.notes;
 
     const { data, error } = await supabase
       .from('appointments')
-      .update(updateData)
+      .update(updateFields)
       .eq('id', id)
       .select()
       .single();
