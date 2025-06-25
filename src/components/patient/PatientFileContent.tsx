@@ -68,9 +68,9 @@ const PatientFileContent: React.FC = () => {
                 <CardTitle className="text-2xl font-bold text-gray-900">
                   {patient.name}
                 </CardTitle>
-                <p className="text-gray-600">Patient ID: {patient.patient_id}</p>
+                <p className="text-gray-600">Patient ID: {patient.patientId}</p>
                 <p className="text-sm text-gray-500">
-                  {patient.gender} • {patient.date_of_birth} • {patient.phone}
+                  {patient.gender} • {patient.dateOfBirth} • {patient.phone}
                 </p>
               </div>
             </div>
@@ -130,7 +130,11 @@ const PatientFileContent: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="info">
-          <PatientInfo patient={patient} isEditing={isEditing} />
+          <PatientInfo patient={{
+            ...patient,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }} isEditing={isEditing} />
         </TabsContent>
 
         <TabsContent value="history">
@@ -146,7 +150,7 @@ const PatientFileContent: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="appointments">
-          <AppointmentHistory patientName={patient.name} />
+          <AppointmentHistory patientId={patient.id} />
         </TabsContent>
       </Tabs>
     </div>
@@ -154,4 +158,3 @@ const PatientFileContent: React.FC = () => {
 };
 
 export default PatientFileContent;
-

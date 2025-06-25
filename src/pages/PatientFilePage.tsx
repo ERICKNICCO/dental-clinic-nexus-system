@@ -7,7 +7,7 @@ import PatientFileContent from '../components/patient/PatientFileContent';
 
 const PatientFilePage = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { patientId } = useParams();
+  const { id } = useParams();
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -20,7 +20,7 @@ const PatientFilePage = () => {
       <div className={`main-content flex-1 flex flex-col overflow-hidden ${isSidebarCollapsed ? 'expanded ml-[70px]' : 'ml-64'}`}>
         <Header toggleSidebar={toggleSidebar} />
         <div className="flex-1 overflow-auto p-6 bg-gray-50">
-          <PatientFileContent patientId={patientId} />
+          <PatientFileContent />
         </div>
       </div>
     </div>
