@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppointmentModal from './AppointmentModal';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { useAppointments } from '../../hooks/useAppointments';
-import { usePatients } from '../../hooks/usePatients';
+import { useSupabaseAppointments } from '../../hooks/useSupabaseAppointments';
+import { useSupabasePatients } from '../../hooks/useSupabasePatients';
 import { useAuth } from '../../contexts/AuthContext';
 import { Check, Trash2, User } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
@@ -12,8 +12,8 @@ import { isAppointmentToday, isDoctorNameMatch, normalizeDoctorName, getTodayStr
 const AppointmentsTable: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const { appointments, loading, updateAppointment, deleteAppointment } = useAppointments();
-  const { patients, addPatient } = usePatients();
+  const { appointments, loading, updateAppointment, deleteAppointment } = useSupabaseAppointments();
+  const { patients, addPatient } = useSupabasePatients();
   const { userProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -131,7 +131,7 @@ const AppointmentsTable: React.FC = () => {
       // Navigate to consultation page if we have a patient ID
       if (patientId) {
         console.log('Navigating to patient file with ID:', patientId);
-        navigate(`/patients/${patientId}`);
+        navigate(`/patients/${patientId}/file`);
       } else {
         console.error('Could not determine patient ID for navigation');
         toast({
@@ -160,7 +160,7 @@ const AppointmentsTable: React.FC = () => {
     );
     
     if (existingPatient) {
-      navigate(`/patients/${existingPatient.id}`);
+      navigate(`/patients/${existingPatient.id}/file`);
     } else {
       toast({
         title: "Patient Not Found",
