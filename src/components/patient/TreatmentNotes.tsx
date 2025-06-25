@@ -11,10 +11,11 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface TreatmentNotesProps {
   patientId: string;
+  patientName?: string;
   isEditing: boolean;
 }
 
-const TreatmentNotes: React.FC<TreatmentNotesProps> = ({ patientId, isEditing }) => {
+const TreatmentNotes: React.FC<TreatmentNotesProps> = ({ patientId, patientName, isEditing }) => {
   const { notes, loading, error, addNote } = useTreatmentNotes(patientId);
   const { userProfile } = useAuth();
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -36,6 +37,7 @@ const TreatmentNotes: React.FC<TreatmentNotesProps> = ({ patientId, isEditing })
       const noteToSave = {
         ...newNote,
         patientId,
+        patientName: patientName || 'Unknown Patient',
         doctor: userProfile?.name || 'Unknown Doctor'
       };
       
@@ -275,3 +277,4 @@ const TreatmentNotes: React.FC<TreatmentNotesProps> = ({ patientId, isEditing })
 };
 
 export default TreatmentNotes;
+

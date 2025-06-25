@@ -179,14 +179,14 @@ export const paymentService = {
         patient_name: payment.patient_name
       });
       
-      // Update appointment status to "Checked Out" if appointment_id exists
+      // Update appointment status to "Completed" if appointment_id exists
       if (payment.appointment_id) {
-        console.log('🔥 PaymentService: Updating appointment status to Checked Out for ID:', payment.appointment_id);
+        console.log('🔥 PaymentService: Updating appointment status to Completed for ID:', payment.appointment_id);
         try {
           await supabaseAppointmentService.updateAppointment(payment.appointment_id, { 
-            status: 'Checked Out' 
+            status: 'Completed' 
           });
-          console.log('✅ PaymentService: Appointment status updated to Checked Out');
+          console.log('✅ PaymentService: Appointment status updated to Completed');
         } catch (appointmentError) {
           console.error('❌ PaymentService: Error updating appointment:', appointmentError);
           // Try to find appointment by patient name if direct ID fails
@@ -195,7 +195,7 @@ export const paymentService = {
           if (foundAppointmentId) {
             console.log('🔥 PaymentService: Found appointment by patient name:', foundAppointmentId);
             await supabaseAppointmentService.updateAppointment(foundAppointmentId, { 
-              status: 'Checked Out' 
+              status: 'Completed' 
             });
             console.log('✅ PaymentService: Appointment status updated using found ID');
           } else {
@@ -248,3 +248,4 @@ export const paymentService = {
     return paymentUtils.findAppointmentIdByPatientName(patientName);
   }
 };
+

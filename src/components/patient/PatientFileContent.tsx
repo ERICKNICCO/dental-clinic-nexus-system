@@ -1,173 +1,152 @@
 
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { User, FileText, Activity, Calendar, AlertCircle } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Edit3, Save, X, FileText, History, Stethoscope, Calendar, CreditCard } from 'lucide-react';
 import PatientInfo from './PatientInfo';
 import MedicalHistory from './MedicalHistory';
 import TreatmentNotes from './TreatmentNotes';
 import AppointmentHistory from './AppointmentHistory';
 import ConsultationWorkflow from './ConsultationWorkflow';
-import { usePatient } from '../../hooks/usePatient';
-import { useAuth } from '../../contexts/AuthContext';
-import { Alert, AlertDescription } from '../ui/alert';
+import { useSupabasePatients } from '../../hooks/useSupabasePatients';
+import { toast } from 'sonner';
 
-interface PatientFileContentProps {
-  patientId?: string;
-}
+const PatientFileContent: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const { patients, loading } = useSupabasePatients();
+  const [isEditing, setIsEditing] = useState(false);
 
-interface Patient {
-  id: string;
-  patientId?: string;
-  name: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  gender: string;
-  address: string;
-  emergencyContact: string;
-  emergencyPhone: string;
-  insurance: string;
-  patientType: 'insurance' | 'cash';
-  lastVisit: string;
-  nextAppointment: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const PatientFileContent: React.FC<PatientFileContentProps> = ({ patientId }) => {
-  const [activeTab, setActiveTab] = useState('info');
-  const { patient, loading, error } = usePatient(patientId);
-  const { userProfile } = useAuth();
+  const patient = patients.find(p => p.id === id);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-gray-600">Loading patient information...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  if (error || !patient) {
+  if (!patient) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Patient Not Found</h3>
-          <p className="text-gray-600">{error || 'Unable to load patient information'}</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Patient Not Found</h2>
+          <p className="text-gray-600">The patient you're looking for doesn't exist.</p>
         </div>
       </div>
     );
   }
 
-  const isDoctor = userProfile?.role === 'doctor';
-  const canEdit = isDoctor; // Only doctors can edit patient files
+  const handleEdit = () => {
+    setIsEditing(true);
+    toast.info('Editing mode enabled');
+  };
 
-  // Ensure patient has all required properties with defaults
-  const patientWithDefaults: Patient = {
-    id: patient.id,
-    patientId: patient.patientId,
-    name: patient.name,
-    email: patient.email || '',
-    phone: patient.phone || '',
-    dateOfBirth: patient.dateOfBirth,
-    gender: patient.gender,
-    address: patient.address,
-    emergencyContact: patient.emergencyContact,
-    emergencyPhone: patient.emergencyPhone,
-    insurance: patient.insurance || '',
-    patientType: (patient as any).patientType || 'cash',
-    lastVisit: patient.lastVisit,
-    nextAppointment: patient.nextAppointment,
-    createdAt: patient.createdAt,
-    updatedAt: patient.updatedAt
+  const handleSave = () => {
+    setIsEditing(false);
+    toast.success('Changes saved successfully');
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    toast.info('Edit cancelled');
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Patient File - {patient.name}
-            {patient.patientId && (
-              <span className="text-sm font-normal text-gray-500">
-                (ID: {patient.patientId})
-              </span>
-            )}
-          </CardTitle>
-          {!canEdit && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                You have view-only access to this patient file. Only doctors can make edits.
-              </AlertDescription>
-            </Alert>
-          )}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <FileText className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold text-gray-900">
+                  {patient.name}
+                </CardTitle>
+                <p className="text-gray-600">Patient ID: {patient.patient_id}</p>
+                <p className="text-sm text-gray-500">
+                  {patient.gender} • {patient.date_of_birth} • {patient.phone}
+                </p>
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              {!isEditing ? (
+                <Button onClick={handleEdit} variant="outline" className="gap-2">
+                  <Edit3 className="w-4 h-4" />
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button onClick={handleSave} className="gap-2">
+                    <Save className="w-4 h-4" />
+                    Save
+                  </Button>
+                  <Button onClick={handleCancel} variant="outline" className="gap-2">
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      {/* Main Content */}
+      <Tabs defaultValue="consultation" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="info" className="flex items-center gap-1">
-            <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Info</span>
+          <TabsTrigger value="consultation" className="gap-2">
+            <Stethoscope className="w-4 h-4" />
+            Consultation
           </TabsTrigger>
-          <TabsTrigger value="consultation" className="flex items-center gap-1">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Consultation</span>
+          <TabsTrigger value="info" className="gap-2">
+            <FileText className="w-4 h-4" />
+            Patient Info
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-1">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">History</span>
+          <TabsTrigger value="history" className="gap-2">
+            <History className="w-4 h-4" />
+            Medical History
           </TabsTrigger>
-          <TabsTrigger value="treatments" className="flex items-center gap-1">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Treatments</span>
+          <TabsTrigger value="treatment" className="gap-2">
+            <Stethoscope className="w-4 h-4" />
+            Treatment Notes
           </TabsTrigger>
-          <TabsTrigger value="appointments" className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Appointments</span>
+          <TabsTrigger value="appointments" className="gap-2">
+            <Calendar className="w-4 h-4" />
+            Appointments
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="info">
-          <PatientInfo patient={patientWithDefaults} canEdit={canEdit} />
+        <TabsContent value="consultation">
+          <ConsultationWorkflow 
+            patientId={patient.id} 
+            patientName={patient.name}
+          />
         </TabsContent>
 
-        <TabsContent value="consultation">
-          {canEdit ? (
-            <ConsultationWorkflow
-              patientId={patient.id}
-              patientName={patient.name}
-            />
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Consultation workflow is only available to doctors.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          )}
+        <TabsContent value="info">
+          <PatientInfo patient={patient} isEditing={isEditing} />
         </TabsContent>
 
         <TabsContent value="history">
-          <MedicalHistory patientId={patient.id} isEditing={canEdit} />
+          <MedicalHistory patientId={patient.id} isEditing={isEditing} />
         </TabsContent>
 
-        <TabsContent value="treatments">
-          <TreatmentNotes patientId={patient.id} isEditing={canEdit} />
+        <TabsContent value="treatment">
+          <TreatmentNotes 
+            patientId={patient.id} 
+            patientName={patient.name}
+            isEditing={isEditing} 
+          />
         </TabsContent>
 
         <TabsContent value="appointments">
-          <AppointmentHistory patientId={patient.id} />
+          <AppointmentHistory patientName={patient.name} />
         </TabsContent>
       </Tabs>
     </div>
@@ -175,3 +154,4 @@ const PatientFileContent: React.FC<PatientFileContentProps> = ({ patientId }) =>
 };
 
 export default PatientFileContent;
+

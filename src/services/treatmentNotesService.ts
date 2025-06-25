@@ -9,6 +9,7 @@ import {
   query, 
   where, 
   orderBy, 
+  onSnapshot,
   Timestamp 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -85,6 +86,11 @@ export const treatmentNotesService = {
     }
   },
 
+  // Legacy method name for backward compatibility
+  async addTreatmentNote(note: Omit<TreatmentNote, 'id' | 'createdAt' | 'updatedAt'>) {
+    return this.addNote(note);
+  },
+
   // Get all treatment notes for a patient from Supabase
   async getNotes(patientId: string): Promise<TreatmentNote[]> {
     try {
@@ -132,6 +138,46 @@ export const treatmentNotesService = {
       console.error('Error in getNotes:', error);
       throw error;
     }
+  },
+
+  // Legacy method names for backward compatibility
+  async getPatientTreatmentNotes(patientId: string): Promise<TreatmentNote[]> {
+    return this.getNotes(patientId);
+  },
+
+  // Subscribe to real-time treatment notes updates
+  subscribeToPatientTreatmentNotes(patientId: string, callback: (notes: TreatmentNote[]) => void) {
+    console.log('Setting up real-time subscription for patient treatment notes:', patientId);
+    
+    const channel = supabase
+      .channel('treatment-notes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'treatment_notes',
+          filter: `patient_id=eq.${patientId}`
+        },
+        async () => {
+          console.log('Treatment notes changed, refreshing data');
+          try {
+            const notes = await this.getNotes(patientId);
+            callback(notes);
+          } catch (error) {
+            console.error('Error refreshing treatment notes:', error);
+          }
+        }
+      )
+      .subscribe();
+
+    // Initial load
+    this.getNotes(patientId).then(callback).catch(console.error);
+
+    // Return unsubscribe function
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   // Get all treatment notes from Supabase (for admin view)
@@ -204,6 +250,11 @@ export const treatmentNotesService = {
     }
   },
 
+  // Legacy method name for backward compatibility
+  async updateTreatmentNote(id: string, updates: Partial<TreatmentNote>) {
+    return this.updateNote(id, updates);
+  },
+
   // Delete a treatment note from Supabase
   async deleteNote(id: string) {
     try {
@@ -224,5 +275,11 @@ export const treatmentNotesService = {
       console.error('Error in deleteNote:', error);
       throw error;
     }
+  },
+
+  // Legacy method name for backward compatibility
+  async deleteTreatmentNote(id: string) {
+    return this.deleteNote(id);
   }
 };
+
