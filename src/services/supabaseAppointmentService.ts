@@ -3,6 +3,7 @@ import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { emailNotificationService } from './emailNotificationService';
 import { supabaseNotificationService } from './supabaseNotificationService';
+import { supabasePatientService } from './supabasePatientService';
 
 // Use the actual Supabase database row type instead of custom interface
 type SupabaseAppointmentRow = {
@@ -39,6 +40,130 @@ const transformToAppointment = (data: SupabaseAppointmentRow): Appointment => {
     patientId: data.patient_id,
     notes: data.notes,
   };
+};
+
+// Helper function to generate patient ID
+const generatePatientId = async (): Promise<string> => {
+  try {
+    console.log('Generating patient ID...');
+    const allPatients = await supabasePatientService.getPatients();
+    
+    let highestNumber = 0;
+    
+    allPatients.forEach((patient) => {
+      if (patient.patientId) {
+        const match = patient.patientId.match(/SD-25-(\d+)/);
+        if (match) {
+          const number = parseInt(match[1]);
+          if (number > highestNumber) {
+            highestNumber = number;
+          }
+        }
+      }
+    });
+    
+    const nextNumber = highestNumber + 1;
+    const paddedNumber = nextNumber.toString().padStart(5, '0');
+    const newPatientId = `SD-25-${paddedNumber}`;
+    console.log('Generated new patient ID:', newPatientId);
+    return newPatientId;
+  } catch (error) {
+    console.error('Error generating patient ID:', error);
+    return 'SD-25-00001';
+  }
+};
+
+// Helper function to find existing patient
+const findExistingPatient = async (appointmentData: SupabaseAppointmentRow) => {
+  try {
+    const allPatients = await supabasePatientService.getPatients();
+    
+    // Check for exact name match first
+    const nameMatch = allPatients.find(p => 
+      p.name.toLowerCase() === appointmentData.patient_name.toLowerCase()
+    );
+    if (nameMatch) return nameMatch;
+    
+    // Check for phone match
+    if (appointmentData.patient_phone) {
+      const phoneMatch = allPatients.find(p => p.phone === appointmentData.patient_phone);
+      if (phoneMatch) return phoneMatch;
+    }
+    
+    // Check for email match
+    if (appointmentData.patient_email) {
+      const emailMatch = allPatients.find(p => 
+        p.email.toLowerCase() === appointmentData.patient_email.toLowerCase()
+      );
+      if (emailMatch) return emailMatch;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding existing patient:', error);
+    return null;
+  }
+};
+
+// Helper function to add patient from appointment
+const addPatientFromAppointment = async (appointmentData: SupabaseAppointmentRow) => {
+  try {
+    console.log('🔥 Adding patient from approved appointment:', appointmentData.patient_name);
+    
+    // Check if patient already exists
+    const existingPatient = await findExistingPatient(appointmentData);
+    
+    if (existingPatient) {
+      console.log('✅ Patient already exists:', existingPatient.name);
+      
+      // Update appointment with patient_id if not already set
+      if (!appointmentData.patient_id) {
+        await supabase
+          .from('appointments')
+          .update({ patient_id: existingPatient.patientId })
+          .eq('id', appointmentData.id);
+        console.log('✅ Updated appointment with existing patient_id:', existingPatient.patientId);
+      }
+      
+      return existingPatient;
+    }
+
+    // Create new patient with information from appointment
+    const patientId = await generatePatientId();
+    
+    const newPatient = {
+      patientId: patientId,
+      name: appointmentData.patient_name,
+      email: appointmentData.patient_email || '',
+      phone: appointmentData.patient_phone || '',
+      dateOfBirth: '', // To be filled later during consultation
+      gender: '', // To be filled later during consultation
+      address: '', // To be filled later during consultation
+      emergencyContact: '',
+      emergencyPhone: '',
+      insurance: '',
+      patientType: 'cash' as const,
+      lastVisit: new Date().toISOString().split('T')[0],
+      nextAppointment: '',
+    };
+
+    console.log('🔥 Creating new patient from appointment:', newPatient);
+    
+    const newPatientDbId = await supabasePatientService.addPatient(newPatient);
+    console.log('✅ Patient created from appointment with DB ID:', newPatientDbId);
+    
+    // Update appointment with the new patient_id
+    await supabase
+      .from('appointments')
+      .update({ patient_id: patientId })
+      .eq('id', appointmentData.id);
+    console.log('✅ Updated appointment with new patient_id:', patientId);
+    
+    return { ...newPatient, id: newPatientDbId };
+  } catch (error) {
+    console.error('❌ Error adding patient from appointment:', error);
+    throw error;
+  }
 };
 
 export const supabaseAppointmentService = {
@@ -201,6 +326,17 @@ export const supabaseAppointmentService = {
     }
 
     console.log('✅ SupabaseAppointmentService: Appointment updated successfully:', data);
+
+    // Check if status changed to "Approved" and add patient if needed
+    if (updates.status === 'Approved') {
+      try {
+        console.log('🔥 SupabaseAppointmentService: Status changed to Approved, adding patient to system');
+        await addPatientFromAppointment(data);
+      } catch (error) {
+        console.error('❌ SupabaseAppointmentService: Error adding patient from approved appointment:', error);
+        // Don't throw error here, appointment update was successful
+      }
+    }
 
     // Send confirmation email if status changed to "Confirmed"
     if (updates.status === 'Confirmed' && data.patient_email) {

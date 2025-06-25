@@ -6,10 +6,8 @@ import { Search, UserPlus, FileText, Loader2, Edit, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom';
 import AddPatientModal from './patient/AddPatientModal';
 import EditPatientModal from './patient/EditPatientModal';
-import { usePatients } from '../hooks/usePatients';
+import { useSupabasePatients } from '../hooks/useSupabasePatients';
 import { useAuth } from '../contexts/AuthContext';
-import { useDoctorAppointments } from '../hooks/useDoctorAppointments';
-import { useAppointments } from '../hooks/useAppointments';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,8 +48,6 @@ interface Patient {
   patientType: 'insurance' | 'cash';
   lastVisit: string;
   nextAppointment: string | null;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 const PatientList: React.FC = () => {
@@ -59,19 +55,11 @@ const PatientList: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const { patients, loading, error, addPatient, updatePatient, deletePatient } = usePatients();
+  const { patients, loading, error, addPatient, updatePatient, deletePatient } = useSupabasePatients();
   const { userProfile } = useAuth();
-  const { todaysAppointments, loading: appointmentsLoading } = useDoctorAppointments(userProfile?.name || '');
-  const { appointments } = useAppointments();
-
-  // Updated: Allow non-admin users (including doctor) to see ALL patients (not just filtered)
-  const getFilteredPatientsByDoctor = () => {
-    // All users (admins, doctors, staff) see all patients
-    return patients;
-  };
 
   // Filter patients based on search term
-  const filteredPatients = getFilteredPatientsByDoctor().filter(patient => 
+  const filteredPatients = patients.filter(patient => 
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.phone.includes(searchTerm) ||
@@ -123,7 +111,7 @@ const PatientList: React.FC = () => {
     return insurance;
   };
 
-  if (loading || appointmentsLoading) {
+  if (loading) {
     return (
       <div className="bg-white rounded-lg shadow">
         <div className="flex items-center justify-center h-64">
@@ -198,7 +186,7 @@ const PatientList: React.FC = () => {
               </TableCell>
               <TableCell>{patient.email}</TableCell>
               <TableCell>{patient.phone}</TableCell>
-              <TableCell>{new Date(patient.lastVisit).toLocaleDateString()}</TableCell>
+              <TableCell>{patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString() : 'Never'}</TableCell>
               <TableCell>
                 {patient.nextAppointment 
                   ? new Date(patient.nextAppointment).toLocaleDateString() 
@@ -254,11 +242,9 @@ const PatientList: React.FC = () => {
         </TableBody>
       </Table>
       
-      {filteredPatients.length === 0 && !loading && !appointmentsLoading && (
+      {filteredPatients.length === 0 && !loading && (
         <div className="text-center py-8 text-gray-500">
-          {searchTerm ? 'No patients found matching your search criteria.' : 
-           userProfile?.role === 'admin' ? 'No patients found. Add your first patient!' :
-           'No patients assigned to you yet. Patients will appear here after appointments are scheduled.'}
+          {searchTerm ? 'No patients found matching your search criteria.' : 'No patients found. Add your first patient!'}
         </div>
       )}
 

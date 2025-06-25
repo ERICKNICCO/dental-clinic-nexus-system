@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabasePatientService } from '../services/supabasePatientService';
 
 interface Patient {
   id: string;
@@ -32,29 +31,44 @@ export const usePatient = (patientId: string | undefined) => {
       return;
     }
 
-    const unsubscribe = onSnapshot(
-      doc(db, 'patients', patientId),
-      (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          console.log('usePatient: Patient data from Firebase:', data);
+    const fetchPatient = async () => {
+      try {
+        console.log('usePatient: Fetching patient from Supabase:', patientId);
+        setLoading(true);
+        const patientData = await supabasePatientService.getPatient(patientId);
+        
+        if (patientData) {
+          console.log('usePatient: Patient data from Supabase:', patientData);
           setPatient({
-            id: doc.id,
-            ...data
-          } as Patient);
+            id: patientData.id,
+            patientId: patientData.patientId,
+            name: patientData.name,
+            email: patientData.email,
+            phone: patientData.phone,
+            dateOfBirth: patientData.dateOfBirth,
+            gender: patientData.gender,
+            address: patientData.address,
+            emergencyContact: patientData.emergencyContact,
+            emergencyPhone: patientData.emergencyPhone,
+            insurance: patientData.insurance,
+            lastVisit: patientData.lastVisit,
+            nextAppointment: patientData.nextAppointment,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          setError(null);
         } else {
           setError('Patient not found');
         }
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching patient:', error);
+      } catch (err) {
+        console.error('usePatient: Error fetching patient:', err);
         setError('Failed to fetch patient data');
+      } finally {
         setLoading(false);
       }
-    );
+    };
 
-    return () => unsubscribe();
+    fetchPatient();
   }, [patientId]);
 
   return { patient, loading, error };
