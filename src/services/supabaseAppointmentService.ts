@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { emailNotificationService } from './emailNotificationService';
@@ -169,46 +170,29 @@ export const supabaseAppointmentService = {
   // Transform Supabase appointment to app appointment
   transformToAppointment,
 
-  // Add appointment
+  // Add appointment - enhanced to handle public website bookings
   async addAppointment(appointmentData: Omit<Appointment, 'id'>) {
     console.log('🔥 SupabaseAppointmentService: Adding appointment with data:', appointmentData);
     
-    // Try to find patient_id by patient name if not provided
-    let patientId = appointmentData.patientId;
-    if (!patientId && appointmentData.patient?.name) {
-      console.log('🔥 SupabaseAppointmentService: Looking up patient_id for:', appointmentData.patient.name);
-      try {
-        const { data: patientData, error: patientError } = await supabase
-          .from('patients')
-          .select('patient_id')
-          .eq('name', appointmentData.patient.name)
-          .single();
-        
-        if (!patientError && patientData) {
-          patientId = patientData.patient_id;
-          console.log('✅ SupabaseAppointmentService: Found patient_id:', patientId);
-        } else {
-          console.warn('⚠️ SupabaseAppointmentService: Could not find patient_id for:', appointmentData.patient.name);
-        }
-      } catch (error) {
-        console.warn('⚠️ SupabaseAppointmentService: Error looking up patient_id:', error);
-      }
-    }
+    // Ensure we have all required fields for public website bookings
+    const appointmentToInsert = {
+      date: appointmentData.date,
+      time: appointmentData.time,
+      patient_name: appointmentData.patient.name,
+      patient_phone: appointmentData.patient.phone || null,
+      patient_email: appointmentData.patient.email || null,
+      patient_id: appointmentData.patientId || null,
+      treatment: appointmentData.treatment || 'General Consultation',
+      dentist: appointmentData.dentist,
+      status: appointmentData.status || 'Pending',
+      notes: appointmentData.notes || null
+    };
+
+    console.log('🔥 Inserting appointment data:', appointmentToInsert);
 
     const { data, error } = await supabase
       .from('appointments')
-      .insert({
-        date: appointmentData.date,
-        time: appointmentData.time,
-        patient_name: appointmentData.patient.name,
-        patient_phone: appointmentData.patient.phone,
-        patient_email: appointmentData.patient.email,
-        patient_id: patientId,
-        treatment: appointmentData.treatment,
-        dentist: appointmentData.dentist,
-        status: appointmentData.status,
-        notes: appointmentData.notes
-      })
+      .insert(appointmentToInsert)
       .select()
       .single();
 
@@ -236,6 +220,60 @@ export const supabaseAppointmentService = {
     return data.id;
   },
 
+  // Add appointment directly from public website
+  async addPublicAppointment(publicData: {
+    fullName: string;
+    email: string;
+    phone: string;
+    date: string;
+    time: string;
+    doctor: string;
+    message?: string;
+  }) {
+    console.log('🔥 SupabaseAppointmentService: Adding public appointment:', publicData);
+
+    const appointmentToInsert = {
+      date: publicData.date,
+      time: publicData.time,
+      patient_name: publicData.fullName,
+      patient_phone: publicData.phone,
+      patient_email: publicData.email,
+      patient_id: null, // Will be set when appointment is approved
+      treatment: 'General Consultation',
+      dentist: publicData.doctor,
+      status: 'Pending',
+      notes: publicData.message || null
+    };
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert(appointmentToInsert)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error adding public appointment:', error);
+      throw error;
+    }
+
+    console.log('✅ Public appointment added successfully:', data);
+
+    // Create notification for new appointment
+    try {
+      await supabaseNotificationService.createNotification({
+        type: 'appointment',
+        title: 'New Website Appointment',
+        message: `New appointment from website: ${publicData.fullName} for ${publicData.date} at ${publicData.time} with ${publicData.doctor}`,
+        target_doctor_name: null,
+        appointment_id: data.id
+      });
+    } catch (error) {
+      console.error('❌ Error creating notification:', error);
+    }
+
+    return data.id;
+  },
+
   // Get all appointments
   async getAppointments(): Promise<Appointment[]> {
     const { data, error } = await supabase
@@ -247,7 +285,6 @@ export const supabaseAppointmentService = {
     return data.map(transformToAppointment);
   },
 
-  // Get appointments by patient ID
   async getAppointmentsByPatientId(patientId: string): Promise<Appointment[]> {
     console.log('🔥 SupabaseAppointmentService: Getting appointments for patient_id:', patientId);
     
@@ -266,7 +303,6 @@ export const supabaseAppointmentService = {
     return data.map(transformToAppointment);
   },
 
-  // Get appointments by patient name (fallback method)
   async getAppointmentsByPatientName(patientName: string): Promise<Appointment[]> {
     console.log('🔥 SupabaseAppointmentService: Getting appointments for patient_name:', patientName);
     
@@ -285,7 +321,6 @@ export const supabaseAppointmentService = {
     return data.map(transformToAppointment);
   },
 
-  // Update appointment
   async updateAppointment(id: string, updates: Partial<Appointment>): Promise<Appointment> {
     console.log('🔥 SupabaseAppointmentService: Updating appointment:', { id, updates });
 
@@ -377,7 +412,6 @@ export const supabaseAppointmentService = {
     return transformToAppointment(data);
   },
 
-  // Delete appointment
   async deleteAppointment(id: string) {
     const { error } = await supabase
       .from('appointments')
@@ -392,7 +426,6 @@ export const supabaseAppointmentService = {
     console.log('✅ SupabaseAppointmentService: Appointment deleted successfully:', id);
   },
 
-  // Subscribe to appointments - return the channel directly
   subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
     console.log('🔥 SupabaseAppointmentService: Setting up appointments subscription');
     return supabase
