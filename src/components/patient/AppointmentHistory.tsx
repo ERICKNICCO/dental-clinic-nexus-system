@@ -42,7 +42,7 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ patientId }) =>
           treatment: appointment.treatment,
           status: appointment.status,
           notes: appointment.notes,
-          patient_name: appointment.patient_name || appointment.patient?.name || 'Unknown Patient'
+          patient_name: appointment.patientId || appointment.patient?.name || 'Unknown Patient'
         }));
         
         setAppointments(transformedData);
