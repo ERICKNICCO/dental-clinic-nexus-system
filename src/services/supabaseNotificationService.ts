@@ -38,13 +38,13 @@ export const supabaseNotificationService = {
     return this.transformToNotification(data);
   },
 
-  // Get all unread notifications for a doctor
+  // Get all unread notifications for a doctor or admin
   async getUnreadNotifications(doctorName: string): Promise<Notification[]> {
     console.log('Getting unread notifications for doctor:', doctorName);
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
-      .eq('target_doctor_name', doctorName)
+      .or(`target_doctor_name.eq.${doctorName},target_doctor_name.is.null`)
       .eq('read', false)
       .order('timestamp', { ascending: false });
 
@@ -72,7 +72,7 @@ export const supabaseNotificationService = {
     console.log('Marked notification as read:', notificationId);
   },
 
-  // Subscribe to notifications for a specific doctor
+  // Subscribe to notifications for a specific doctor or admin
   subscribeToNotifications(doctorName: string, callback: (notification: Notification) => void) {
     console.log('Setting up notification subscription for doctor:', doctorName);
     const channelName = `notifications_${doctorName}`;
@@ -83,14 +83,18 @@ export const supabaseNotificationService = {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'notifications',
-          filter: `target_doctor_name=eq.${doctorName}`,
+          table: 'notifications'
         },
         (payload) => {
           console.log('Received notification payload:', payload);
-          const notification = this.transformToNotification(payload.new as SupabaseNotification);
-          console.log('Transformed notification:', notification);
-          callback(notification);
+          const newNotification = payload.new as SupabaseNotification;
+          
+          // Check if this notification is for this user (specific doctor or admin/global notification)
+          if (newNotification.target_doctor_name === doctorName || newNotification.target_doctor_name === null) {
+            const notification = this.transformToNotification(newNotification);
+            console.log('Transformed notification for user:', notification);
+            callback(notification);
+          }
         }
       )
       .subscribe();
@@ -173,4 +177,4 @@ export const supabaseNotificationService = {
       supabase.removeChannel(channel);
     };
   },
-}; 
+};

@@ -1,4 +1,3 @@
-
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { emailNotificationService } from './emailNotificationService';
@@ -220,13 +219,13 @@ export const supabaseAppointmentService = {
     
     console.log('✅ SupabaseAppointmentService: Appointment added successfully:', data);
 
-    // Create notification for the dentist
+    // Create notification for new appointment - notify all admins
     try {
       await supabaseNotificationService.createNotification({
         type: 'appointment',
-        title: 'New Appointment',
-        message: `New appointment scheduled with ${appointmentData.patient.name} for ${appointmentData.date} at ${appointmentData.time}`,
-        target_doctor_name: appointmentData.dentist,
+        title: 'New Appointment Received',
+        message: `New appointment request from ${appointmentData.patient.name} for ${appointmentData.date} at ${appointmentData.time} with ${appointmentData.dentist}`,
+        target_doctor_name: null, // null means notify all admins
         appointment_id: data.id
       });
       console.log('✅ SupabaseAppointmentService: Created notification for new appointment');
@@ -341,11 +340,9 @@ export const supabaseAppointmentService = {
     // Send confirmation email if status changed to "Confirmed"
     if (updates.status === 'Confirmed' && data.patient_email) {
       try {
-        const { emailNotificationService } = await import('./emailNotificationService');
-        
         await emailNotificationService.sendAppointmentConfirmation({
           to: data.patient_email,
-          subject: 'Appointment Confirmed',
+          subject: 'Appointment Confirmed - Dental Clinic',
           appointmentDate: data.date,
           appointmentTime: data.time,
           patientName: data.patient_name,
@@ -357,6 +354,7 @@ export const supabaseAppointmentService = {
         console.log('✅ SupabaseAppointmentService: Confirmation email sent to patient');
       } catch (emailError) {
         console.error('❌ SupabaseAppointmentService: Error sending confirmation email:', emailError);
+        // Don't throw error, appointment update was successful
       }
     }
 
@@ -365,8 +363,8 @@ export const supabaseAppointmentService = {
       try {
         await supabaseNotificationService.createNotification({
           type: 'appointment',
-          title: 'Appointment Updated',
-          message: `Appointment status updated to ${updates.status}`,
+          title: 'Appointment Status Updated',
+          message: `Appointment with ${data.patient_name} has been ${updates.status.toLowerCase()}`,
           target_doctor_name: data.dentist,
           appointment_id: id
         });

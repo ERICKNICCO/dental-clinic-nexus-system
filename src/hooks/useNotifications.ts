@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabaseNotificationService } from '../services/supabaseNotificationService';
 import { Notification } from '../types/notification';
@@ -11,7 +12,7 @@ export const useNotifications = () => {
   useEffect(() => {
     if (!userProfile?.name) return;
 
-    console.log('Loading notifications for:', userProfile.name);
+    console.log('Loading notifications for:', userProfile.name, 'Role:', userProfile.role);
     
     // Load initial unread notifications
     const loadNotifications = async () => {
@@ -49,7 +50,7 @@ export const useNotifications = () => {
       console.log('Cleaning up notifications subscription');
       unsubscribe();
     };
-  }, [userProfile?.name]);
+  }, [userProfile?.name, userProfile?.role]);
 
   const markAsRead = async (notificationId: string) => {
     try {

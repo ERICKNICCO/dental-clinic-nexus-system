@@ -5,7 +5,6 @@ import { Search, UserPlus, FileText, Loader2, Edit, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom';
 import AddPatientModal from './patient/AddPatientModal';
 import EditPatientModal from './patient/EditPatientModal';
-import PatientCreationTest from './PatientCreationTest';
 import { useSupabasePatients } from '../hooks/useSupabasePatients';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -129,7 +128,6 @@ const PatientList: React.FC = () => {
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow">
-        <PatientCreationTest />
         <div className="flex items-center justify-center h-64">
           <p className="text-red-500">{error}</p>
         </div>
@@ -139,7 +137,6 @@ const PatientList: React.FC = () => {
 
   return (
     <div className="bg-white rounded-lg shadow">
-      <PatientCreationTest />
       <div className="p-4 border-b flex justify-between items-center">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
