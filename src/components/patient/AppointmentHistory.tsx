@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -6,7 +5,7 @@ import { Button } from '../ui/button';
 import { Calendar, Clock, User, FileText, Eye, Plus } from 'lucide-react';
 import { supabaseAppointmentService } from '../../services/supabaseAppointmentService';
 
-interface Appointment {
+interface AppointmentHistoryItem {
   id: string;
   date: string;
   time: string;
@@ -22,7 +21,7 @@ interface AppointmentHistoryProps {
 }
 
 const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ patientId }) => {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +32,20 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ patientId }) =>
         setLoading(true);
         const data = await supabaseAppointmentService.getAppointmentsByPatientId(patientId);
         console.log('Fetched appointments:', data);
-        setAppointments(data);
+        
+        // Transform the data to match our interface
+        const transformedData: AppointmentHistoryItem[] = data.map(appointment => ({
+          id: appointment.id,
+          date: appointment.date,
+          time: appointment.time,
+          dentist: appointment.dentist,
+          treatment: appointment.treatment,
+          status: appointment.status,
+          notes: appointment.notes,
+          patient_name: appointment.patient_name || appointment.patient?.name || 'Unknown Patient'
+        }));
+        
+        setAppointments(transformedData);
         setError(null);
       } catch (err) {
         console.error('Error fetching appointments:', err);

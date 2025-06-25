@@ -130,11 +130,14 @@ const PatientFileContent: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="info">
-          <PatientInfo patient={{
-            ...patient,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }} isEditing={isEditing} />
+          <PatientInfo 
+            patient={{
+              ...patient,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }}
+            canEdit={isEditing}
+          />
         </TabsContent>
 
         <TabsContent value="history">
