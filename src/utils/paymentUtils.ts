@@ -2,99 +2,110 @@
 import { supabase } from '../integrations/supabase/client';
 
 export const paymentUtils = {
-  formatPrice(amountInCents: number): string {
-    return `$${(amountInCents / 100).toFixed(2)}`;
+  // Format price for display
+  formatPrice: (amount: number): string => {
+    return new Intl.NumberFormat('en-UG', {
+      style: 'currency',
+      currency: 'UGX',
+      minimumFractionDigits: 0
+    }).format(amount);
   },
 
-  async validateAndCorrectPatientId(patientName: string, providedPatientId?: string): Promise<string> {
-    console.log('🔥 PaymentUtils: Validating patient ID for:', patientName, 'Provided ID:', providedPatientId);
-    
-    // If we have a provided patient ID, verify it exists
-    if (providedPatientId) {
-      const { data: existingPatient, error } = await supabase
-        .from('patients')
-        .select('id')
-        .eq('id', providedPatientId)
-        .single();
-      
-      if (!error && existingPatient) {
-        console.log('✅ PaymentUtils: Validated existing patient ID:', providedPatientId);
-        return providedPatientId;
-      }
-    }
-    
-    // Look up patient by name
-    const { data: patientData, error: patientError } = await supabase
-      .from('patients')
-      .select('id')
-      .eq('name', patientName)
-      .single();
-    
-    if (!patientError && patientData) {
-      console.log('✅ PaymentUtils: Found patient ID by name:', patientData.id);
-      return patientData.id;
-    }
-    
-    console.error('❌ PaymentUtils: Could not find or validate patient ID');
-    throw new Error(`Could not find patient: ${patientName}`);
-  },
-
-  async findAppointmentIdByPatientName(patientName: string): Promise<string | null> {
-    console.log('🔥 PaymentUtils: Finding appointment ID for patient:', patientName);
-    
-    const { data: appointmentData, error } = await supabase
-      .from('appointments')
-      .select('id')
-      .eq('patient_name', patientName)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (!error && appointmentData) {
-      console.log('✅ PaymentUtils: Found appointment ID:', appointmentData.id);
-      return appointmentData.id;
-    }
-    
-    console.warn('⚠️ PaymentUtils: Could not find appointment for patient:', patientName);
-    return null;
-  },
-
+  // Validate and correct patient data
   async validatePaymentData(paymentData: any) {
     const errors: string[] = [];
-    let correctedPatientId = paymentData.patient_id;
-    let correctedAppointmentId = paymentData.appointment_id;
-    
-    // Validate patient ID
-    try {
-      correctedPatientId = await this.validateAndCorrectPatientId(
-        paymentData.patient_name, 
-        paymentData.patient_id
-      );
-    } catch (error) {
-      errors.push(`Patient validation failed: ${error.message}`);
-    }
-    
-    // Validate appointment ID if provided
-    if (paymentData.appointment_id) {
-      const { data: appointmentExists } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('id', paymentData.appointment_id)
-        .single();
-      
-      if (!appointmentExists) {
-        // Try to find by patient name
-        correctedAppointmentId = await this.findAppointmentIdByPatientName(paymentData.patient_name);
-        if (!correctedAppointmentId) {
-          errors.push('Could not validate or find appointment ID');
-        }
+    let correctedPatientId = null;
+    let correctedAppointmentId = null;
+
+    // Try to find correct patient ID by name
+    if (paymentData.patient_name) {
+      const correctedId = await this.validateAndCorrectPatientId(paymentData.patient_name, paymentData.patient_id);
+      if (correctedId !== paymentData.patient_id) {
+        correctedPatientId = correctedId;
       }
     }
-    
+
+    // Try to find correct appointment ID by patient name
+    if (paymentData.patient_name && !paymentData.appointment_id) {
+      const foundAppointmentId = await this.findAppointmentIdByPatientName(paymentData.patient_name);
+      if (foundAppointmentId) {
+        correctedAppointmentId = foundAppointmentId;
+      }
+    }
+
     return {
+      errors,
       correctedPatientId,
-      correctedAppointmentId,
-      errors
+      correctedAppointmentId
     };
+  },
+
+  // Find patient ID by name
+  async validateAndCorrectPatientId(patientName: string, providedPatientId?: string): Promise<string> {
+    try {
+      // First try to find by exact name match
+      const { data: patients, error } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('name', patientName)
+        .limit(1);
+
+      if (error) {
+        console.error('Error finding patient by name:', error);
+        return providedPatientId || patientName;
+      }
+
+      if (patients && patients.length > 0) {
+        return patients[0].id;
+      }
+
+      // If no exact match, try case-insensitive search
+      const { data: patientsLike, error: likeError } = await supabase
+        .from('patients')
+        .select('id')
+        .ilike('name', `%${patientName}%`)
+        .limit(1);
+
+      if (likeError) {
+        console.error('Error finding patient by name (like):', likeError);
+        return providedPatientId || patientName;
+      }
+
+      if (patientsLike && patientsLike.length > 0) {
+        return patientsLike[0].id;
+      }
+
+      return providedPatientId || patientName;
+    } catch (error) {
+      console.error('Error validating patient ID:', error);
+      return providedPatientId || patientName;
+    }
+  },
+
+  // Find appointment ID by patient name
+  async findAppointmentIdByPatientName(patientName: string): Promise<string | null> {
+    try {
+      const { data: appointments, error } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('patient_name', patientName)
+        .in('status', ['Checked In', 'In Progress', 'Approved', 'Confirmed'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error finding appointment by patient name:', error);
+        return null;
+      }
+
+      if (appointments && appointments.length > 0) {
+        return appointments[0].id;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error finding appointment ID:', error);
+      return null;
+    }
   }
 };

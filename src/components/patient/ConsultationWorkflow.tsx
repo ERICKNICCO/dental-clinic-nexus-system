@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSupabaseConsultation } from '../../hooks/useSupabaseConsultation';
 import { useDoctorAppointments } from '../../hooks/useDoctorAppointments';
@@ -179,6 +178,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       // Create treatment note from consultation data
       const treatmentNote = {
         patientId: patientId,
+        patientName: patientName, // Add patient name for the treatment record
         date: new Date().toISOString().split('T')[0],
         procedure: consultationData.diagnosis || 'General consultation',
         notes: [
@@ -210,55 +210,54 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
         toast.error('Failed to create treatment note: ' + (treatmentNoteError?.message || 'Unknown error'));
       }
 
-      // Notify admin for payment collection if there's an estimated cost
-      if (consultationData.estimatedCost && consultationData.estimatedCost > 0) {
+      // Create payment record automatically if there's diagnosis and treatment plan
+      if (consultationData.diagnosis && consultationData.treatmentPlan) {
+        try {
+          // Calculate cost based on treatment plan or use default
+          const estimatedCost = consultationData.estimatedCost || 50000; // Default 50,000 UGX
+          
+          const paymentData = {
+            patient_id: patientId,
+            patient_name: patientName,
+            treatment_name: consultationData.diagnosis,
+            total_amount: typeof estimatedCost === 'string' 
+              ? Math.round(parseFloat(estimatedCost) * 100) 
+              : estimatedCost,
+            amount_paid: 0,
+            payment_status: 'pending' as const,
+            payment_method: 'cash' as const,
+            collected_by: userProfile.name || userProfile.email,
+            notes: `Treatment: ${consultationData.treatmentPlan}`,
+            appointment_id: selectedAppointment,
+            consultation_id: activeConsultation.id
+          };
+
+          await paymentService.createPayment(paymentData);
+          console.log('Payment record created automatically');
+          toast.success('Payment record created for admin collection');
+        } catch (paymentError) {
+          console.error('Error creating payment record:', paymentError);
+          toast.error('Failed to create payment record');
+        }
+      }
+
+      // Notify admin for payment collection
+      if (consultationData.diagnosis && consultationData.treatmentPlan) {
         try {
           const { adminNotificationService } = await import('../../services/adminNotificationService');
           
           await adminNotificationService.notifyAdminForPaymentCollection({
             patientId: patientId,
             patientName: patientName,
-            diagnosis: consultationData.diagnosis || 'General consultation',
-            estimatedCost: typeof consultationData.estimatedCost === 'string' 
-              ? Math.round(parseFloat(consultationData.estimatedCost) * 100) 
-              : consultationData.estimatedCost,
+            diagnosis: consultationData.diagnosis,
+            estimatedCost: consultationData.estimatedCost || 50000,
             consultationId: activeConsultation.id,
             appointmentId: selectedAppointment || undefined
           });
           
           console.log('Admin notified for payment collection');
-          toast.success('Admin has been notified for payment collection');
         } catch (notificationError) {
           console.error('Error notifying admin:', notificationError);
-          toast.error('Failed to notify admin for payment collection');
-        }
-      }
-
-      // Create payment record if there's an estimated cost
-      if (consultationData.estimatedCost && consultationData.estimatedCost > 0) {
-        try {
-          const paymentData = {
-            patient_id: patientId,
-            patient_name: patientName,
-            treatment_name: consultationData.diagnosis || 'General consultation',
-            total_amount: typeof consultationData.estimatedCost === 'string' 
-              ? Math.round(parseFloat(consultationData.estimatedCost) * 100) 
-              : consultationData.estimatedCost,
-            amount_paid: 0,
-            payment_status: 'pending' as const,
-            payment_method: 'cash' as const, // Default to cash, admin can change later
-            collected_by: userProfile.name || userProfile.email,
-            notes: 'Payment record created from consultation completion',
-            appointment_id: selectedAppointment,
-            consultation_id: activeConsultation.id
-          };
-
-          await paymentService.createPayment(paymentData);
-          console.log('Payment record created successfully');
-          toast.success('Payment record created for admin review');
-        } catch (paymentError) {
-          console.error('Error creating payment record:', paymentError);
-          toast.error('Failed to create payment record: ' + (paymentError?.message || 'Unknown error'));
         }
       }
       
@@ -266,7 +265,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       setConsultationData({});
       setCurrentStep('examination');
       
-      toast.success('Consultation completed and sent to admin for payment collection');
+      toast.success('Consultation completed and payment record created');
     } catch (error) {
       console.error('Failed to complete consultation:', error);
       console.error('Consultation completion error details:', error?.message);

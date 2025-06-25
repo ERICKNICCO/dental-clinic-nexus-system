@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { paymentUtils } from '../utils/paymentUtils';
 import { supabaseAppointmentService } from './supabaseAppointmentService';
@@ -178,14 +179,14 @@ export const paymentService = {
         patient_name: payment.patient_name
       });
       
-      // Update appointment status if appointment_id exists and is valid
+      // Update appointment status to "Checked Out" if appointment_id exists
       if (payment.appointment_id) {
-        console.log('🔥 PaymentService: Updating appointment status for ID:', payment.appointment_id);
+        console.log('🔥 PaymentService: Updating appointment status to Checked Out for ID:', payment.appointment_id);
         try {
-        await supabaseAppointmentService.updateAppointment(payment.appointment_id, { 
-          status: 'Completed' 
-        });
-        console.log('✅ PaymentService: Appointment status updated to Completed');
+          await supabaseAppointmentService.updateAppointment(payment.appointment_id, { 
+            status: 'Checked Out' 
+          });
+          console.log('✅ PaymentService: Appointment status updated to Checked Out');
         } catch (appointmentError) {
           console.error('❌ PaymentService: Error updating appointment:', appointmentError);
           // Try to find appointment by patient name if direct ID fails
@@ -194,7 +195,7 @@ export const paymentService = {
           if (foundAppointmentId) {
             console.log('🔥 PaymentService: Found appointment by patient name:', foundAppointmentId);
             await supabaseAppointmentService.updateAppointment(foundAppointmentId, { 
-              status: 'Completed' 
+              status: 'Checked Out' 
             });
             console.log('✅ PaymentService: Appointment status updated using found ID');
           } else {
@@ -207,8 +208,8 @@ export const paymentService = {
       if (payment.consultation_id) {
         console.log('🔥 PaymentService: Completing consultation for ID:', payment.consultation_id);
         try {
-        await supabaseConsultationService.completeConsultation(payment.consultation_id, {});
-        console.log('✅ PaymentService: Consultation completed successfully');
+          await supabaseConsultationService.completeConsultation(payment.consultation_id, {});
+          console.log('✅ PaymentService: Consultation completed successfully');
         } catch (consultationError) {
           console.warn('⚠️ PaymentService: Could not complete consultation by ID:', consultationError);
         }
