@@ -13,24 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Edit, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { inventoryService, InventoryItem } from '../services/inventoryService';
+import { useSupabaseInventory } from '../hooks/useSupabaseInventory';
+import { InventoryItem } from '../services/supabaseInventoryService';
 
 const categories = ["All", "Materials", "Medications", "Instruments", "PPE", "Supplies"];
 
 const InventoryList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = inventoryService.subscribeToInventory((items) => {
-      setInventory(items);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const { inventory, loading } = useSupabaseInventory();
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());

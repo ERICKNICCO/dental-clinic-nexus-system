@@ -17,6 +17,7 @@ export type Database = {
           id: string
           notes: string | null
           patient_email: string | null
+          patient_id: string | null
           patient_name: string
           patient_phone: string | null
           status: string
@@ -31,6 +32,7 @@ export type Database = {
           id?: string
           notes?: string | null
           patient_email?: string | null
+          patient_id?: string | null
           patient_name: string
           patient_phone?: string | null
           status?: string
@@ -45,6 +47,7 @@ export type Database = {
           id?: string
           notes?: string | null
           patient_email?: string | null
+          patient_id?: string | null
           patient_name?: string
           patient_phone?: string | null
           status?: string
@@ -172,6 +175,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inventory: {
+        Row: {
+          brand: string | null
+          category: string
+          created_at: string
+          current_stock: number
+          expiry_date: string | null
+          id: string
+          name: string
+          reorder_level: number
+          supplier: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          category: string
+          created_at?: string
+          current_stock?: number
+          expiry_date?: string | null
+          id?: string
+          name: string
+          reorder_level?: number
+          supplier?: string | null
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          category?: string
+          created_at?: string
+          current_stock?: number
+          expiry_date?: string | null
+          id?: string
+          name?: string
+          reorder_level?: number
+          supplier?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       medical_history: {
         Row: {
@@ -416,6 +461,59 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          brand: string | null
+          created_at: string
+          expiry_date: string | null
+          id: string
+          item_id: string | null
+          item_name: string
+          performed_by: string
+          quantity: number
+          reason: string
+          remaining_stock: number
+          supplier: string | null
+          type: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          item_id?: string | null
+          item_name: string
+          performed_by: string
+          quantity: number
+          reason: string
+          remaining_stock: number
+          supplier?: string | null
+          type: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string
+          performed_by?: string
+          quantity?: number
+          reason?: string
+          remaining_stock?: number
+          supplier?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatment_notes: {
         Row: {
           created_at: string | null
@@ -459,6 +557,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      treatment_pricing: {
+        Row: {
+          base_price: number
+          category: string
+          created_at: string
+          description: string | null
+          duration: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number
+          category: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
