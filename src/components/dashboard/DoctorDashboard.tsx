@@ -49,6 +49,20 @@ const DoctorDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Debug Information */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="text-sm text-blue-800">Debug Info</CardTitle>
+        </CardHeader>
+        <CardContent className="text-xs text-blue-700">
+          <p><strong>Doctor Name:</strong> {userProfile?.name}</p>
+          <p><strong>Today's Date:</strong> {new Date().toISOString().split('T')[0]}</p>
+          <p><strong>Total Today's Appointments:</strong> {todaysAppointments.length}</p>
+          <p><strong>Approved Appointments:</strong> {approvedAppointments.length}</p>
+          <p><strong>Checked In Appointments:</strong> {checkedInAppointments.length}</p>
+        </CardContent>
+      </Card>
+
       {/* Today's Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -153,7 +167,7 @@ const DoctorDashboard = () => {
                       Checked In
                     </Badge>
                     <Button 
-                      onClick={() => window.location.href = `/patient/${appointment.patientId || appointment.patient_id}`}
+                      onClick={() => window.location.href = `/patient/${appointment.patient_id}`}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       Start Treatment
@@ -173,6 +187,10 @@ const DoctorDashboard = () => {
             <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-600 mb-2">No appointments today</h3>
             <p className="text-gray-500">You have no scheduled appointments for today.</p>
+            <div className="mt-4 text-sm text-gray-400">
+              <p>Looking for appointments assigned to: <strong>{userProfile?.name}</strong></p>
+              <p>Date: <strong>{new Date().toISOString().split('T')[0]}</strong></p>
+            </div>
           </CardContent>
         </Card>
       )}
