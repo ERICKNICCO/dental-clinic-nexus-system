@@ -1,8 +1,7 @@
 
-import { supabaseNotificationService } from './supabaseNotificationService';
-import { emailNotificationService } from './emailNotificationService';
+import { supabase } from '../integrations/supabase/client';
 
-export interface AdminPaymentNotification {
+interface PaymentNotificationData {
   patientId: string;
   patientName: string;
   diagnosis: string;
@@ -12,30 +11,31 @@ export interface AdminPaymentNotification {
 }
 
 export const adminNotificationService = {
-  async notifyAdminForPaymentCollection(notification: AdminPaymentNotification) {
+  async notifyAdminForPaymentCollection(data: PaymentNotificationData) {
     try {
-      console.log('🔥 AdminNotificationService: Notifying admin for payment collection:', notification);
+      console.log('Creating admin notification for payment collection:', data);
       
-      // Create notification in the system
-      await supabaseNotificationService.createNotification({
-        type: 'payment_required',
-        title: 'Payment Collection Required',
-        message: `Patient ${notification.patientName} needs payment collection for ${notification.diagnosis}. Amount: $${(notification.estimatedCost / 100).toFixed(2)}`,
-        target_doctor_name: 'admin', // Target admin users
-        appointment_id: notification.appointmentId
-      });
+      const { error } = await supabase
+        .from('notifications')
+        .insert([
+          {
+            type: 'payment_collection',
+            title: 'Payment Collection Required',
+            message: `Patient ${data.patientName} has completed treatment. Diagnosis: ${data.diagnosis}. Estimated cost: UGX ${data.estimatedCost.toLocaleString()}`,
+            target_doctor_name: 'admin',
+            appointment_id: data.appointmentId,
+            read: false
+          }
+        ]);
 
-      // Send email to admin (you can configure admin email addresses)
-      await emailNotificationService.sendPaymentCollectionNotification({
-        patientName: notification.patientName,
-        diagnosis: notification.diagnosis,
-        estimatedCost: notification.estimatedCost,
-        consultationId: notification.consultationId
-      });
+      if (error) {
+        console.error('Error creating notification:', error);
+        throw error;
+      }
 
-      console.log('✅ AdminNotificationService: Admin notification sent successfully');
+      console.log('Admin notification created successfully');
     } catch (error) {
-      console.error('❌ AdminNotificationService: Error notifying admin:', error);
+      console.error('Failed to notify admin:', error);
       throw error;
     }
   }
