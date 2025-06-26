@@ -31,8 +31,16 @@ export const isDoctorNameMatch = (appointmentDoctor: string, userDoctor: string)
   const normalizedAppointmentDoctor = normalizeDoctorName(appointmentDoctor);
   const normalizedUserDoctor = normalizeDoctorName(userDoctor);
   
-  // Exact match
+  console.log('🔍 Doctor name matching:', {
+    appointment: appointmentDoctor,
+    normalized_appointment: normalizedAppointmentDoctor,
+    user: userDoctor,
+    normalized_user: normalizedUserDoctor
+  });
+  
+  // Exact match after normalization
   if (normalizedAppointmentDoctor === normalizedUserDoctor) {
+    console.log('✅ Exact match found');
     return true;
   }
   
@@ -40,28 +48,37 @@ export const isDoctorNameMatch = (appointmentDoctor: string, userDoctor: string)
   const appointmentWords = normalizedAppointmentDoctor.split(' ').filter(word => word.length > 0);
   const userWords = normalizedUserDoctor.split(' ').filter(word => word.length > 0);
   
+  console.log('🔍 Words comparison:', {
+    appointmentWords,
+    userWords
+  });
+  
   // Check if any word from appointment doctor matches any word from user doctor
   for (const appointmentWord of appointmentWords) {
     for (const userWord of userWords) {
-      if (appointmentWord === userWord) {
+      if (appointmentWord === userWord && appointmentWord.length > 2) { // Only match meaningful words
+        console.log('✅ Word match found:', appointmentWord);
         return true;
       }
     }
   }
   
-  // Check if appointment doctor contains any user word or vice versa
-  for (const appointmentWord of appointmentWords) {
-    if (normalizedUserDoctor.includes(appointmentWord)) {
-      return true;
-    }
+  // Special case: Check if the appointment doctor name is contained within the user doctor name
+  // This handles cases like "Dr. Israel" matching "Dr. Israel Kombole"
+  if (normalizedUserDoctor.includes(normalizedAppointmentDoctor) && normalizedAppointmentDoctor.length > 2) {
+    console.log('✅ Appointment doctor name contained in user doctor name');
+    return true;
   }
   
+  // Check if appointment doctor contains any significant user word
   for (const userWord of userWords) {
-    if (normalizedAppointmentDoctor.includes(userWord)) {
+    if (userWord.length > 2 && normalizedAppointmentDoctor.includes(userWord)) {
+      console.log('✅ User word found in appointment doctor:', userWord);
       return true;
     }
   }
   
+  console.log('❌ No match found');
   return false;
 };
 
