@@ -4,6 +4,7 @@ import { supabaseAppointmentService } from '../services/supabaseAppointmentServi
 import { Appointment } from '../types/appointment';
 import { useAuth } from '../contexts/AuthContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { isDoctorNameMatch } from '../utils/appointmentFilters';
 
 export const useSupabaseAppointments = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -14,26 +15,44 @@ export const useSupabaseAppointments = () => {
   useEffect(() => {
     if (!userProfile) return;
 
-    console.log('Setting up Supabase appointments subscription...');
+    console.log('🔥 Setting up Supabase appointments subscription for user:', userProfile.name);
     setLoading(true);
 
     let channel: RealtimeChannel | null = null;
 
+    const processAppointments = (appointmentsList: Appointment[]) => {
+      console.log('🔥 Processing appointments in useSupabaseAppointments:', appointmentsList.length);
+      
+      // Filter appointments based on user role
+      let filteredAppointments = appointmentsList;
+      if (userProfile?.role === 'doctor') {
+        console.log('🔥 Filtering appointments for doctor:', userProfile.name);
+        
+        filteredAppointments = appointmentsList.filter(appointment => {
+          const appointmentDoctor = appointment.dentist || '';
+          const userDoctor = userProfile.name || '';
+          
+          const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
+          
+          console.log('🔥 useSupabaseAppointments filtering - Appointment doctor:', appointmentDoctor);
+          console.log('🔥 useSupabaseAppointments filtering - User doctor:', userDoctor);
+          console.log('🔥 useSupabaseAppointments filtering - Match result:', isDoctorMatch);
+          
+          return isDoctorMatch;
+        });
+        
+        console.log('🔥 Filtered appointments for doctor:', filteredAppointments.length);
+      }
+      
+      setAppointments(filteredAppointments);
+      setLoading(false);
+      setError(null);
+    };
+
     const setupSubscription = () => {
       channel = supabaseAppointmentService.subscribeToAppointments((appointmentsList) => {
-        console.log('Received appointments from Supabase:', appointmentsList);
-        
-        // Filter appointments based on user role
-        let filteredAppointments = appointmentsList;
-        if (userProfile?.role === 'doctor') {
-          filteredAppointments = appointmentsList.filter(
-            appointment => appointment.dentist === userProfile.name
-          );
-        }
-        
-        setAppointments(filteredAppointments);
-        setLoading(false);
-        setError(null);
+        console.log('🔥 Received appointments from Supabase subscription:', appointmentsList.length);
+        processAppointments(appointmentsList);
       });
     };
 
@@ -41,23 +60,14 @@ export const useSupabaseAppointments = () => {
     const loadInitialAppointments = async () => {
       try {
         const appointmentsList = await supabaseAppointmentService.getAppointments();
+        console.log('🔥 Initial appointments loaded:', appointmentsList.length);
         
-        // Filter appointments based on user role
-        let filteredAppointments = appointmentsList;
-        if (userProfile?.role === 'doctor') {
-          filteredAppointments = appointmentsList.filter(
-            appointment => appointment.dentist === userProfile.name
-          );
-        }
-        
-        setAppointments(filteredAppointments);
-        setLoading(false);
-        setError(null);
+        processAppointments(appointmentsList);
         
         // Setup subscription after initial load
         setupSubscription();
       } catch (err) {
-        console.error('Error loading appointments:', err);
+        console.error('❌ Error loading appointments:', err);
         setError('Failed to load appointments');
         setLoading(false);
       }
@@ -66,7 +76,7 @@ export const useSupabaseAppointments = () => {
     loadInitialAppointments();
 
     return () => {
-      console.log('Cleaning up Supabase appointments subscription');
+      console.log('🔥 Cleaning up Supabase appointments subscription');
       if (channel && typeof channel.unsubscribe === 'function') {
         channel.unsubscribe();
       }
