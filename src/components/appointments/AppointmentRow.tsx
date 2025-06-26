@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Check, Mail } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Appointment } from '../../types/appointment';
 
@@ -8,6 +8,7 @@ interface AppointmentRowProps {
   appointment: Appointment;
   onEdit: (appointment: Appointment) => void;
   onApprove: (id: string) => void;
+  onConfirm: (id: string) => void;
   getStatusClass: (status: string) => string;
 }
 
@@ -15,6 +16,7 @@ const AppointmentRow: React.FC<AppointmentRowProps> = ({
   appointment,
   onEdit,
   onApprove,
+  onConfirm,
   getStatusClass
 }) => {
   // Add null checks for patient data
@@ -69,6 +71,15 @@ const AppointmentRow: React.FC<AppointmentRowProps> = ({
               onClick={() => onApprove(appointment.id)}
             >
               <Check className="h-5 w-5" />
+            </button>
+          )}
+          {appointmentStatus === 'Approved' && (
+            <button 
+              className="text-blue-600 hover:text-blue-900" 
+              title="Confirm & Send Email"
+              onClick={() => onConfirm(appointment.id)}
+            >
+              <Mail className="h-5 w-5" />
             </button>
           )}
           <button className="text-red-600 hover:text-red-900" title="Delete">

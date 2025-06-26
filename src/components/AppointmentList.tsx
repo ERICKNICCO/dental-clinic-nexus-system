@@ -41,6 +41,22 @@ const AppointmentList = () => {
     }
   };
 
+  const handleConfirmAppointment = async (id: string) => {
+    try {
+      await updateAppointment(id, { status: 'Confirmed' });
+      toast({
+        title: "Success",
+        description: "Appointment confirmed and email sent to patient",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to confirm appointment",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNewAppointment = () => {
     setSelectedAppointment(null);
     setIsModalOpen(true);
@@ -82,6 +98,7 @@ const AppointmentList = () => {
           appointments={filteredAppointments}
           onEditAppointment={handleEditClick}
           onApproveAppointment={handleApproveAppointment}
+          onConfirmAppointment={handleConfirmAppointment}
         />
       </div>
       

@@ -8,12 +8,14 @@ interface AppointmentTableProps {
   appointments: Appointment[];
   onEditAppointment: (appointment: Appointment) => void;
   onApproveAppointment: (id: string) => void;
+  onConfirmAppointment: (id: string) => void;
 }
 
 const AppointmentTable: React.FC<AppointmentTableProps> = ({
   appointments,
   onEditAppointment,
-  onApproveAppointment
+  onApproveAppointment,
+  onConfirmAppointment
 }) => {
   return (
     <div className="overflow-x-auto">
@@ -36,6 +38,7 @@ const AppointmentTable: React.FC<AppointmentTableProps> = ({
                 appointment={appointment}
                 onEdit={onEditAppointment}
                 onApprove={onApproveAppointment}
+                onConfirm={onConfirmAppointment}
                 getStatusClass={getStatusClass}
               />
             ))
