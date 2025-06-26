@@ -1,3 +1,4 @@
+
 export interface Patient {
   name: string;
   image: string;
@@ -15,6 +16,10 @@ export interface Appointment {
   dentist: string;
   status: 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved' | 'Checked In' | 'In Progress' | 'Completed';
   patientId?: string;
+  patient_id?: string; // Add database field name
+  patient_name?: string; // Add database field name
+  patient_phone?: string; // Add database field name
+  patient_email?: string; // Add database field name
   patientType?: 'cash' | 'insurance';
   insurance?: string;
   notes?: string;

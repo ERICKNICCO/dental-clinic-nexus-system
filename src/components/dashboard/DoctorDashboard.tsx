@@ -101,9 +101,9 @@ const DoctorDashboard = () => {
                       <User className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">{appointment.patient?.name || appointment.patientName}</h3>
+                      <h3 className="font-semibold">{appointment.patient?.name || appointment.patient_name}</h3>
                       <p className="text-sm text-gray-600">{appointment.time} - {appointment.treatment}</p>
-                      <p className="text-xs text-gray-500">{appointment.patient?.phone || appointment.patientPhone}</p>
+                      <p className="text-xs text-gray-500">{appointment.patient?.phone || appointment.patient_phone}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -143,9 +143,9 @@ const DoctorDashboard = () => {
                       <User className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">{appointment.patient?.name || appointment.patientName}</h3>
+                      <h3 className="font-semibold">{appointment.patient?.name || appointment.patient_name}</h3>
                       <p className="text-sm text-gray-600">{appointment.time} - {appointment.treatment}</p>
-                      <p className="text-xs text-gray-500">{appointment.patient?.phone || appointment.patientPhone}</p>
+                      <p className="text-xs text-gray-500">{appointment.patient?.phone || appointment.patient_phone}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -153,7 +153,7 @@ const DoctorDashboard = () => {
                       Checked In
                     </Badge>
                     <Button 
-                      onClick={() => window.location.href = `/patient/${appointment.patientId || appointment.patient?.id}`}
+                      onClick={() => window.location.href = `/patient/${appointment.patientId || appointment.patient_id}`}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       Start Treatment
