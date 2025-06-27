@@ -104,6 +104,23 @@ export const supabaseAppointmentService = {
     return data.map(this.transformToAppointment);
   },
 
+  async getAppointmentsByPatientId(patientId: string): Promise<Appointment[]> {
+    console.log('🔥 Fetching appointments for patient ID:', patientId);
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('❌ Error fetching appointments for patient:', error);
+      throw error;
+    }
+
+    console.log('✅ Fetched appointments for patient:', data.length);
+    return data.map(this.transformToAppointment);
+  },
+
   async updateAppointment(id: string, updates: Partial<Appointment>) {
     console.log('🔥 Updating appointment:', id, updates);
 
