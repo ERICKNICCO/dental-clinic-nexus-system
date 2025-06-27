@@ -13,7 +13,7 @@ const AppointmentsTable: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const { appointments, loading, updateAppointment, deleteAppointment } = useSupabaseAppointments();
-  const { patients, addPatient } = useSupabasePatients();
+  const { patients, addPatient, loading: patientsLoading } = useSupabasePatients();
   const { userProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -58,64 +58,97 @@ const AppointmentsTable: React.FC = () => {
 
   const handleAcceptAppointment = async (appointment) => {
     try {
-      console.log('Accepting appointment:', appointment);
+      console.log('🔥 Accepting appointment:', appointment);
       
-      // Check if patient already exists
-      const existingPatient = patients.find(p => 
-        p.name.toLowerCase() === appointment.patient.name.toLowerCase() ||
-        p.email.toLowerCase() === (appointment.patient.email || '').toLowerCase()
-      );
+      // Wait for patients to load if they're still loading
+      if (patientsLoading) {
+        toast({
+          title: "Loading...",
+          description: "Please wait while we load patient data",
+        });
+        return;
+      }
+
+      // Check if patient already exists by name, phone, or email
+      const existingPatient = patients.find(p => {
+        const nameMatch = p.name.toLowerCase().trim() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase().trim();
+        const phoneMatch = p.phone === (appointment.patient?.phone || appointment.patient_phone || '');
+        const emailMatch = p.email && appointment.patient?.email && p.email.toLowerCase() === appointment.patient.email.toLowerCase();
+        
+        console.log('🔍 Checking patient match:', {
+          patientName: p.name,
+          appointmentName: appointment.patient?.name || appointment.patient_name,
+          nameMatch,
+          phoneMatch,
+          emailMatch
+        });
+        
+        return nameMatch || phoneMatch || emailMatch;
+      });
       
       let patientId = existingPatient?.id;
       
       // If patient doesn't exist, create new patient
       if (!existingPatient) {
-        console.log('Creating new patient from appointment');
+        console.log('🔥 Creating new patient from appointment data');
         
+        // Generate a unique patient ID for the new patient
+        const generatePatientId = () => {
+          const existingIds = patients.map(p => p.patientId).filter(Boolean);
+          let maxNumber = 0;
+          
+          existingIds.forEach(id => {
+            const match = id.match(/SD-25-(\d+)/);
+            if (match) {
+              const number = parseInt(match[1]);
+              if (number > maxNumber) {
+                maxNumber = number;
+              }
+            }
+          });
+          
+          const nextNumber = maxNumber + 1;
+          return `SD-25-${nextNumber.toString().padStart(5, '0')}`;
+        };
+
         const newPatientData = {
-          name: appointment.patient.name,
-          email: appointment.patient.email || '',
-          phone: appointment.patient.phone || '',
-          dateOfBirth: '', // Will need to be filled later
-          gender: '', // Will need to be filled later
-          address: '', // Will need to be filled later
-          emergencyContact: '',
+          patientId: generatePatientId(),
+          name: appointment.patient?.name || appointment.patient_name || 'Unknown Patient',
+          email: appointment.patient?.email || appointment.patient_email || '',
+          phone: appointment.patient?.phone || appointment.patient_phone || '',
+          dateOfBirth: '1990-01-01', // Default date - can be updated later
+          gender: 'Other', // Default gender - can be updated later  
+          address: 'To be updated', // Default address - can be updated later
+          emergencyContact: 'To be updated',
           emergencyPhone: '',
-          insurance: '',
-          patientType: 'cash' as const
+          insurance: appointment.insurance || '',
+          patientType: (appointment.patientType || 'cash') as 'cash' | 'insurance'
         };
         
-        await addPatient(newPatientData);
+        console.log('🔥 New patient data:', newPatientData);
         
-        // Wait a moment for the patient to be added and then find them
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Find the newly created patient by checking the updated patients list
-        const updatedPatient = patients.find(p => 
-          p.name.toLowerCase() === appointment.patient.name.toLowerCase() &&
-          p.email.toLowerCase() === (appointment.patient.email || '').toLowerCase()
-        );
-        
-        if (updatedPatient) {
-          patientId = updatedPatient.id;
-          console.log('Found newly created patient with ID:', patientId);
-        } else {
-          // If still not found, try to find by name only
-          const patientByName = patients.find(p => 
-            p.name.toLowerCase() === appointment.patient.name.toLowerCase()
-          );
-          if (patientByName) {
-            patientId = patientByName.id;
-            console.log('Found patient by name with ID:', patientId);
-          }
+        try {
+          await addPatient(newPatientData);
+          
+          // Wait a moment for the patient to be added to the state
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          toast({
+            title: "Patient Registered",
+            description: `${newPatientData.name} has been registered as a new patient`,
+          });
+          
+        } catch (error) {
+          console.error('❌ Error creating patient:', error);
+          toast({
+            title: "Error",
+            description: "Failed to create patient record",
+            variant: "destructive",
+          });
+          return;
         }
-        
-        toast({
-          title: "Patient Registered",
-          description: `${appointment.patient.name} has been registered as a new patient`,
-        });
       } else {
-        console.log('Using existing patient with ID:', patientId);
+        console.log('✅ Using existing patient with ID:', patientId);
       }
       
       // Update appointment status to "Checked In"
@@ -125,15 +158,19 @@ const AppointmentsTable: React.FC = () => {
       
       toast({
         title: "Appointment Accepted",
-        description: `Appointment for ${appointment.patient.name} has been accepted`,
+        description: `Appointment for ${appointment.patient?.name || appointment.patient_name} has been accepted`,
       });
       
-      // Navigate to consultation page if we have a patient ID
-      if (patientId) {
-        console.log('Navigating to patient file with ID:', patientId);
-        navigate(`/patients/${patientId}/file`);
+      // Find the patient again after potential creation
+      const finalPatient = existingPatient || patients.find(p => 
+        p.name.toLowerCase().trim() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase().trim()
+      );
+      
+      if (finalPatient) {
+        console.log('✅ Navigating to patient file with ID:', finalPatient.id);
+        navigate(`/patients/${finalPatient.id}/file`);
       } else {
-        console.error('Could not determine patient ID for navigation');
+        console.error('❌ Could not find patient after creation');
         toast({
           title: "Navigation Error",
           description: "Patient was processed but navigation failed. Please find the patient in the Patients section.",
@@ -144,7 +181,7 @@ const AppointmentsTable: React.FC = () => {
       }
       
     } catch (error) {
-      console.error('Error accepting appointment:', error);
+      console.error('❌ Error accepting appointment:', error);
       toast({
         title: "Error",
         description: "Failed to accept appointment",
@@ -156,7 +193,7 @@ const AppointmentsTable: React.FC = () => {
   const handleContinueConsultation = (appointment) => {
     // Find the patient and navigate to their consultation
     const existingPatient = patients.find(p => 
-      p.name.toLowerCase() === appointment.patient.name.toLowerCase()
+      p.name.toLowerCase() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase()
     );
     
     if (existingPatient) {
@@ -305,10 +342,10 @@ const AppointmentsTable: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Avatar className="w-8 h-8 mr-2">
-                          <AvatarImage src={appointment.patient.image} alt={appointment.patient.name} />
-                          <AvatarFallback className="text-xs">{appointment.patient.initials || 'U'}</AvatarFallback>
+                          <AvatarImage src={appointment.patient?.image} alt={appointment.patient?.name || appointment.patient_name} />
+                          <AvatarFallback className="text-xs">{(appointment.patient?.name || appointment.patient_name || 'U').charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <span>{appointment.patient.name}</span>
+                        <span>{appointment.patient?.name || appointment.patient_name}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{appointment.treatment}</td>
@@ -327,6 +364,7 @@ const AppointmentsTable: React.FC = () => {
                               className="text-green-600 hover:text-green-900 mr-2 p-1 rounded hover:bg-green-50"
                               onClick={() => handleAcceptAppointment(appointment)}
                               title="Accept appointment and start consultation"
+                              disabled={patientsLoading}
                             >
                               <Check className="h-4 w-4" />
                             </button>
