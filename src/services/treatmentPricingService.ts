@@ -267,11 +267,16 @@ export const treatmentPricingService = {
     return [...new Set(categories)].sort();
   },
 
-  // Format price for display in Tsh
+  // Format price for display in Tsh - FIXED CALCULATION
   formatPrice(price: number): string {
     if (price === 0) {
       return 'No charge';
     }
-    return `${(price / 1000).toFixed(0)},000 Tsh`;
+    // Format the price correctly without multiplying by 1000
+    return new Intl.NumberFormat('en-TZ', {
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price) + ' Tsh';
   }
 };

@@ -1,14 +1,13 @@
-
 import { supabase } from '../integrations/supabase/client';
 
 export const paymentUtils = {
-  // Format price for display
+  // Format price for display - FIXED CURRENCY
   formatPrice: (amount: number): string => {
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      minimumFractionDigits: 0
-    }).format(amount);
+    return new Intl.NumberFormat('en-TZ', {
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount) + ' Tsh';
   },
 
   // Validate and correct patient data

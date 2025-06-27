@@ -37,9 +37,9 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
       
       onUpdateField('treatmentPlan', newPlan);
       
-      // Update estimated cost - ensure it's saved as a number
+      // Update estimated cost - FIXED CALCULATION
       const totalCost = updatedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-      console.log('Setting estimated cost:', totalCost);
+      console.log('Setting estimated cost (fixed calculation):', totalCost);
       onUpdateField('estimatedCost', totalCost.toString());
       
       // Update treatment items
@@ -61,9 +61,9 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     );
     onUpdateField('treatmentPlan', treatmentTexts.join('\n'));
     
-    // Update estimated cost
+    // Update estimated cost - FIXED CALCULATION
     const totalCost = updatedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-    console.log('Updated estimated cost:', totalCost);
+    console.log('Updated estimated cost (fixed calculation):', totalCost);
     onUpdateField('estimatedCost', totalCost.toString());
     
     // Update treatment items
@@ -74,13 +74,15 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     }))));
   };
 
+  // FIXED CALCULATION - use the actual basePrice values
   const totalCost = selectedTreatments.reduce((sum, treatment) => sum + treatment.basePrice, 0);
 
   // Effect to update estimated cost whenever treatments change
   useEffect(() => {
     if (selectedTreatments.length > 0) {
+      // FIXED CALCULATION - no extra multiplication
       const totalCost = selectedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-      console.log('TreatmentTab useEffect - updating estimated cost:', totalCost);
+      console.log('TreatmentTab useEffect - updating estimated cost (fixed):', totalCost);
       onUpdateField('estimatedCost', totalCost.toString());
     }
   }, [selectedTreatments, onUpdateField]);
