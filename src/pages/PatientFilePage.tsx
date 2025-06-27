@@ -7,7 +7,9 @@ import PatientFileContent from '../components/patient/PatientFileContent';
 
 const PatientFilePage = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
+
+  console.log('🔥 PatientFilePage - Patient ID from params:', id);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);

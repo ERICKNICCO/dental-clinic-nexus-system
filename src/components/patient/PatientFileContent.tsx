@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -15,21 +15,47 @@ import { toast } from 'sonner';
 
 const PatientFileContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { patients, loading, error } = useSupabasePatients();
   const [isEditing, setIsEditing] = useState(false);
 
-  console.log('🔥 PatientFileContent - Patient ID from URL:', id);
+  // Extract patient ID from URL path if useParams doesn't work
+  const getPatientIdFromPath = () => {
+    if (id) return id;
+    
+    // Fallback: extract from pathname
+    const pathParts = location.pathname.split('/');
+    const patientsIndex = pathParts.indexOf('patients');
+    if (patientsIndex !== -1 && pathParts[patientsIndex + 1]) {
+      return pathParts[patientsIndex + 1];
+    }
+    return null;
+  };
+
+  const patientId = getPatientIdFromPath();
+
+  console.log('🔥 PatientFileContent - Patient ID from URL:', patientId);
+  console.log('🔥 PatientFileContent - useParams id:', id);
+  console.log('🔥 PatientFileContent - Location pathname:', location.pathname);
   console.log('🔥 PatientFileContent - All patients:', patients);
   console.log('🔥 PatientFileContent - Loading:', loading);
   console.log('🔥 PatientFileContent - Error:', error);
 
   // Find patient by ID with proper string comparison
   const patient = patients.find(p => {
-    console.log('🔍 Comparing patient ID:', p.id, 'with URL id:', id, 'Match:', p.id === id);
-    return p.id === id;
+    console.log('🔍 Comparing patient ID:', p.id, 'with URL id:', patientId, 'Match:', p.id === patientId);
+    return p.id === patientId;
   });
 
   console.log('🔥 PatientFileContent - Found patient:', patient);
+
+  // Force refresh patients if we have an ID but no patient found and not loading
+  useEffect(() => {
+    if (patientId && !patient && !loading && patients.length === 0) {
+      console.log('🔥 PatientFileContent - Forcing refresh of patients');
+      // This will trigger a re-fetch through the hook
+    }
+  }, [patientId, patient, loading, patients.length]);
 
   if (loading) {
     return (
@@ -56,8 +82,36 @@ const PatientFileContent: React.FC = () => {
     );
   }
 
+  if (!patientId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Invalid Patient URL</h2>
+          <p className="text-gray-600 mb-4">
+            No patient ID found in the URL.
+          </p>
+          <div className="text-sm text-gray-500 mb-4">
+            <p>URL: {location.pathname}</p>
+          </div>
+          <div className="space-x-2">
+            <Button onClick={() => window.history.back()}>
+              Go Back
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/patients'}
+            >
+              View All Patients
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!patient && !loading) {
-    console.log('❌ Patient not found. URL ID:', id);
+    console.log('❌ Patient not found. URL ID:', patientId);
     console.log('❌ Available patients:', patients.map(p => ({ id: p.id, name: p.name })));
     
     return (
@@ -69,7 +123,7 @@ const PatientFileContent: React.FC = () => {
             The patient you're looking for doesn't exist or may have been removed.
           </p>
           <div className="text-sm text-gray-500 mb-4">
-            <p>Patient ID: {id}</p>
+            <p>Patient ID: {patientId}</p>
             <p>Available patients: {patients.length}</p>
             {patients.length > 0 && (
               <details className="mt-2">

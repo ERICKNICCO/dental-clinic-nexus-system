@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from './ui/table';
 import { Button } from './ui/button';
@@ -114,6 +115,11 @@ const PatientList: React.FC = () => {
     return insurance;
   };
 
+  const handleFileClick = (patient: Patient) => {
+    console.log('🔥 PatientList: File button clicked for patient:', patient.id, patient.name);
+    console.log('🔥 PatientList: Navigating to:', `/patients/${patient.id}/file`);
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow">
@@ -196,7 +202,10 @@ const PatientList: React.FC = () => {
                   : 'Not scheduled'}
               </TableCell>
               <TableCell className="text-right">
-                <Link to={`/patients/${patient.id}/file`}>
+                <Link 
+                  to={`/patients/${patient.id}/file`}
+                  onClick={() => handleFileClick(patient)}
+                >
                   <Button variant="ghost" size="sm">
                     <FileText className="w-4 h-4 mr-1" />
                     File
