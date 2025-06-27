@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { supabasePatientService } from '../services/supabasePatientService';
-import { Patient } from '../types/patient';
+import { Patient, NewPatient } from '../types/patient';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 export const useSupabasePatients = () => {
@@ -42,11 +41,11 @@ export const useSupabasePatients = () => {
     };
   }, []);
 
-  const addPatient = async (patientData: Omit<Patient, 'id'>) => {
+  const addPatient = async (patientData: NewPatient | Omit<Patient, 'id'>) => {
     try {
       console.log('🔥 useSupabasePatients: Adding patient:', patientData);
       
-      // Generate a unique patient ID
+      // Generate a unique patient ID if not provided
       const generatePatientId = () => {
         const existingIds = patients.map(p => p.patientId).filter(Boolean);
         let maxNumber = 0;
@@ -65,14 +64,26 @@ export const useSupabasePatients = () => {
         return `SD-25-${nextNumber.toString().padStart(5, '0')}`;
       };
 
-      const patientWithId = {
-        ...patientData,
-        patientId: patientData.patientId || generatePatientId()
+      // Ensure all required fields are present
+      const completePatientData: Omit<Patient, 'id'> = {
+        patientId: patientData.patientId || generatePatientId(),
+        name: patientData.name,
+        email: patientData.email,
+        phone: patientData.phone,
+        dateOfBirth: patientData.dateOfBirth,
+        gender: patientData.gender,
+        address: patientData.address,
+        emergencyContact: patientData.emergencyContact,
+        emergencyPhone: patientData.emergencyPhone,
+        insurance: patientData.insurance,
+        lastVisit: patientData.lastVisit || '',
+        nextAppointment: patientData.nextAppointment || '',
+        patientType: patientData.patientType,
       };
 
-      console.log('🔥 useSupabasePatients: Patient data with ID:', patientWithId);
+      console.log('🔥 useSupabasePatients: Complete patient data:', completePatientData);
       
-      const newPatientId = await supabasePatientService.addPatient(patientWithId);
+      const newPatientId = await supabasePatientService.addPatient(completePatientData);
       console.log('✅ useSupabasePatients: Patient added with ID:', newPatientId);
       
       // Refresh the patients list
@@ -117,12 +128,26 @@ export const useSupabasePatients = () => {
     }
   };
 
+  const refreshPatients = async () => {
+    try {
+      setLoading(true);
+      const updatedPatients = await supabasePatientService.getPatients();
+      setPatients(updatedPatients);
+      setLoading(false);
+    } catch (err) {
+      console.error('❌ useSupabasePatients: Error refreshing patients:', err);
+      setError('Failed to refresh patients');
+      setLoading(false);
+    }
+  };
+
   return {
     patients,
     loading,
     error,
     addPatient,
     updatePatient,
-    deletePatient
+    deletePatient,
+    refreshPatients
   };
 };

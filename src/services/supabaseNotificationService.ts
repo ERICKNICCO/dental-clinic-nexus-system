@@ -16,9 +16,38 @@ export const supabaseNotificationService = {
     };
   },
 
+  // Create a new notification for new appointments
+  async createAppointmentNotification(appointmentData: any) {
+    console.log('🔥 Creating appointment notification for:', appointmentData);
+    
+    const notification = {
+      type: 'new_appointment',
+      title: 'New Appointment Scheduled',
+      message: `New appointment scheduled with ${appointmentData.patient?.name || appointmentData.patient_name} for ${appointmentData.treatment} on ${appointmentData.date} at ${appointmentData.time}`,
+      appointment_id: appointmentData.id,
+      target_doctor_name: appointmentData.dentist,
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert(notification)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error creating appointment notification:', error);
+      throw error;
+    }
+
+    console.log('✅ Appointment notification created:', data);
+    return this.transformToNotification(data);
+  },
+
   // Create a new notification
   async createNotification(notification: Omit<SupabaseNotification, 'id' | 'timestamp' | 'read'>) {
-    console.log('Creating notification:', notification);
+    console.log('🔥 Creating notification:', notification);
     const { data, error } = await supabase
       .from('notifications')
       .insert({
@@ -30,17 +59,17 @@ export const supabaseNotificationService = {
       .single();
 
     if (error) {
-      console.error('Error creating notification:', error);
+      console.error('❌ Error creating notification:', error);
       throw error;
     }
 
-    console.log('Created notification:', data);
+    console.log('✅ Created notification:', data);
     return this.transformToNotification(data);
   },
 
   // Get all unread notifications for a doctor or admin
   async getUnreadNotifications(doctorName: string): Promise<Notification[]> {
-    console.log('Getting unread notifications for doctor:', doctorName);
+    console.log('🔥 Getting unread notifications for doctor:', doctorName);
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -49,32 +78,32 @@ export const supabaseNotificationService = {
       .order('timestamp', { ascending: false });
 
     if (error) {
-      console.error('Error fetching unread notifications:', error);
+      console.error('❌ Error fetching unread notifications:', error);
       throw error;
     }
 
-    console.log('Found unread notifications:', data);
+    console.log('✅ Found unread notifications:', data);
     return (data as SupabaseNotification[]).map(this.transformToNotification);
   },
 
   // Mark a notification as read
   async markAsRead(notificationId: string) {
-    console.log('Marking notification as read:', notificationId);
+    console.log('🔥 Marking notification as read:', notificationId);
     const { error } = await supabase
       .from('notifications')
       .update({ read: true })
       .eq('id', notificationId);
 
     if (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('❌ Error marking notification as read:', error);
       throw error;
     }
-    console.log('Marked notification as read:', notificationId);
+    console.log('✅ Marked notification as read:', notificationId);
   },
 
   // Subscribe to notifications for a specific doctor or admin
   subscribeToNotifications(doctorName: string, callback: (notification: Notification) => void) {
-    console.log('Setting up notification subscription for doctor:', doctorName);
+    console.log('🔥 Setting up notification subscription for doctor:', doctorName);
     const channelName = `notifications_${doctorName}`;
     const channel = supabase
       .channel(channelName)
@@ -86,23 +115,23 @@ export const supabaseNotificationService = {
           table: 'notifications'
         },
         (payload) => {
-          console.log('Received notification payload:', payload);
+          console.log('🔥 Received notification payload:', payload);
           const newNotification = payload.new as SupabaseNotification;
           
           // Check if this notification is for this user (specific doctor or admin/global notification)
           if (newNotification.target_doctor_name === doctorName || newNotification.target_doctor_name === null) {
             const notification = this.transformToNotification(newNotification);
-            console.log('Transformed notification for user:', notification);
+            console.log('✅ Transformed notification for user:', notification);
             callback(notification);
           }
         }
       )
       .subscribe();
 
-    console.log('Subscribed to notifications channel:', channelName);
+    console.log('✅ Subscribed to notifications channel:', channelName);
     return {
       unsubscribe: () => {
-        console.log('Unsubscribing from notifications channel:', channelName);
+        console.log('🔥 Unsubscribing from notifications channel:', channelName);
         supabase.removeChannel(channel);
       }
     };
@@ -138,14 +167,14 @@ export const supabaseNotificationService = {
 
   // Get notifications (optionally for a doctor)
   async getNotifications(targetDoctorName?: string): Promise<Notification[]> {
-    console.log('Getting notifications for doctor:', targetDoctorName);
+    console.log('🔥 Getting notifications for doctor:', targetDoctorName);
     let query = supabase.from('notifications').select('*').order('timestamp', { ascending: false });
     if (targetDoctorName) {
       query = query.eq('target_doctor_name', targetDoctorName);
     }
     const { data, error } = await query;
     if (error) throw error;
-    console.log('Found notifications:', data);
+    console.log('✅ Found notifications:', data);
     return (data as SupabaseNotification[]).map(this.transformToNotification);
   },
 
@@ -155,15 +184,15 @@ export const supabaseNotificationService = {
       ? `notifications_all_${targetDoctorName}`
       : `notifications_all`;
     
-    console.log('Setting up all notifications subscription:', channelName);
+    console.log('🔥 Setting up all notifications subscription:', channelName);
     const channel = supabase
       .channel(channelName)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
         async () => {
-          console.log('Received notifications update');
+          console.log('🔥 Received notifications update');
           const notifications = await this.getNotifications(targetDoctorName);
-          console.log('Fetched updated notifications:', notifications);
+          console.log('✅ Fetched updated notifications:', notifications);
           callback(notifications);
         }
       )
@@ -173,7 +202,7 @@ export const supabaseNotificationService = {
     this.getNotifications(targetDoctorName).then(callback);
 
     return () => {
-      console.log('Unsubscribing from all notifications channel:', channelName);
+      console.log('🔥 Unsubscribing from all notifications channel:', channelName);
       supabase.removeChannel(channel);
     };
   },

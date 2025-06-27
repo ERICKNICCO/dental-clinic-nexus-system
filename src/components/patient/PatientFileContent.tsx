@@ -23,9 +23,9 @@ const PatientFileContent: React.FC = () => {
   console.log('🔥 PatientFileContent - Loading:', loading);
   console.log('🔥 PatientFileContent - Error:', error);
 
-  // Find patient by ID
+  // Find patient by ID with proper string comparison
   const patient = patients.find(p => {
-    console.log('🔍 Comparing patient:', p.id, 'with URL id:', id);
+    console.log('🔍 Comparing patient ID:', p.id, 'with URL id:', id, 'Match:', p.id === id);
     return p.id === id;
   });
 
@@ -57,7 +57,8 @@ const PatientFileContent: React.FC = () => {
   }
 
   if (!patient && !loading) {
-    console.log('❌ Patient not found. Available patients:', patients.map(p => ({ id: p.id, name: p.name })));
+    console.log('❌ Patient not found. URL ID:', id);
+    console.log('❌ Available patients:', patients.map(p => ({ id: p.id, name: p.name })));
     
     return (
       <div className="flex items-center justify-center min-h-screen">

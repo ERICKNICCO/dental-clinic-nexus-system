@@ -13,7 +13,7 @@ const AppointmentsTable: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const { appointments, loading, updateAppointment, deleteAppointment } = useSupabaseAppointments();
-  const { patients, addPatient, loading: patientsLoading } = useSupabasePatients();
+  const { patients, addPatient, loading: patientsLoading, refreshPatients } = useSupabasePatients();
   const { userProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -86,52 +86,36 @@ const AppointmentsTable: React.FC = () => {
         return nameMatch || phoneMatch || emailMatch;
       });
       
-      let patientId = existingPatient?.id;
+      let finalPatientId = existingPatient?.id;
       
       // If patient doesn't exist, create new patient
       if (!existingPatient) {
         console.log('🔥 Creating new patient from appointment data');
         
-        // Generate a unique patient ID for the new patient
-        const generatePatientId = () => {
-          const existingIds = patients.map(p => p.patientId).filter(Boolean);
-          let maxNumber = 0;
-          
-          existingIds.forEach(id => {
-            const match = id.match(/SD-25-(\d+)/);
-            if (match) {
-              const number = parseInt(match[1]);
-              if (number > maxNumber) {
-                maxNumber = number;
-              }
-            }
-          });
-          
-          const nextNumber = maxNumber + 1;
-          return `SD-25-${nextNumber.toString().padStart(5, '0')}`;
-        };
-
         const newPatientData = {
-          patientId: generatePatientId(),
           name: appointment.patient?.name || appointment.patient_name || 'Unknown Patient',
           email: appointment.patient?.email || appointment.patient_email || '',
           phone: appointment.patient?.phone || appointment.patient_phone || '',
-          dateOfBirth: '1990-01-01', // Default date - can be updated later
-          gender: 'Other', // Default gender - can be updated later  
-          address: 'To be updated', // Default address - can be updated later
+          dateOfBirth: '1990-01-01',
+          gender: 'Other',
+          address: 'To be updated',
           emergencyContact: 'To be updated',
           emergencyPhone: '',
           insurance: appointment.insurance || '',
-          patientType: (appointment.patientType || 'cash') as 'cash' | 'insurance'
+          patientType: (appointment.patientType || 'cash') as 'cash' | 'insurance',
+          lastVisit: new Date().toISOString().split('T')[0],
+          nextAppointment: ''
         };
         
         console.log('🔥 New patient data:', newPatientData);
         
         try {
-          await addPatient(newPatientData);
+          finalPatientId = await addPatient(newPatientData);
+          console.log('✅ Patient created with ID:', finalPatientId);
           
-          // Wait a moment for the patient to be added to the state
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Refresh patients list and wait a moment
+          await refreshPatients();
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           toast({
             title: "Patient Registered",
@@ -148,7 +132,7 @@ const AppointmentsTable: React.FC = () => {
           return;
         }
       } else {
-        console.log('✅ Using existing patient with ID:', patientId);
+        console.log('✅ Using existing patient with ID:', finalPatientId);
       }
       
       // Update appointment status to "Checked In"
@@ -161,22 +145,16 @@ const AppointmentsTable: React.FC = () => {
         description: `Appointment for ${appointment.patient?.name || appointment.patient_name} has been accepted`,
       });
       
-      // Find the patient again after potential creation
-      const finalPatient = existingPatient || patients.find(p => 
-        p.name.toLowerCase().trim() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase().trim()
-      );
-      
-      if (finalPatient) {
-        console.log('✅ Navigating to patient file with ID:', finalPatient.id);
-        navigate(`/patients/${finalPatient.id}/file`);
+      if (finalPatientId) {
+        console.log('✅ Navigating to patient file with ID:', finalPatientId);
+        navigate(`/patients/${finalPatientId}/file`);
       } else {
-        console.error('❌ Could not find patient after creation');
+        console.error('❌ Could not determine patient ID for navigation');
         toast({
-          title: "Navigation Error",
+          title: "Navigation Error", 
           description: "Patient was processed but navigation failed. Please find the patient in the Patients section.",
           variant: "destructive",
         });
-        // Navigate to patients list as fallback
         navigate('/patients');
       }
       
