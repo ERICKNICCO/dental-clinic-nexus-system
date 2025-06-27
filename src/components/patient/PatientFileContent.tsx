@@ -15,25 +15,85 @@ import { toast } from 'sonner';
 
 const PatientFileContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { patients, loading } = useSupabasePatients();
+  const { patients, loading, error } = useSupabasePatients();
   const [isEditing, setIsEditing] = useState(false);
 
-  const patient = patients.find(p => p.id === id);
+  console.log('🔥 PatientFileContent - Patient ID from URL:', id);
+  console.log('🔥 PatientFileContent - All patients:', patients);
+  console.log('🔥 PatientFileContent - Loading:', loading);
+  console.log('🔥 PatientFileContent - Error:', error);
+
+  // Find patient by ID
+  const patient = patients.find(p => {
+    console.log('🔍 Comparing patient:', p.id, 'with URL id:', id);
+    return p.id === id;
+  });
+
+  console.log('🔥 PatientFileContent - Found patient:', patient);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading patient data...</p>
+        </div>
       </div>
     );
   }
 
-  if (!patient) {
+  if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-2">Error Loading Patient</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!patient && !loading) {
+    console.log('❌ Patient not found. Available patients:', patients.map(p => ({ id: p.id, name: p.name })));
+    
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Patient Not Found</h2>
-          <p className="text-gray-600">The patient you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-4">
+            The patient you're looking for doesn't exist or may have been removed.
+          </p>
+          <div className="text-sm text-gray-500 mb-4">
+            <p>Patient ID: {id}</p>
+            <p>Available patients: {patients.length}</p>
+            {patients.length > 0 && (
+              <details className="mt-2">
+                <summary className="cursor-pointer">Debug: Show available patient IDs</summary>
+                <ul className="mt-2 text-left">
+                  {patients.map(p => (
+                    <li key={p.id} className="text-xs">
+                      {p.name} (ID: {p.id})
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+          <div className="space-x-2">
+            <Button onClick={() => window.history.back()}>
+              Go Back
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/patients'}
+            >
+              View All Patients
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -66,11 +126,11 @@ const PatientFileContent: React.FC = () => {
               </div>
               <div>
                 <CardTitle className="text-2xl font-bold text-gray-900">
-                  {patient.name}
+                  {patient?.name}
                 </CardTitle>
-                <p className="text-gray-600">Patient ID: {patient.patientId}</p>
+                <p className="text-gray-600">Patient ID: {patient?.patientId}</p>
                 <p className="text-sm text-gray-500">
-                  {patient.gender} • {patient.dateOfBirth} • {patient.phone}
+                  {patient?.gender} • {patient?.dateOfBirth} • {patient?.phone}
                 </p>
               </div>
             </div>
@@ -124,15 +184,15 @@ const PatientFileContent: React.FC = () => {
 
         <TabsContent value="consultation">
           <ConsultationWorkflow 
-            patientId={patient.id} 
-            patientName={patient.name}
+            patientId={patient?.id || ''} 
+            patientName={patient?.name || ''}
           />
         </TabsContent>
 
         <TabsContent value="info">
           <PatientInfo 
             patient={{
-              ...patient,
+              ...patient!,
               createdAt: new Date(),
               updatedAt: new Date()
             }}
@@ -141,19 +201,19 @@ const PatientFileContent: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="history">
-          <MedicalHistory patientId={patient.id} isEditing={isEditing} />
+          <MedicalHistory patientId={patient?.id || ''} isEditing={isEditing} />
         </TabsContent>
 
         <TabsContent value="treatment">
           <TreatmentNotes 
-            patientId={patient.id} 
-            patientName={patient.name}
+            patientId={patient?.id || ''} 
+            patientName={patient?.name || ''}
             isEditing={isEditing} 
           />
         </TabsContent>
 
         <TabsContent value="appointments">
-          <AppointmentHistory patientId={patient.id} />
+          <AppointmentHistory patientId={patient?.id || ''} />
         </TabsContent>
       </Tabs>
     </div>
