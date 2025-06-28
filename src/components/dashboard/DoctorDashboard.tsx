@@ -37,10 +37,44 @@ const DoctorDashboard = () => {
   const handleStartTreatment = (appointment: any) => {
     console.log('🔥 DoctorDashboard: Starting treatment for appointment:', appointment);
     
-    // Find patient by name in the patients list
-    const patient = patients.find(p => 
-      p.name.toLowerCase() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase()
+    const appointmentPatientName = (appointment.patient?.name || appointment.patient_name || '').trim().toLowerCase();
+    
+    console.log('🔥 DoctorDashboard: Looking for patient with name:', appointmentPatientName);
+    console.log('🔥 DoctorDashboard: Available patients:', patients.map(p => ({ id: p.id, name: p.name.toLowerCase() })));
+    
+    // Try multiple matching strategies
+    let patient = null;
+    
+    // Strategy 1: Exact name match (case insensitive)
+    patient = patients.find(p => 
+      p.name.trim().toLowerCase() === appointmentPatientName
     );
+    
+    // Strategy 2: If no exact match, try partial match (first word)
+    if (!patient && appointmentPatientName) {
+      const firstWord = appointmentPatientName.split(' ')[0];
+      patient = patients.find(p => 
+        p.name.trim().toLowerCase().includes(firstWord) || 
+        firstWord.includes(p.name.trim().toLowerCase())
+      );
+      console.log('🔥 DoctorDashboard: Trying partial match with first word:', firstWord);
+    }
+    
+    // Strategy 3: Try phone number match if available
+    if (!patient && appointment.patient?.phone) {
+      patient = patients.find(p => 
+        p.phone === appointment.patient.phone
+      );
+      console.log('🔥 DoctorDashboard: Trying phone match:', appointment.patient.phone);
+    }
+    
+    // Strategy 4: Try email match if available
+    if (!patient && appointment.patient?.email) {
+      patient = patients.find(p => 
+        p.email && p.email.toLowerCase() === appointment.patient.email.toLowerCase()
+      );
+      console.log('🔥 DoctorDashboard: Trying email match:', appointment.patient.email);
+    }
     
     console.log('🔥 DoctorDashboard: Found patient:', patient);
     
@@ -48,8 +82,14 @@ const DoctorDashboard = () => {
       console.log('🔥 DoctorDashboard: Navigating to patient file:', patient.id);
       navigate(`/patients/${patient.id}`);
     } else {
-      console.error('🔥 DoctorDashboard: Patient not found or missing ID');
-      toast.error('Patient not found. Please check if the patient exists in the system.');
+      console.error('🔥 DoctorDashboard: Patient not found');
+      console.error('🔥 DoctorDashboard: Appointment patient name:', appointmentPatientName);
+      console.error('🔥 DoctorDashboard: Available patient names:', patients.map(p => p.name));
+      
+      toast.error(`Patient "${appointment.patient?.name || appointment.patient_name}" not found in the system. Please check if the patient exists in the Patients section.`);
+      
+      // Navigate to patients list to help user find the patient
+      navigate('/patients');
     }
   };
 
@@ -84,6 +124,17 @@ const DoctorDashboard = () => {
           <p><strong>Approved Appointments:</strong> {approvedAppointments.length}</p>
           <p><strong>Checked In Appointments:</strong> {checkedInAppointments.length}</p>
           <p><strong>Total Patients in System:</strong> {patients.length}</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer font-semibold">Patient Names in System</summary>
+            <ul className="mt-1 ml-4">
+              {patients.slice(0, 10).map(p => (
+                <li key={p.id} className="text-xs">
+                  {p.name} (ID: {p.id})
+                </li>
+              ))}
+              {patients.length > 10 && <li className="text-xs">...and {patients.length - 10} more</li>}
+            </ul>
+          </details>
         </CardContent>
       </Card>
 
@@ -174,36 +225,40 @@ const DoctorDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {checkedInAppointments.map((appointment) => (
-                <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg bg-green-50">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-green-600" />
+              {checkedInAppointments.map((appointment) => {
+                const matchedPatient = patients.find(p => 
+                  p.name.toLowerCase().trim() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase().trim()
+                );
+                
+                return (
+                  <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg bg-green-50">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <User className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{appointment.patient?.name || appointment.patient_name}</h3>
+                        <p className="text-sm text-gray-600">{appointment.time} - {appointment.treatment}</p>
+                        <p className="text-xs text-gray-500">{appointment.patient?.phone || appointment.patient_phone}</p>
+                        <p className="text-xs text-blue-600">
+                          Patient Status: {matchedPatient ? `Found (ID: ${matchedPatient.id})` : 'Not found in system'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{appointment.patient?.name || appointment.patient_name}</h3>
-                      <p className="text-sm text-gray-600">{appointment.time} - {appointment.treatment}</p>
-                      <p className="text-xs text-gray-500">{appointment.patient?.phone || appointment.patient_phone}</p>
-                      <p className="text-xs text-blue-600">
-                        Patient ID: {patients.find(p => 
-                          p.name.toLowerCase() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase()
-                        )?.id || 'Not found'}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        Checked In
+                      </Badge>
+                      <Button 
+                        onClick={() => handleStartTreatment(appointment)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Start Treatment
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-100 text-green-800 border-green-200">
-                      Checked In
-                    </Badge>
-                    <Button 
-                      onClick={() => handleStartTreatment(appointment)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Start Treatment
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

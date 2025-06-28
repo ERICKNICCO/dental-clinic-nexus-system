@@ -10,6 +10,7 @@ const PatientFilePage = () => {
   const { id } = useParams<{ id: string }>();
 
   console.log('🔥 PatientFilePage - Patient ID from params:', id);
+  console.log('🔥 PatientFilePage - Current URL:', window.location.pathname);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
