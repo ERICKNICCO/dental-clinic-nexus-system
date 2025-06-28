@@ -1,4 +1,3 @@
-
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { supabasePatientService } from './supabasePatientService';
@@ -26,14 +25,15 @@ export const supabaseAppointmentService = {
       patient: {
         name: data.patient_name,
         email: data.patient_email || '',
-        phone: data.patient_phone || ''
+        phone: data.patient_phone || '',
+        image: '' // Add default empty image
       },
       patient_name: data.patient_name,
       patient_email: data.patient_email || '',
       patient_phone: data.patient_phone || '',
       treatment: data.treatment,
       dentist: data.dentist,
-      status: data.status,
+      status: data.status as 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved' | 'Checked In' | 'In Progress' | 'Completed',
       date: data.date,
       time: data.time,
       notes: data.notes || '',
@@ -67,6 +67,17 @@ export const supabaseAppointmentService = {
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    return data.map(item => this.transformToAppointment(item));
+  },
+
+  async getAppointmentsByPatientId(patientId: string): Promise<Appointment[]> {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('patient_id', patientId)
       .order('date', { ascending: false });
 
     if (error) throw error;
