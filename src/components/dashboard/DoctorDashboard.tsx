@@ -6,12 +6,16 @@ import { Badge } from '../ui/badge';
 import { Calendar, User, Clock, CheckCircle, Stethoscope } from 'lucide-react';
 import { useDoctorAppointments } from '../../hooks/useDoctorAppointments';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSupabasePatients } from '../../hooks/useSupabasePatients';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const DoctorDashboard = () => {
   const { userProfile } = useAuth();
+  const { patients } = useSupabasePatients();
   const { todaysAppointments, checkedInAppointments, loading, error, checkInPatient } = useDoctorAppointments(userProfile?.name || '');
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Filter appointments that are approved but not yet checked in
   const approvedAppointments = todaysAppointments.filter(
@@ -27,6 +31,25 @@ const DoctorDashboard = () => {
       toast.error('Failed to check in patient');
     } finally {
       setCheckingIn(null);
+    }
+  };
+
+  const handleStartTreatment = (appointment: any) => {
+    console.log('🔥 DoctorDashboard: Starting treatment for appointment:', appointment);
+    
+    // Find patient by name in the patients list
+    const patient = patients.find(p => 
+      p.name.toLowerCase() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase()
+    );
+    
+    console.log('🔥 DoctorDashboard: Found patient:', patient);
+    
+    if (patient && patient.id) {
+      console.log('🔥 DoctorDashboard: Navigating to patient file:', patient.id);
+      navigate(`/patients/${patient.id}`);
+    } else {
+      console.error('🔥 DoctorDashboard: Patient not found or missing ID');
+      toast.error('Patient not found. Please check if the patient exists in the system.');
     }
   };
 
@@ -60,6 +83,7 @@ const DoctorDashboard = () => {
           <p><strong>Total Today's Appointments:</strong> {todaysAppointments.length}</p>
           <p><strong>Approved Appointments:</strong> {approvedAppointments.length}</p>
           <p><strong>Checked In Appointments:</strong> {checkedInAppointments.length}</p>
+          <p><strong>Total Patients in System:</strong> {patients.length}</p>
         </CardContent>
       </Card>
 
@@ -160,6 +184,11 @@ const DoctorDashboard = () => {
                       <h3 className="font-semibold">{appointment.patient?.name || appointment.patient_name}</h3>
                       <p className="text-sm text-gray-600">{appointment.time} - {appointment.treatment}</p>
                       <p className="text-xs text-gray-500">{appointment.patient?.phone || appointment.patient_phone}</p>
+                      <p className="text-xs text-blue-600">
+                        Patient ID: {patients.find(p => 
+                          p.name.toLowerCase() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase()
+                        )?.id || 'Not found'}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -167,7 +196,7 @@ const DoctorDashboard = () => {
                       Checked In
                     </Badge>
                     <Button 
-                      onClick={() => window.location.href = `/patient/${appointment.patient_id}`}
+                      onClick={() => handleStartTreatment(appointment)}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       Start Treatment

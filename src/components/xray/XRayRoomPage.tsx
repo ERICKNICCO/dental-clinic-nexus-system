@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -6,7 +5,7 @@ import { ArrowLeft, Scan } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabaseConsultationService } from "../../services/supabaseConsultationService";
 import { xrayImageService } from "../../services/xrayImageService";
-import { usePatients } from "../../hooks/usePatients";
+import { useSupabasePatients } from "../../hooks/useSupabasePatients";
 import { XRayStepsHeader } from "./XRayStepsHeader";
 import XRayPatientQueue, { WaitingPatient } from "./XRayPatientQueue";
 import XRayUploadPanel from "./XRayUploadPanel";
@@ -20,7 +19,7 @@ const steps = [
 
 export const XRayRoomPage: React.FC = () => {
   const { userProfile } = useAuth();
-  const { patients } = usePatients();
+  const { patients } = useSupabasePatients();
   const [waitingPatients, setWaitingPatients] = useState<WaitingPatient[]>([]);
   const [selectedConsultation, setSelectedConsultation] = useState<string | null>(null);
   const [selectedPatientName, setSelectedPatientName] = useState<string>("");
@@ -35,14 +34,21 @@ export const XRayRoomPage: React.FC = () => {
   useEffect(() => {
     const fetchWaitingPatients = async () => {
       try {
+        console.log('🔥 XRayRoomPage: Fetching waiting consultations');
         const consultations = await supabaseConsultationService.getWaitingXRayConsultations();
+        console.log('🔥 XRayRoomPage: Found consultations:', consultations);
 
-        // Use a map to keep only one consultation per patientId (handled by backend query now, but for safety)
+        // Use a map to keep only one consultation per patientId
         const uniquePatientsMap = new Map<string, WaitingPatient>();
 
         for (const consultation of consultations) {
           const patientIdFromConsultation = consultation.patientId;
           const consultationId = consultation.id;
+
+          console.log('🔥 XRayRoomPage: Processing consultation:', {
+            consultationId,
+            patientId: patientIdFromConsultation
+          });
 
           if (!patientIdFromConsultation) {
             console.warn(`Consultation ${consultationId} is missing patient_id.`);
@@ -50,11 +56,14 @@ export const XRayRoomPage: React.FC = () => {
           }
 
           if (!uniquePatientsMap.has(patientIdFromConsultation)) {
-            // Find patient details from Firebase patients data
+            // Find patient details from Supabase patients data
             const patient = patients.find(p => p.id === patientIdFromConsultation);
             const patientName = patient?.name || "Unknown Patient";
 
-            console.log(`XRayRoomPage: Found patient for ID ${patientIdFromConsultation}:`, patient);
+            console.log(`🔥 XRayRoomPage: Found patient for ID ${patientIdFromConsultation}:`, {
+              patient: patient ? { id: patient.id, name: patient.name } : null,
+              patientName
+            });
 
             uniquePatientsMap.set(patientIdFromConsultation, {
               id: patientIdFromConsultation,
@@ -63,15 +72,22 @@ export const XRayRoomPage: React.FC = () => {
             });
           }
         }
-        setWaitingPatients(Array.from(uniquePatientsMap.values()));
+        
+        const waitingPatientsArray = Array.from(uniquePatientsMap.values());
+        console.log('🔥 XRayRoomPage: Final waiting patients:', waitingPatientsArray);
+        setWaitingPatients(waitingPatientsArray);
       } catch (e) {
         console.error("Error loading X-ray queue:", e);
         toast({ title: "Failed to load X-ray queue", description: "Please try again later.", variant: "destructive" });
         setWaitingPatients([]);
       }
     };
+    
     if (patients.length > 0) {
+      console.log('🔥 XRayRoomPage: Patients loaded, fetching waiting patients');
       fetchWaitingPatients();
+    } else {
+      console.log('🔥 XRayRoomPage: No patients loaded yet');
     }
   }, [patients]);
 
@@ -83,6 +99,7 @@ export const XRayRoomPage: React.FC = () => {
   }, [selectedConsultation, images]);
 
   const handleSelectPatient = (consultationId: string, patientName: string) => {
+    console.log('🔥 XRayRoomPage: Selecting patient:', { consultationId, patientName });
     setSelectedConsultation(consultationId);
     setSelectedPatientName(patientName);
     setImages([]);
