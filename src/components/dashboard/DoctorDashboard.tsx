@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -34,61 +33,111 @@ const DoctorDashboard = () => {
     }
   };
 
+  // Enhanced patient matching function
+  const findPatientByAppointment = (appointment: any) => {
+    const appointmentPatientName = (appointment.patient?.name || appointment.patient_name || '').trim();
+    const appointmentPatientPhone = appointment.patient?.phone || appointment.patient_phone || '';
+    const appointmentPatientEmail = appointment.patient?.email || appointment.patient_email || '';
+    
+    console.log('🔍 Finding patient for appointment:', {
+      appointmentId: appointment.id,
+      name: appointmentPatientName,
+      phone: appointmentPatientPhone,
+      email: appointmentPatientEmail
+    });
+
+    // Strategy 1: Exact name match (case insensitive)
+    let patient = patients.find(p => 
+      p.name.trim().toLowerCase() === appointmentPatientName.toLowerCase()
+    );
+
+    // Strategy 2: Partial name match (contains or starts with)
+    if (!patient && appointmentPatientName) {
+      patient = patients.find(p => {
+        const patientNameLower = p.name.trim().toLowerCase();
+        const appointmentNameLower = appointmentPatientName.toLowerCase();
+        
+        return patientNameLower.includes(appointmentNameLower) || 
+               appointmentNameLower.includes(patientNameLower) ||
+               patientNameLower.startsWith(appointmentNameLower) ||
+               appointmentNameLower.startsWith(patientNameLower);
+      });
+    }
+
+    // Strategy 3: Phone number match
+    if (!patient && appointmentPatientPhone) {
+      patient = patients.find(p => 
+        p.phone && p.phone.replace(/\s/g, '') === appointmentPatientPhone.replace(/\s/g, '')
+      );
+    }
+
+    // Strategy 4: Email match
+    if (!patient && appointmentPatientEmail) {
+      patient = patients.find(p => 
+        p.email && p.email.toLowerCase() === appointmentPatientEmail.toLowerCase()
+      );
+    }
+
+    // Strategy 5: Fuzzy matching by splitting names
+    if (!patient && appointmentPatientName) {
+      const appointmentWords = appointmentPatientName.toLowerCase().split(' ').filter(w => w.length > 1);
+      patient = patients.find(p => {
+        const patientWords = p.name.toLowerCase().split(' ').filter(w => w.length > 1);
+        return appointmentWords.some(aWord => 
+          patientWords.some(pWord => pWord.includes(aWord) || aWord.includes(pWord))
+        );
+      });
+    }
+
+    console.log('🔍 Patient search result:', {
+      found: !!patient,
+      patientId: patient?.id,
+      patientName: patient?.name,
+      strategies: 'Used enhanced matching'
+    });
+
+    return patient;
+  };
+
   const handleStartTreatment = (appointment: any) => {
     console.log('🔥 DoctorDashboard: Starting treatment for appointment:', appointment);
     
-    const appointmentPatientName = (appointment.patient?.name || appointment.patient_name || '').trim().toLowerCase();
-    
-    console.log('🔥 DoctorDashboard: Looking for patient with name:', appointmentPatientName);
-    console.log('🔥 DoctorDashboard: Available patients:', patients.map(p => ({ id: p.id, name: p.name.toLowerCase() })));
-    
-    // Try multiple matching strategies
-    let patient = null;
-    
-    // Strategy 1: Exact name match (case insensitive)
-    patient = patients.find(p => 
-      p.name.trim().toLowerCase() === appointmentPatientName
-    );
-    
-    // Strategy 2: If no exact match, try partial match (first word)
-    if (!patient && appointmentPatientName) {
-      const firstWord = appointmentPatientName.split(' ')[0];
-      patient = patients.find(p => 
-        p.name.trim().toLowerCase().includes(firstWord) || 
-        firstWord.includes(p.name.trim().toLowerCase())
-      );
-      console.log('🔥 DoctorDashboard: Trying partial match with first word:', firstWord);
-    }
-    
-    // Strategy 3: Try phone number match if available
-    if (!patient && appointment.patient?.phone) {
-      patient = patients.find(p => 
-        p.phone === appointment.patient.phone
-      );
-      console.log('🔥 DoctorDashboard: Trying phone match:', appointment.patient.phone);
-    }
-    
-    // Strategy 4: Try email match if available
-    if (!patient && appointment.patient?.email) {
-      patient = patients.find(p => 
-        p.email && p.email.toLowerCase() === appointment.patient.email.toLowerCase()
-      );
-      console.log('🔥 DoctorDashboard: Trying email match:', appointment.patient.email);
-    }
-    
-    console.log('🔥 DoctorDashboard: Found patient:', patient);
+    const patient = findPatientByAppointment(appointment);
     
     if (patient && patient.id) {
-      console.log('🔥 DoctorDashboard: Navigating to patient file:', patient.id);
+      console.log('✅ DoctorDashboard: Navigating to patient file:', patient.id);
       navigate(`/patients/${patient.id}`);
     } else {
-      console.error('🔥 DoctorDashboard: Patient not found');
-      console.error('🔥 DoctorDashboard: Appointment patient name:', appointmentPatientName);
-      console.error('🔥 DoctorDashboard: Available patient names:', patients.map(p => p.name));
+      console.error('❌ DoctorDashboard: Patient not found');
+      console.error('❌ Available patients:', patients.map(p => ({ id: p.id, name: p.name, phone: p.phone })));
       
-      toast.error(`Patient "${appointment.patient?.name || appointment.patient_name}" not found in the system. Please check if the patient exists in the Patients section.`);
+      // Show detailed error with suggestions
+      const appointmentPatientName = appointment.patient?.name || appointment.patient_name || 'Unknown';
+      toast.error(
+        `Patient "${appointmentPatientName}" not found. This could be because:
+        1. Patient was not properly registered when appointment was accepted
+        2. Patient name in appointment doesn't match patient record
+        3. Patient may need to be manually added to the system
+        
+        Please check the Patients section or re-register this patient.`,
+        { duration: 8000 }
+      );
       
-      // Navigate to patients list to help user find the patient
+      // Navigate to patients list to help user find or add the patient
+      navigate('/patients');
+    }
+  };
+
+  const handleContinueConsultation = (appointment) => {
+    const patient = findPatientByAppointment(appointment);
+    
+    if (patient) {
+      navigate(`/patients/${patient.id}`);
+    } else {
+      const appointmentPatientName = appointment.patient?.name || appointment.patient_name || 'Unknown';
+      toast.error(
+        `Patient "${appointmentPatientName}" not found in the system. Please check if the patient exists in the Patients section.`
+      );
       navigate('/patients');
     }
   };
@@ -129,7 +178,7 @@ const DoctorDashboard = () => {
             <ul className="mt-1 ml-4">
               {patients.slice(0, 10).map(p => (
                 <li key={p.id} className="text-xs">
-                  {p.name} (ID: {p.id})
+                  {p.name} (ID: {p.id}) - Phone: {p.phone}
                 </li>
               ))}
               {patients.length > 10 && <li className="text-xs">...and {patients.length - 10} more</li>}
@@ -226,9 +275,7 @@ const DoctorDashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {checkedInAppointments.map((appointment) => {
-                const matchedPatient = patients.find(p => 
-                  p.name.toLowerCase().trim() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase().trim()
-                );
+                const matchedPatient = findPatientByAppointment(appointment);
                 
                 return (
                   <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg bg-green-50">
@@ -243,6 +290,11 @@ const DoctorDashboard = () => {
                         <p className="text-xs text-blue-600">
                           Patient Status: {matchedPatient ? `Found (ID: ${matchedPatient.id})` : 'Not found in system'}
                         </p>
+                        {matchedPatient && (
+                          <p className="text-xs text-green-600">
+                            Matched to: {matchedPatient.name}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
