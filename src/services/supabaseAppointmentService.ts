@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { supabasePatientService } from './supabasePatientService';
@@ -87,8 +88,9 @@ export const supabaseAppointmentService = {
   async updateAppointment(id: string, updates: Partial<Appointment>) {
     console.log('🔥 SupabaseAppointmentService: Updating appointment:', id, updates);
     
-    // If status is being changed to 'Approved', create patient record if it doesn't exist
+    // IMPORTANT: Create patient BEFORE updating appointment status
     if (updates.status === 'Approved') {
+      console.log('🔥 Status is being changed to Approved, creating patient first...');
       await this.createPatientFromAppointment(id);
     }
 
@@ -135,21 +137,32 @@ export const supabaseAppointmentService = {
 
       if (appointmentError || !appointment) {
         console.error('❌ Error fetching appointment:', appointmentError);
-        return;
+        return null;
       }
 
-      // Check if patient already exists by name, email, or phone
+      console.log('🔥 Appointment data:', appointment);
+
+      // Get existing patients to check for duplicates and generate ID
       const existingPatients = await supabasePatientService.getPatients();
-      const existingPatient = existingPatients.find(p => 
-        p.name.toLowerCase() === appointment.patient_name?.toLowerCase() ||
-        (appointment.patient_email && p.email === appointment.patient_email) ||
-        (appointment.patient_phone && p.phone === appointment.patient_phone)
-      );
+      console.log('🔥 Existing patients count:', existingPatients.length);
+
+      // Check if patient already exists by name, email, or phone
+      const existingPatient = existingPatients.find(p => {
+        const nameMatch = p.name.toLowerCase().trim() === (appointment.patient_name || '').toLowerCase().trim();
+        const emailMatch = appointment.patient_email && p.email && p.email.toLowerCase() === appointment.patient_email.toLowerCase();
+        const phoneMatch = appointment.patient_phone && p.phone && p.phone === appointment.patient_phone;
+        
+        console.log('🔍 Checking patient:', p.name, 'vs', appointment.patient_name, 'nameMatch:', nameMatch);
+        
+        return nameMatch || emailMatch || phoneMatch;
+      });
 
       if (existingPatient) {
-        console.log('✅ Patient already exists:', existingPatient.id);
+        console.log('✅ Patient already exists:', existingPatient.id, existingPatient.name);
+        
         // Update appointment with patient_id if not already set
         if (!appointment.patient_id) {
+          console.log('🔄 Updating appointment with existing patient ID:', existingPatient.id);
           await supabase
             .from('appointments')
             .update({ patient_id: existingPatient.id })
@@ -194,19 +207,54 @@ export const supabaseAppointmentService = {
         patientType: 'cash' as const // Default - should be updated later
       };
 
-      console.log('🔥 Creating new patient:', newPatientData);
+      console.log('🔥 Creating new patient with data:', newPatientData);
       const newPatientId = await supabasePatientService.addPatient(newPatientData);
+      console.log('✅ Patient created with ID:', newPatientId);
       
       // Update appointment with patient_id
+      console.log('🔄 Updating appointment with new patient ID:', newPatientId);
       await supabase
         .from('appointments')
         .update({ patient_id: newPatientId })
         .eq('id', appointmentId);
 
-      console.log('✅ Patient created and appointment updated:', newPatientId);
+      console.log('✅ Patient created and appointment updated successfully');
       return newPatientId;
     } catch (error) {
       console.error('❌ Error creating patient from appointment:', error);
+      throw error; // Re-throw to handle in calling function
+    }
+  },
+
+  // New method to manually trigger patient creation for existing approved appointments
+  async processExistingApprovedAppointments() {
+    try {
+      console.log('🔥 Processing existing approved appointments...');
+      
+      // Get all approved appointments without patient_id
+      const { data: approvedAppointments, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('status', 'Approved')
+        .is('patient_id', null);
+
+      if (error) {
+        console.error('❌ Error fetching approved appointments:', error);
+        return;
+      }
+
+      console.log('🔥 Found approved appointments without patient_id:', approvedAppointments?.length || 0);
+
+      if (approvedAppointments && approvedAppointments.length > 0) {
+        for (const appointment of approvedAppointments) {
+          console.log('🔄 Processing appointment:', appointment.id, appointment.patient_name);
+          await this.createPatientFromAppointment(appointment.id);
+        }
+      }
+
+      console.log('✅ Finished processing existing approved appointments');
+    } catch (error) {
+      console.error('❌ Error processing existing approved appointments:', error);
     }
   },
 

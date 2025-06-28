@@ -62,7 +62,17 @@ export const useSupabaseAppointments = () => {
         const appointmentsList = await supabaseAppointmentService.getAppointments();
         console.log('🔥 Initial appointments loaded:', appointmentsList.length);
         
-        processAppointments(appointmentsList);
+        // Process existing approved appointments that might not have patients created
+        if (userProfile?.role === 'admin') {
+          console.log('🔥 Admin user detected, processing existing approved appointments...');
+          await supabaseAppointmentService.processExistingApprovedAppointments();
+          
+          // Reload appointments after processing
+          const updatedAppointmentsList = await supabaseAppointmentService.getAppointments();
+          processAppointments(updatedAppointmentsList);
+        } else {
+          processAppointments(appointmentsList);
+        }
         
         // Setup subscription after initial load
         setupSubscription();
@@ -123,12 +133,27 @@ export const useSupabaseAppointments = () => {
     }
   };
 
+  const processExistingApprovedAppointments = async () => {
+    try {
+      console.log('🔥 Manually processing existing approved appointments...');
+      await supabaseAppointmentService.processExistingApprovedAppointments();
+      
+      // Reload appointments after processing
+      const updatedAppointments = await supabaseAppointmentService.getAppointments();
+      processAppointments(updatedAppointments);
+    } catch (err) {
+      console.error('❌ Error processing existing approved appointments:', err);
+      setError('Failed to process existing appointments');
+    }
+  };
+
   return {
     appointments,
     loading,
     error,
     addAppointment,
     updateAppointment,
-    deleteAppointment
+    deleteAppointment,
+    processExistingApprovedAppointments
   };
 };
