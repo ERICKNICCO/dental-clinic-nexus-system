@@ -97,11 +97,15 @@ export const useSupabaseAppointments = () => {
 
   const updateAppointment = async (id: string, updates: Partial<Appointment>) => {
     try {
-      console.log('Updating appointment:', id, updates);
+      console.log('🔥 useSupabaseAppointments: Updating appointment:', id, updates);
+      
+      // If updating status to 'Approved', the service will automatically create the patient
       await supabaseAppointmentService.updateAppointment(id, updates);
+      
+      console.log('✅ useSupabaseAppointments: Appointment updated successfully');
       // Note: The subscription will automatically update the appointments list
     } catch (err) {
-      console.error('Error updating appointment:', err);
+      console.error('❌ useSupabaseAppointments: Error updating appointment:', err);
       setError('Failed to update appointment');
       throw err;
     }
