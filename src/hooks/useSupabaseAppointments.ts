@@ -140,7 +140,18 @@ export const useSupabaseAppointments = () => {
       
       // Reload appointments after processing
       const updatedAppointments = await supabaseAppointmentService.getAppointments();
-      processAppointments(updatedAppointments);
+      
+      // Filter appointments based on user role
+      let filteredAppointments = updatedAppointments;
+      if (userProfile?.role === 'doctor') {
+        filteredAppointments = updatedAppointments.filter(appointment => {
+          const appointmentDoctor = appointment.dentist || '';
+          const userDoctor = userProfile.name || '';
+          return isDoctorNameMatch(appointmentDoctor, userDoctor);
+        });
+      }
+      
+      setAppointments(filteredAppointments);
     } catch (err) {
       console.error('❌ Error processing existing approved appointments:', err);
       setError('Failed to process existing appointments');
