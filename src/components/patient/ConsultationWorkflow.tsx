@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { paymentService } from '../../services/paymentService';
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { adminNotificationService } from '../../services/adminNotificationService';
 
 interface ConsultationWorkflowProps {
   patientId: string;
@@ -33,6 +34,10 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Check if user is admin to restrict editing
+  const isAdmin = userProfile?.role === 'admin';
+  const isDoctor = userProfile?.role === 'doctor';
 
   // Find appointment for this patient
   const patientAppointment = checkedInAppointments.find(
@@ -241,11 +246,28 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
         }
       }
 
-      // Notify admin for payment collection
+      // Notify admin for completed consultation
+      try {
+        await adminNotificationService.notifyAdminForConsultationCompleted({
+          patientId: patientId,
+          patientName: patientName,
+          doctorName: userProfile.name || userProfile.email,
+          consultationId: activeConsultation.id,
+          diagnosis: consultationData.diagnosis,
+          estimatedCost: consultationData.estimatedCost,
+          appointmentId: selectedAppointment || undefined
+        });
+        
+        console.log('Admin notified for completed consultation');
+        toast.success('Admin has been notified about completed consultation');
+      } catch (notificationError) {
+        console.error('Error notifying admin:', notificationError);
+        // Don't fail the whole process if notification fails
+      }
+
+      // Notify admin for payment collection if needed
       if (consultationData.diagnosis && consultationData.treatmentPlan) {
         try {
-          const { adminNotificationService } = await import('../../services/adminNotificationService');
-          
           await adminNotificationService.notifyAdminForPaymentCollection({
             patientId: patientId,
             patientName: patientName,
@@ -265,7 +287,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       setConsultationData({});
       setCurrentStep('examination');
       
-      toast.success('Consultation completed and payment record created');
+      toast.success('Consultation completed and admin notified for payment collection');
     } catch (error) {
       console.error('Failed to complete consultation:', error);
       console.error('Consultation completion error details:', error?.message);
@@ -300,6 +322,28 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       toast.error("Failed to send to X-ray room.");
     }
   };
+
+  // Don't show consultation workflow for admins - they should only view
+  if (isAdmin) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Consultation Access Restricted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600">
+              As an admin, you can view patient information but cannot start or modify consultations. 
+              Only doctors can perform consultations.
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              You will receive notifications when doctors complete consultations and payment collection is required.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!activeConsultation) {
     return (

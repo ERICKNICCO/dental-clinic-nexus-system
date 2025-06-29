@@ -7,8 +7,9 @@ import DiagnosisTab from './DiagnosisTab';
 import TreatmentTab from './TreatmentTab';
 import FollowUpTab from './FollowUpTab';
 import CheckoutTab from './CheckoutTab';
-import { ClipboardCheck, Pill, Calendar, CreditCard, Zap } from 'lucide-react';
+import { ClipboardCheck, Pill, Calendar, CreditCard, Zap, Lock } from 'lucide-react';
 import { Consultation } from '../../../types/consultation';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface ConsultationTabsProps {
   currentStep: string;
@@ -35,9 +36,12 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
   xrayResult,
   selectedAppointment
 }) => {
+  const { userProfile } = useAuth();
   const [diagnosisType, setDiagnosisType] = useState<'clinical' | 'xray'>(
     consultationData.diagnosisType || 'clinical'
   );
+
+  const isAdmin = userProfile?.role === 'admin';
 
   const handlePaymentComplete = () => {
     // Could trigger appointment completion here
@@ -45,6 +49,7 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
   };
 
   const handleDiagnosisTypeChange = (type: 'clinical' | 'xray') => {
+    if (isAdmin) return; // Admins can't change diagnosis type
     setDiagnosisType(type);
     onUpdateField('diagnosisType', type);
   };
@@ -72,6 +77,57 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
     createdAt: consultationData.createdAt || new Date(),
     updatedAt: consultationData.updatedAt || new Date(),
     xrayResult: consultationData.xrayResult
+  };
+
+  // Admin-restricted content component
+  const AdminRestrictedContent = ({ children, tabName }: { children: React.ReactNode, tabName: string }) => {
+    if (isAdmin) {
+      return (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-yellow-800 mb-2">
+              <Lock className="h-4 w-4" />
+              <span className="font-medium">Admin Access Restricted</span>
+            </div>
+            <p className="text-sm text-yellow-700">
+              {tabName} information can only be modified by doctors. You can view completed consultation data in read-only mode.
+            </p>
+            {/* Show read-only data if available */}
+            <div className="mt-4 space-y-4">
+              {tabName === 'Diagnosis' && consultationData.diagnosis && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Diagnosis (Read Only)</label>
+                  <div className="mt-1 p-3 bg-white border rounded-md text-sm">
+                    {consultationData.diagnosis}
+                  </div>
+                </div>
+              )}
+              {tabName === 'Treatment' && (consultationData.treatmentPlan || consultationData.prescriptions) && (
+                <div className="space-y-3">
+                  {consultationData.treatmentPlan && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Treatment Plan (Read Only)</label>
+                      <div className="mt-1 p-3 bg-white border rounded-md text-sm">
+                        {consultationData.treatmentPlan}
+                      </div>
+                    </div>
+                  )}
+                  {consultationData.prescriptions && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Prescriptions (Read Only)</label>
+                      <div className="mt-1 p-3 bg-white border rounded-md text-sm">
+                        {consultationData.prescriptions}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+    return <>{children}</>;
   };
 
   return (
@@ -120,14 +176,17 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
           <TabsTrigger value="diagnosis" className="flex items-center gap-1">
             <ClipboardCheck className="h-4 w-4" />
             <span className="hidden sm:inline">Diagnosis</span>
+            {isAdmin && <Lock className="h-3 w-3 ml-1" />}
           </TabsTrigger>
           <TabsTrigger value="treatment" className="flex items-center gap-1">
             <Pill className="h-4 w-4" />
             <span className="hidden sm:inline">Treatment</span>
+            {isAdmin && <Lock className="h-3 w-3 ml-1" />}
           </TabsTrigger>
           <TabsTrigger value="followup" className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Follow-up</span>
+            {isAdmin && <Lock className="h-3 w-3 ml-1" />}
           </TabsTrigger>
           <TabsTrigger value="checkout" className="flex items-center gap-1">
             <CreditCard className="h-4 w-4" />
@@ -136,23 +195,27 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
         </TabsList>
 
         <TabsContent value="diagnosis">
-          <DiagnosisTab
-            diagnosis={consultationData.diagnosis || ''}
-            onChange={(value) => onUpdateField('diagnosis', value)}
-            diagnosisType={diagnosisType}
-            onDiagnosisTypeChange={handleDiagnosisTypeChange}
-            consultationStatus={consultationStatus}
-            xrayResult={xrayResult}
-            onSendToXRay={onSendToXRay}
-          />
+          <AdminRestrictedContent tabName="Diagnosis">
+            <DiagnosisTab
+              diagnosis={consultationData.diagnosis || ''}
+              onChange={(value) => onUpdateField('diagnosis', value)}
+              diagnosisType={diagnosisType}
+              onDiagnosisTypeChange={handleDiagnosisTypeChange}
+              consultationStatus={consultationStatus}
+              xrayResult={xrayResult}
+              onSendToXRay={onSendToXRay}
+            />
+          </AdminRestrictedContent>
         </TabsContent>
 
         <TabsContent value="treatment">
-          <TreatmentTab
-            treatmentPlan={consultationData.treatmentPlan || ''}
-            prescriptions={consultationData.prescriptions || ''}
-            onUpdateField={onUpdateField}
-          />
+          <AdminRestrictedContent tabName="Treatment">
+            <TreatmentTab
+              treatmentPlan={consultationData.treatmentPlan || ''}
+              prescriptions={consultationData.prescriptions || ''}
+              onUpdateField={onUpdateField}
+            />
+          </AdminRestrictedContent>
         </TabsContent>
 
         <TabsContent value="followup">
