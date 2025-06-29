@@ -20,7 +20,7 @@ export const adminNotificationService = {
         type: 'consultation_completed',
         title: 'Consultation Completed - Payment Required',
         message: `Dr. ${data.doctorName} has completed consultation for ${data.patientName}. ${data.diagnosis ? `Diagnosis: ${data.diagnosis}.` : ''} Please proceed with payment collection.`,
-        target_doctor_name: null, // Send to all admins
+        target_doctor_name: 'admin', // Send specifically to admin
         appointment_id: data.appointmentId
       });
       
@@ -46,13 +46,13 @@ export const adminNotificationService = {
         type: 'payment_required',
         title: 'Payment Collection Required',
         message: `Payment collection needed for ${data.patientName}. Treatment: ${data.diagnosis}. Estimated cost: ${data.estimatedCost.toLocaleString()} UGX.`,
-        target_doctor_name: null, // Send to all admins
+        target_doctor_name: 'admin', // Send specifically to admin
         appointment_id: data.appointmentId
       });
       
       console.log('✅ Admin notification sent for payment collection');
     } catch (error) {
-      console.error('❌ Error sending admin notification for payment:', error);
+      console.error('❌ Error notifying admin for payment:', error);
       throw error;
     }
   }

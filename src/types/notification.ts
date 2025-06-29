@@ -1,6 +1,7 @@
+
 export interface Notification {
   id: string;
-  type: 'appointment' | 'new_appointment' | 'appointment_approved' | 'appointment_cancelled';
+  type: 'appointment' | 'new_appointment' | 'appointment_approved' | 'appointment_cancelled' | 'consultation_completed' | 'payment_required';
   title: string;
   message: string;
   timestamp: Date;
@@ -19,4 +20,4 @@ export interface SupabaseNotification {
   read: boolean;
   appointment_id?: string;
   target_doctor_name?: string;
-} 
+}
