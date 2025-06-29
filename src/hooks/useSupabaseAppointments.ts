@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabaseAppointmentService } from '../services/supabaseAppointmentService';
 import { Appointment } from '../types/appointment';
@@ -12,6 +11,36 @@ export const useSupabaseAppointments = () => {
   const [error, setError] = useState<string | null>(null);
   const { userProfile } = useAuth();
 
+  // Move processAppointments outside useEffect so it can be reused
+  const processAppointments = (appointmentsList: Appointment[]) => {
+    console.log('🔥 Processing appointments in useSupabaseAppointments:', appointmentsList.length);
+    
+    // Filter appointments based on user role
+    let filteredAppointments = appointmentsList;
+    if (userProfile?.role === 'doctor') {
+      console.log('🔥 Filtering appointments for doctor:', userProfile.name);
+      
+      filteredAppointments = appointmentsList.filter(appointment => {
+        const appointmentDoctor = appointment.dentist || '';
+        const userDoctor = userProfile.name || '';
+        
+        const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
+        
+        console.log('🔥 useSupabaseAppointments filtering - Appointment doctor:', appointmentDoctor);
+        console.log('🔥 useSupabaseAppointments filtering - User doctor:', userDoctor);
+        console.log('🔥 useSupabaseAppointments filtering - Match result:', isDoctorMatch);
+        
+        return isDoctorMatch;
+      });
+      
+      console.log('🔥 Filtered appointments for doctor:', filteredAppointments.length);
+    }
+    
+    setAppointments(filteredAppointments);
+    setLoading(false);
+    setError(null);
+  };
+
   useEffect(() => {
     if (!userProfile) return;
 
@@ -19,35 +48,6 @@ export const useSupabaseAppointments = () => {
     setLoading(true);
 
     let channel: RealtimeChannel | null = null;
-
-    const processAppointments = (appointmentsList: Appointment[]) => {
-      console.log('🔥 Processing appointments in useSupabaseAppointments:', appointmentsList.length);
-      
-      // Filter appointments based on user role
-      let filteredAppointments = appointmentsList;
-      if (userProfile?.role === 'doctor') {
-        console.log('🔥 Filtering appointments for doctor:', userProfile.name);
-        
-        filteredAppointments = appointmentsList.filter(appointment => {
-          const appointmentDoctor = appointment.dentist || '';
-          const userDoctor = userProfile.name || '';
-          
-          const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
-          
-          console.log('🔥 useSupabaseAppointments filtering - Appointment doctor:', appointmentDoctor);
-          console.log('🔥 useSupabaseAppointments filtering - User doctor:', userDoctor);
-          console.log('🔥 useSupabaseAppointments filtering - Match result:', isDoctorMatch);
-          
-          return isDoctorMatch;
-        });
-        
-        console.log('🔥 Filtered appointments for doctor:', filteredAppointments.length);
-      }
-      
-      setAppointments(filteredAppointments);
-      setLoading(false);
-      setError(null);
-    };
 
     const setupSubscription = () => {
       channel = supabaseAppointmentService.subscribeToAppointments((appointmentsList) => {
@@ -140,18 +140,7 @@ export const useSupabaseAppointments = () => {
       
       // Reload appointments after processing
       const updatedAppointments = await supabaseAppointmentService.getAppointments();
-      
-      // Filter appointments based on user role
-      let filteredAppointments = updatedAppointments;
-      if (userProfile?.role === 'doctor') {
-        filteredAppointments = updatedAppointments.filter(appointment => {
-          const appointmentDoctor = appointment.dentist || '';
-          const userDoctor = userProfile.name || '';
-          return isDoctorNameMatch(appointmentDoctor, userDoctor);
-        });
-      }
-      
-      setAppointments(filteredAppointments);
+      processAppointments(updatedAppointments);
     } catch (err) {
       console.error('❌ Error processing existing approved appointments:', err);
       setError('Failed to process existing appointments');
