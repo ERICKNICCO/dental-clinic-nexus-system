@@ -186,22 +186,28 @@ const AppointmentsTable: React.FC = () => {
   };
 
   const handleDeleteClick = async (appointmentId) => {
-    if (window.confirm('Are you sure you want to delete this appointment?')) {
-      try {
-        await deleteAppointment(appointmentId);
-        console.log('Appointment deleted successfully');
-        toast({
-          title: "Appointment Deleted",
-          description: "The appointment has been successfully deleted",
-        });
-      } catch (error) {
-        console.error('Error deleting appointment:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete appointment",
-          variant: "destructive",
-        });
-      }
+    if (!window.confirm('Are you sure you want to delete this appointment?')) {
+      return;
+    }
+
+    try {
+      console.log('🔥 Admin attempting to delete appointment:', appointmentId);
+      console.log('🔥 User profile:', userProfile);
+      
+      await deleteAppointment(appointmentId);
+      console.log('✅ Appointment deleted successfully by admin');
+      
+      toast({
+        title: "Appointment Deleted",
+        description: "The appointment has been successfully deleted",
+      });
+    } catch (error) {
+      console.error('❌ Error deleting appointment:', error);
+      toast({
+        title: "Error",
+        description: `Failed to delete appointment: ${error.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -268,7 +274,10 @@ const AppointmentsTable: React.FC = () => {
           </h2>
           {userProfile?.role !== 'doctor' && (
             <button 
-              onClick={handleNewAppointment}
+              onClick={() => {
+                setSelectedAppointment(null);
+                setIsModalOpen(true);
+              }}
               className="bg-dental-600 text-white px-4 py-2 rounded-lg hover:bg-dental-700 flex items-center"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -365,11 +374,14 @@ const AppointmentsTable: React.FC = () => {
                           </button>
                         </>
                       ) : (
-                        // Admin/Staff view: Edit/Delete buttons
+                        // Admin/Staff view: Edit/Delete buttons with enhanced permissions
                         <>
                           <button 
                             className="text-dental-600 hover:text-dental-900 mr-2"
-                            onClick={() => handleEditClick(appointment)}
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setIsModalOpen(true);
+                            }}
                             title="Edit appointment"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -412,7 +424,10 @@ const AppointmentsTable: React.FC = () => {
       {userProfile?.role !== 'doctor' && (
         <AppointmentModal 
           isOpen={isModalOpen} 
-          onClose={handleModalClose}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedAppointment(null);
+          }}
           appointment={selectedAppointment}
         />
       )}

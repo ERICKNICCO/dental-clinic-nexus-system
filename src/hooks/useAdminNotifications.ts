@@ -1,92 +1,73 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../integrations/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { supabaseNotificationService } from '../services/supabaseNotificationService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AdminNotification {
   id: string;
   type: string;
   title: string;
   message: string;
-  appointment_id?: string;
   read: boolean;
   created_at: string;
+  appointment_id?: string;
 }
 
 export const useAdminNotifications = () => {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { userProfile } = useAuth();
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
-    let channel: RealtimeChannel | null = null;
+    if (!userProfile || userProfile.role !== 'admin') {
+      setLoading(false);
+      return;
+    }
 
-    const fetchNotifications = async () => {
+    const loadNotifications = async () => {
       try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('target_doctor_name', 'admin')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        
-        setNotifications(data || []);
-        setLoading(false);
+        console.log('🔥 Loading admin notifications...');
+        const adminNotifications = await supabaseNotificationService.getNotificationsForAdmin();
+        console.log('🔥 Admin notifications loaded:', adminNotifications);
+        setNotifications(adminNotifications);
+        setError(null);
       } catch (err) {
-        console.error('Error fetching notifications:', err);
+        console.error('❌ Error loading admin notifications:', err);
         setError('Failed to load notifications');
+      } finally {
         setLoading(false);
       }
     };
 
-    // Set up real-time subscription
-    const setupSubscription = () => {
-      channel = supabase
-        .channel('admin-notifications')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: 'target_doctor_name=eq.admin'
-          },
-          (payload) => {
-            console.log('Notification change received:', payload);
-            fetchNotifications(); // Refresh notifications
-          }
-        )
-        .subscribe();
-    };
+    loadNotifications();
 
-    fetchNotifications().then(() => {
-      setupSubscription();
+    // Subscribe to new notifications
+    const channel = supabaseNotificationService.subscribeToNotifications((newNotifications) => {
+      console.log('🔥 New notifications received:', newNotifications);
+      // Filter for admin notifications
+      const adminNotifications = newNotifications.filter(n => 
+        n.target_doctor_name === 'admin' || 
+        n.type === 'consultation_completed' || 
+        n.type === 'payment_required'
+      );
+      setNotifications(adminNotifications);
     });
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
+      if (channel && typeof channel.unsubscribe === 'function') {
+        channel.unsubscribe();
       }
     };
-  }, []);
+  }, [userProfile]);
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-      
-      // Update local state
+      await supabaseNotificationService.markAsRead(notificationId);
       setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, read: true }
-            : notif
-        )
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
     } catch (err) {
       console.error('Error marking notification as read:', err);
@@ -97,7 +78,7 @@ export const useAdminNotifications = () => {
     notifications,
     loading,
     error,
-    markAsRead,
-    unreadCount: notifications.filter(n => !n.read).length
+    unreadCount,
+    markAsRead
   };
 };
