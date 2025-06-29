@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppointmentModal from './AppointmentModal';
@@ -8,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Check, Trash2, User } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { isAppointmentToday, isDoctorNameMatch, normalizeDoctorName, getTodayString } from '../../utils/appointmentFilters';
+import { supabase } from '../../integrations/supabase/client';
 
 const AppointmentsTable: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -186,7 +188,7 @@ const AppointmentsTable: React.FC = () => {
   };
 
   const handleDeleteClick = async (appointmentId) => {
-    if (!window.confirm('Are you sure you want to delete this appointment?')) {
+    if (!window.confirm('Are you sure you want to delete this appointment? This will also delete any associated payment records.')) {
       return;
     }
 
@@ -194,12 +196,31 @@ const AppointmentsTable: React.FC = () => {
       console.log('🔥 Admin attempting to delete appointment:', appointmentId);
       console.log('🔥 User profile:', userProfile);
       
+      // First, delete any associated payment records to avoid foreign key constraint violation
+      console.log('🔥 Deleting associated payment records...');
+      const { error: paymentsDeleteError } = await supabase
+        .from('payments')
+        .delete()
+        .eq('appointment_id', appointmentId);
+
+      if (paymentsDeleteError) {
+        console.error('❌ Error deleting payment records:', paymentsDeleteError);
+        toast({
+          title: "Warning",
+          description: "Could not delete associated payment records, but continuing with appointment deletion",
+          variant: "destructive",
+        });
+      } else {
+        console.log('✅ Associated payment records deleted successfully');
+      }
+
+      // Now delete the appointment
       await deleteAppointment(appointmentId);
       console.log('✅ Appointment deleted successfully by admin');
       
       toast({
         title: "Appointment Deleted",
-        description: "The appointment has been successfully deleted",
+        description: "The appointment and any associated payment records have been successfully deleted",
       });
     } catch (error) {
       console.error('❌ Error deleting appointment:', error);

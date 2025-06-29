@@ -1,7 +1,8 @@
-
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabasePatientService } from './supabasePatientService';
+import { supabaseNotificationService } from './supabaseNotificationService';
 
 export interface SupabaseAppointment {
   id: string;
@@ -259,12 +260,37 @@ export const supabaseAppointmentService = {
   },
 
   async deleteAppointment(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('appointments')
-      .delete()
-      .eq('id', id);
+    console.log('🔥 supabaseAppointmentService: Deleting appointment:', id);
+    
+    try {
+      // First delete any associated payment records to avoid foreign key constraint
+      console.log('🔥 Deleting associated payment records for appointment:', id);
+      const { error: paymentsError } = await supabase
+        .from('payments')
+        .delete()
+        .eq('appointment_id', id);
 
-    if (error) throw error;
+      if (paymentsError) {
+        console.warn('⚠️ Could not delete payment records:', paymentsError);
+        // Continue with appointment deletion even if payment deletion fails
+      }
+
+      // Now delete the appointment
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ supabaseAppointmentService: Error deleting appointment:', error);
+        throw error;
+      }
+
+      console.log('✅ supabaseAppointmentService: Appointment deleted successfully');
+    } catch (error) {
+      console.error('❌ supabaseAppointmentService: Error in deleteAppointment:', error);
+      throw error;
+    }
   },
 
   subscribeToAppointments(callback: (appointments: Appointment[]) => void) {
