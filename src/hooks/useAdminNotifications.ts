@@ -30,9 +30,21 @@ export const useAdminNotifications = () => {
     const loadNotifications = async () => {
       try {
         console.log('🔥 Loading admin notifications...');
-        const adminNotifications = await supabaseNotificationService.getNotificationsForAdmin();
+        const adminNotifications = await supabaseNotificationService.getNotifications('admin');
         console.log('🔥 Admin notifications loaded:', adminNotifications);
-        setNotifications(adminNotifications);
+        
+        // Transform to admin notification format
+        const transformedNotifications = adminNotifications.map(n => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          read: n.read,
+          created_at: n.timestamp.toISOString(),
+          appointment_id: n.appointmentId
+        }));
+        
+        setNotifications(transformedNotifications);
         setError(null);
       } catch (err) {
         console.error('❌ Error loading admin notifications:', err);
@@ -44,21 +56,27 @@ export const useAdminNotifications = () => {
 
     loadNotifications();
 
-    // Subscribe to new notifications
-    const channel = supabaseNotificationService.subscribeToNotifications((newNotifications) => {
-      console.log('🔥 New notifications received:', newNotifications);
-      // Filter for admin notifications
-      const adminNotifications = newNotifications.filter(n => 
-        n.target_doctor_name === 'admin' || 
-        n.type === 'consultation_completed' || 
-        n.type === 'payment_required'
-      );
-      setNotifications(adminNotifications);
+    // Subscribe to new notifications for admin
+    const unsubscribe = supabaseNotificationService.subscribeToNotifications('admin', (newNotification) => {
+      console.log('🔥 New admin notification received:', newNotification);
+      
+      // Transform and add to notifications
+      const transformedNotification = {
+        id: newNotification.id,
+        type: newNotification.type,
+        title: newNotification.title,
+        message: newNotification.message,
+        read: newNotification.read,
+        created_at: newNotification.timestamp.toISOString(),
+        appointment_id: newNotification.appointmentId
+      };
+      
+      setNotifications(prev => [transformedNotification, ...prev]);
     });
 
     return () => {
-      if (channel && typeof channel.unsubscribe === 'function') {
-        channel.unsubscribe();
+      if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+        unsubscribe.unsubscribe();
       }
     };
   }, [userProfile]);
