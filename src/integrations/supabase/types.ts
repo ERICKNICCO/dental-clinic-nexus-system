@@ -176,6 +176,60 @@ export type Database = {
           },
         ]
       }
+      insurance_claims: {
+        Row: {
+          appointment_id: string | null
+          approved_at: string | null
+          claim_number: string | null
+          claim_status: string
+          consultation_id: string | null
+          created_at: string
+          id: string
+          insurance_provider: string
+          patient_id: string
+          patient_name: string
+          patient_signature: string
+          rejection_reason: string | null
+          submitted_at: string | null
+          treatment_details: Json
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          approved_at?: string | null
+          claim_number?: string | null
+          claim_status?: string
+          consultation_id?: string | null
+          created_at?: string
+          id?: string
+          insurance_provider: string
+          patient_id: string
+          patient_name: string
+          patient_signature: string
+          rejection_reason?: string | null
+          submitted_at?: string | null
+          treatment_details?: Json
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          approved_at?: string | null
+          claim_number?: string | null
+          claim_status?: string
+          consultation_id?: string | null
+          created_at?: string
+          id?: string
+          insurance_provider?: string
+          patient_id?: string
+          patient_name?: string
+          patient_signature?: string
+          rejection_reason?: string | null
+          submitted_at?: string | null
+          treatment_details?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           brand: string | null

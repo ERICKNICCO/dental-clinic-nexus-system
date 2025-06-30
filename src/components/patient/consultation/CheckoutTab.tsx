@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
@@ -291,6 +292,23 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
     return 'CASH';
   };
 
+  // Helper function to get procedures as string array
+  const getProceduresArray = () => {
+    try {
+      const treatmentItems = consultationData.treatmentItems;
+      if (typeof treatmentItems === 'string') {
+        const parsed = JSON.parse(treatmentItems);
+        return Array.isArray(parsed) ? parsed.map((item: any) => item.name || 'Unknown') : [];
+      } else if (Array.isArray(treatmentItems)) {
+        return treatmentItems.map((item: any) => item.name || 'Unknown');
+      }
+      return [];
+    } catch (error) {
+      console.error('Error parsing treatment items:', error);
+      return [];
+    }
+  };
+
   return (
     <div className="space-y-6 mt-6">
       {/* Completion Status */}
@@ -429,7 +447,7 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
                     treatmentDetails={{
                       diagnosis: consultationData.diagnosis || '',
                       treatment_plan: consultationData.treatmentPlan || '',
-                      procedures: JSON.parse(consultationData.treatmentItems || '[]').map((item: any) => item.name),
+                      procedures: getProceduresArray(),
                       total_amount: totalAmount
                     }}
                     onClaimSubmitted={handleInsuranceClaimSubmitted}
