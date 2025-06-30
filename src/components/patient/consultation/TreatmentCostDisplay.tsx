@@ -1,34 +1,68 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Badge } from '../../ui/badge';
-import { Search, DollarSign, Clock, Info } from 'lucide-react';
-import { treatmentPricingService, TreatmentPrice } from '../../../services/treatmentPricingService';
+import { Search, DollarSign, Clock, Info, AlertCircle } from 'lucide-react';
+import { supabaseTreatmentPricingService, TreatmentPricing } from '../../../services/supabaseTreatmentPricingService';
 
 interface TreatmentCostDisplayProps {
-  onAddTreatmentToPlan: (treatment: TreatmentPrice) => void;
+  onAddTreatmentToPlan: (treatment: TreatmentPricing) => void;
+  patientInsurance?: string;
+  patientType?: 'cash' | 'insurance';
 }
 
 const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
-  onAddTreatmentToPlan
+  onAddTreatmentToPlan,
+  patientInsurance,
+  patientType = 'cash'
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTreatments, setSelectedTreatments] = useState<TreatmentPrice[]>([]);
+  const [selectedTreatments, setSelectedTreatments] = useState<TreatmentPricing[]>([]);
+  const [availableTreatments, setAvailableTreatments] = useState<TreatmentPricing[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const allTreatments = treatmentPricingService.getAllTreatments();
-  
+  console.log('TreatmentCostDisplay - Patient Type:', patientType, 'Insurance:', patientInsurance);
+
+  useEffect(() => {
+    loadTreatments();
+  }, [patientType, patientInsurance]);
+
+  const loadTreatments = async () => {
+    try {
+      setLoading(true);
+      let treatments: TreatmentPricing[] = [];
+
+      if (patientType === 'insurance' && patientInsurance) {
+        // Load treatments for specific insurance
+        treatments = await supabaseTreatmentPricingService.getTreatmentsByInsurance(patientInsurance);
+        console.log(`Loaded ${treatments.length} treatments for ${patientInsurance} insurance`);
+      } else {
+        // Load cash treatments
+        treatments = await supabaseTreatmentPricingService.getTreatmentsByInsurance('cash');
+        console.log(`Loaded ${treatments.length} treatments for cash patients`);
+      }
+
+      setAvailableTreatments(treatments);
+    } catch (error) {
+      console.error('Error loading treatments:', error);
+      setAvailableTreatments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredTreatments = searchQuery 
-    ? allTreatments.filter(treatment => 
+    ? availableTreatments.filter(treatment => 
         treatment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        treatment.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (treatment.description && treatment.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
         treatment.category.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : allTreatments;
+    : availableTreatments;
 
-  const handleAddTreatment = (treatment: TreatmentPrice) => {
+  const handleAddTreatment = (treatment: TreatmentPricing) => {
     if (!selectedTreatments.find(t => t.id === treatment.id)) {
       const updatedTreatments = [...selectedTreatments, treatment];
       setSelectedTreatments(updatedTreatments);
@@ -53,8 +87,37 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
     }
   };
 
+  const getPaymentTypeDisplay = () => {
+    if (patientType === 'insurance' && patientInsurance) {
+      return patientInsurance.toUpperCase();
+    }
+    return 'CASH';
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <span>Loading treatment pricing...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Payment Type Information */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2">
+            <Info className="h-5 w-5 text-blue-600" />
+            <span className="font-medium text-blue-800">
+              Showing prices for: {getPaymentTypeDisplay()} patients
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Treatment Search */}
       <Card>
         <CardHeader>
@@ -80,41 +143,54 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
             </div>
 
             {/* Available Treatments */}
-            <div className="grid gap-3 max-h-60 overflow-y-auto">
-              {filteredTreatments.map((treatment) => (
-                <div
-                  key={treatment.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium">{treatment.name}</h4>
-                      <Badge className={getCategoryColor(treatment.category)}>
-                        {treatment.category}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{treatment.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {treatment.duration}
-                      </span>
-                      <span className="font-semibold text-green-600">
-                        {treatmentPricingService.formatPrice(treatment.basePrice)}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAddTreatment(treatment)}
-                    disabled={selectedTreatments.some(t => t.id === treatment.id)}
+            {filteredTreatments.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-lg font-medium mb-2">No treatments found</h3>
+                <p className="text-sm">
+                  {searchQuery 
+                    ? 'Try adjusting your search criteria.'
+                    : `No treatments available for ${getPaymentTypeDisplay()} patients. Please contact admin to add treatment pricing.`
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3 max-h-60 overflow-y-auto">
+                {filteredTreatments.map((treatment) => (
+                  <div
+                    key={treatment.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
                   >
-                    {selectedTreatments.some(t => t.id === treatment.id) ? 'Added' : 'Add'}
-                  </Button>
-                </div>
-              ))}
-            </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium">{treatment.name}</h4>
+                        <Badge className={getCategoryColor(treatment.category)}>
+                          {treatment.category}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">{treatment.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {treatment.duration} min
+                        </span>
+                        <span className="font-semibold text-green-600">
+                          {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddTreatment(treatment)}
+                      disabled={selectedTreatments.some(t => t.id === treatment.id)}
+                    >
+                      {selectedTreatments.some(t => t.id === treatment.id) ? 'Added' : 'Add'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -137,11 +213,11 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
                 >
                   <div>
                     <span className="font-medium">{treatment.name}</span>
-                    <span className="ml-2 text-sm text-gray-500">({treatment.duration})</span>
+                    <span className="ml-2 text-sm text-gray-500">({treatment.duration} min)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">
-                      {treatmentPricingService.formatPrice(treatment.basePrice)}
+                      {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
                     </span>
                     <Button
                       variant="ghost"
@@ -157,9 +233,9 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
               
               <div className="border-t pt-3">
                 <div className="flex items-center justify-between text-lg font-semibold">
-                  <span>Total Estimated Cost:</span>
+                  <span>Total Estimated Cost ({getPaymentTypeDisplay()}):</span>
                   <span className="text-green-600">
-                    {treatmentPricingService.formatPrice(totalCost)}
+                    {supabaseTreatmentPricingService.formatPrice(totalCost)}
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">

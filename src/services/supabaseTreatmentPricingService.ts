@@ -9,11 +9,45 @@ export interface TreatmentPricing {
   duration: number; // in minutes
   description?: string;
   isActive: boolean;
+  insuranceProvider: string; // 'cash', 'NHIF', 'GA', etc.
   createdAt: Date;
   updatedAt: Date;
 }
 
+export interface InsuranceProvider {
+  code: string;
+  name: string;
+}
+
 export const supabaseTreatmentPricingService = {
+  // Get all available insurance providers
+  async getInsuranceProviders(): Promise<InsuranceProvider[]> {
+    try {
+      const { data, error } = await supabase
+        .from('treatment_pricing')
+        .select('insurance_provider')
+        .neq('insurance_provider', 'cash');
+
+      if (error) throw error;
+
+      // Get unique insurance providers
+      const uniqueProviders = [...new Set(data.map(item => item.insurance_provider))]
+        .filter(provider => provider && provider !== 'cash')
+        .map(provider => ({
+          code: provider,
+          name: provider.toUpperCase()
+        }));
+
+      return [
+        { code: 'cash', name: 'Cash' },
+        ...uniqueProviders
+      ];
+    } catch (error) {
+      console.error('Error fetching insurance providers:', error);
+      return [{ code: 'cash', name: 'Cash' }];
+    }
+  },
+
   // Add a new treatment pricing
   async addTreatment(treatmentData: Omit<TreatmentPricing, 'id' | 'createdAt' | 'updatedAt'>) {
     try {
@@ -25,7 +59,8 @@ export const supabaseTreatmentPricingService = {
           base_price: treatmentData.basePrice,
           duration: treatmentData.duration,
           description: treatmentData.description,
-          is_active: treatmentData.isActive
+          is_active: treatmentData.isActive,
+          insurance_provider: treatmentData.insuranceProvider
         })
         .select()
         .single();
@@ -44,6 +79,37 @@ export const supabaseTreatmentPricingService = {
       const { data, error } = await supabase
         .from('treatment_pricing')
         .select('*')
+        .order('name', { ascending: true })
+        .order('insurance_provider', { ascending: true });
+
+      if (error) throw error;
+
+      return data.map(treatment => ({
+        id: treatment.id,
+        name: treatment.name,
+        category: treatment.category,
+        basePrice: treatment.base_price,
+        duration: treatment.duration,
+        description: treatment.description || undefined,
+        isActive: treatment.is_active,
+        insuranceProvider: treatment.insurance_provider,
+        createdAt: new Date(treatment.created_at),
+        updatedAt: new Date(treatment.updated_at)
+      }));
+    } catch (error) {
+      console.error('Error fetching treatment pricing:', error);
+      throw error;
+    }
+  },
+
+  // Get treatments by insurance provider
+  async getTreatmentsByInsurance(insuranceProvider: string): Promise<TreatmentPricing[]> {
+    try {
+      const { data, error } = await supabase
+        .from('treatment_pricing')
+        .select('*')
+        .eq('insurance_provider', insuranceProvider)
+        .eq('is_active', true)
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -56,11 +122,12 @@ export const supabaseTreatmentPricingService = {
         duration: treatment.duration,
         description: treatment.description || undefined,
         isActive: treatment.is_active,
+        insuranceProvider: treatment.insurance_provider,
         createdAt: new Date(treatment.created_at),
         updatedAt: new Date(treatment.updated_at)
       }));
     } catch (error) {
-      console.error('Error fetching treatment pricing:', error);
+      console.error('Error fetching treatments by insurance:', error);
       throw error;
     }
   },
@@ -76,6 +143,7 @@ export const supabaseTreatmentPricingService = {
       if (updates.duration !== undefined) updateData.duration = updates.duration;
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+      if (updates.insuranceProvider !== undefined) updateData.insurance_provider = updates.insuranceProvider;
 
       const { error } = await supabase
         .from('treatment_pricing')
@@ -102,6 +170,16 @@ export const supabaseTreatmentPricingService = {
       console.error('Error deleting treatment pricing:', error);
       throw error;
     }
+  },
+
+  // Format price for display
+  formatPrice(price: number): string {
+    return new Intl.NumberFormat('en-TZ', {
+      style: 'currency',
+      currency: 'TZS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price).replace('TZS', 'Tsh');
   },
 
   // Subscribe to treatment pricing changes

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -8,22 +9,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
-import { Plus, Edit, Trash2, DollarSign } from 'lucide-react';
-import { treatmentPricingFirebaseService } from '../../services/treatmentPricingFirebaseService';
+import { Plus, Edit, Trash2, DollarSign, Copy } from 'lucide-react';
+import { supabaseTreatmentPricingService, TreatmentPricing } from '../../services/supabaseTreatmentPricingService';
 import { useToast } from '../../hooks/use-toast';
 
 const TreatmentPricingManagement: React.FC = () => {
-  const [treatments, setTreatments] = useState([]);
+  const [treatments, setTreatments] = useState<TreatmentPricing[]>([]);
+  const [insuranceProviders, setInsuranceProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTreatment, setEditingTreatment] = useState(null);
+  const [editingTreatment, setEditingTreatment] = useState<TreatmentPricing | null>(null);
+  const [selectedInsurance, setSelectedInsurance] = useState('all');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: '',
+    basePrice: '',
     category: '',
     duration: '',
-    remarks: ''
+    insuranceProvider: 'cash'
   });
   const { toast } = useToast();
 
@@ -42,14 +45,24 @@ const TreatmentPricingManagement: React.FC = () => {
     'Other'
   ];
 
+  const predefinedInsuranceProviders = [
+    { code: 'cash', name: 'Cash' },
+    { code: 'NHIF', name: 'NHIF' },
+    { code: 'GA', name: 'GA Insurance' },
+    { code: 'JUBILEE', name: 'Jubilee Insurance' },
+    { code: 'AAR', name: 'AAR Insurance' },
+    { code: 'BRITAM', name: 'Britam Insurance' }
+  ];
+
   useEffect(() => {
     loadTreatments();
+    loadInsuranceProviders();
   }, []);
 
   const loadTreatments = async () => {
     try {
       setLoading(true);
-      const data = await treatmentPricingFirebaseService.getAllTreatmentPricing();
+      const data = await supabaseTreatmentPricingService.getTreatments();
       setTreatments(data);
     } catch (error) {
       console.error('Error loading treatments:', error);
@@ -63,10 +76,19 @@ const TreatmentPricingManagement: React.FC = () => {
     }
   };
 
+  const loadInsuranceProviders = async () => {
+    try {
+      const providers = await supabaseTreatmentPricingService.getInsuranceProviders();
+      setInsuranceProviders(providers);
+    } catch (error) {
+      console.error('Error loading insurance providers:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !formData.category) {
+    if (!formData.name || !formData.basePrice || !formData.category) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -79,20 +101,21 @@ const TreatmentPricingManagement: React.FC = () => {
       const treatmentData = {
         name: formData.name,
         description: formData.description,
-        price: parseInt(formData.price),
+        basePrice: parseInt(formData.basePrice),
         category: formData.category,
-        duration: formData.duration,
-        remarks: formData.remarks
+        duration: parseInt(formData.duration) || 30,
+        insuranceProvider: formData.insuranceProvider,
+        isActive: true
       };
 
       if (editingTreatment) {
-        await treatmentPricingFirebaseService.updateTreatmentPricing(editingTreatment.id, treatmentData);
+        await supabaseTreatmentPricingService.updateTreatment(editingTreatment.id, treatmentData);
         toast({
           title: "Success",
           description: "Treatment pricing updated successfully",
         });
       } else {
-        await treatmentPricingFirebaseService.addTreatmentPricing(treatmentData);
+        await supabaseTreatmentPricingService.addTreatment(treatmentData);
         toast({
           title: "Success",
           description: "Treatment pricing added successfully",
@@ -102,6 +125,7 @@ const TreatmentPricingManagement: React.FC = () => {
       resetForm();
       setIsModalOpen(false);
       loadTreatments();
+      loadInsuranceProviders();
     } catch (error) {
       console.error('Error saving treatment:', error);
       toast({
@@ -112,15 +136,28 @@ const TreatmentPricingManagement: React.FC = () => {
     }
   };
 
-  const handleEdit = (treatment: any) => {
+  const handleEdit = (treatment: TreatmentPricing) => {
     setEditingTreatment(treatment);
     setFormData({
       name: treatment.name,
-      description: treatment.description,
-      price: treatment.price.toString(),
+      description: treatment.description || '',
+      basePrice: treatment.basePrice.toString(),
       category: treatment.category,
-      duration: treatment.duration,
-      remarks: treatment.remarks || ''
+      duration: treatment.duration.toString(),
+      insuranceProvider: treatment.insuranceProvider
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCopyTreatment = (treatment: TreatmentPricing) => {
+    setEditingTreatment(null);
+    setFormData({
+      name: treatment.name,
+      description: treatment.description || '',
+      basePrice: treatment.basePrice.toString(),
+      category: treatment.category,
+      duration: treatment.duration.toString(),
+      insuranceProvider: 'cash' // Default to cash for copying
     });
     setIsModalOpen(true);
   };
@@ -128,7 +165,7 @@ const TreatmentPricingManagement: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this treatment pricing?')) {
       try {
-        await treatmentPricingFirebaseService.deleteTreatmentPricing(id);
+        await supabaseTreatmentPricingService.deleteTreatment(id);
         toast({
           title: "Success",
           description: "Treatment pricing deleted successfully",
@@ -149,10 +186,10 @@ const TreatmentPricingManagement: React.FC = () => {
     setFormData({
       name: '',
       description: '',
-      price: '',
+      basePrice: '',
       category: '',
       duration: '',
-      remarks: ''
+      insuranceProvider: 'cash'
     });
     setEditingTreatment(null);
   };
@@ -160,6 +197,23 @@ const TreatmentPricingManagement: React.FC = () => {
   const handleAddNew = () => {
     resetForm();
     setIsModalOpen(true);
+  };
+
+  // Filter treatments by selected insurance provider
+  const filteredTreatments = selectedInsurance === 'all' 
+    ? treatments 
+    : treatments.filter(t => t.insuranceProvider === selectedInsurance);
+
+  const getInsuranceColor = (provider: string) => {
+    switch (provider) {
+      case 'cash': return 'bg-green-100 text-green-800';
+      case 'NHIF': return 'bg-blue-100 text-blue-800';
+      case 'GA': return 'bg-purple-100 text-purple-800';
+      case 'JUBILEE': return 'bg-orange-100 text-orange-800';
+      case 'AAR': return 'bg-red-100 text-red-800';
+      case 'BRITAM': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   if (loading) {
@@ -177,7 +231,7 @@ const TreatmentPricingManagement: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Treatment Pricing Management</h2>
-          <p className="text-gray-600">Manage treatment prices and categories</p>
+          <p className="text-gray-600">Manage treatment prices for cash and insurance patients</p>
         </div>
         <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
           <Plus className="mr-2 h-4 w-4" />
@@ -185,19 +239,51 @@ const TreatmentPricingManagement: React.FC = () => {
         </Button>
       </div>
 
+      {/* Filter by Insurance Provider */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <Label>Filter by Payment Type:</Label>
+            <Select value={selectedInsurance} onValueChange={setSelectedInsurance}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payment Types</SelectItem>
+                {predefinedInsuranceProviders.map((provider) => (
+                  <SelectItem key={provider.code} value={provider.code}>
+                    {provider.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
             Treatment Pricing List
+            {selectedInsurance !== 'all' && (
+              <Badge className={getInsuranceColor(selectedInsurance)}>
+                {predefinedInsuranceProviders.find(p => p.code === selectedInsurance)?.name}
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {treatments.length === 0 ? (
+          {filteredTreatments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-medium mb-2">No treatments found</h3>
-              <p className="text-sm mb-4">Add your first treatment pricing to get started.</p>
+              <p className="text-sm mb-4">
+                {selectedInsurance === 'all' 
+                  ? 'Add your first treatment pricing to get started.'
+                  : `No treatments found for ${predefinedInsuranceProviders.find(p => p.code === selectedInsurance)?.name}.`
+                }
+              </p>
             </div>
           ) : (
             <Table>
@@ -205,6 +291,7 @@ const TreatmentPricingManagement: React.FC = () => {
                 <TableRow>
                   <TableHead>Treatment Name</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>Payment Type</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Description</TableHead>
@@ -212,20 +299,34 @@ const TreatmentPricingManagement: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {treatments.map((treatment) => (
+                {filteredTreatments.map((treatment) => (
                   <TableRow key={treatment.id}>
                     <TableCell className="font-medium">{treatment.name}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{treatment.category}</Badge>
                     </TableCell>
-                    <TableCell>{treatment.duration}</TableCell>
+                    <TableCell>
+                      <Badge className={getInsuranceColor(treatment.insuranceProvider)}>
+                        {predefinedInsuranceProviders.find(p => p.code === treatment.insuranceProvider)?.name || treatment.insuranceProvider}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{treatment.duration} min</TableCell>
                     <TableCell className="font-semibold">
-                      {treatmentPricingFirebaseService.formatPrice(treatment.price)}
+                      {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
                     </TableCell>
                     <TableCell className="max-w-xs">
                       <div className="truncate">{treatment.description}</div>
                     </TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyTreatment(treatment)}
+                        className="mr-2"
+                        title="Copy treatment for different insurance"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -265,7 +366,7 @@ const TreatmentPricingManagement: React.FC = () => {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Teeth Cleaning"
+                placeholder="e.g., Consultation"
                 required
               />
             </div>
@@ -285,15 +386,31 @@ const TreatmentPricingManagement: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <Label htmlFor="insuranceProvider">Payment Type *</Label>
+              <Select value={formData.insuranceProvider} onValueChange={(value) => setFormData({ ...formData, insuranceProvider: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {predefinedInsuranceProviders.map((provider) => (
+                    <SelectItem key={provider.code} value={provider.code}>
+                      {provider.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             
             <div>
-              <Label htmlFor="price">Price (Tsh) *</Label>
+              <Label htmlFor="basePrice">Price (Tsh) *</Label>
               <Input
-                id="price"
+                id="basePrice"
                 type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="e.g., 50000"
+                value={formData.basePrice}
+                onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+                placeholder="e.g., 30000"
                 min="0"
                 step="1000"
                 required
@@ -301,12 +418,14 @@ const TreatmentPricingManagement: React.FC = () => {
             </div>
             
             <div>
-              <Label htmlFor="duration">Duration</Label>
+              <Label htmlFor="duration">Duration (minutes)</Label>
               <Input
                 id="duration"
+                type="number"
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                placeholder="e.g., 30 minutes"
+                placeholder="e.g., 30"
+                min="1"
               />
             </div>
             
@@ -318,17 +437,6 @@ const TreatmentPricingManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief description of the treatment"
                 rows={3}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="remarks">Remarks</Label>
-              <Textarea
-                id="remarks"
-                value={formData.remarks}
-                onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                placeholder="Additional notes or remarks"
-                rows={2}
               />
             </div>
             

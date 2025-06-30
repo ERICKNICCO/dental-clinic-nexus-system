@@ -566,6 +566,7 @@ export type Database = {
           description: string | null
           duration: number
           id: string
+          insurance_provider: string | null
           is_active: boolean
           name: string
           updated_at: string
@@ -577,6 +578,7 @@ export type Database = {
           description?: string | null
           duration?: number
           id?: string
+          insurance_provider?: string | null
           is_active?: boolean
           name: string
           updated_at?: string
@@ -588,6 +590,7 @@ export type Database = {
           description?: string | null
           duration?: number
           id?: string
+          insurance_provider?: string | null
           is_active?: boolean
           name?: string
           updated_at?: string
@@ -620,7 +623,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      treatment_pricing_overview: {
+        Row: {
+          base_price: number | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          duration: number | null
+          insurance_provider: string | null
+          is_active: boolean | null
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_price?: number | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          insurance_provider?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          insurance_provider?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

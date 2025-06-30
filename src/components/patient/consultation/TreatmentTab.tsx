@@ -7,29 +7,35 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { DollarSign } from 'lucide-react';
 import TreatmentCostDisplay from './TreatmentCostDisplay';
-import { TreatmentPrice, treatmentPricingService } from '../../../services/treatmentPricingService';
+import { supabaseTreatmentPricingService, TreatmentPricing } from '../../../services/supabaseTreatmentPricingService';
 
 interface TreatmentTabProps {
   treatmentPlan: string;
   prescriptions: string;
   onUpdateField: (field: string, value: string) => void;
+  patientInsurance?: string;
+  patientType?: 'cash' | 'insurance';
 }
 
 const TreatmentTab: React.FC<TreatmentTabProps> = ({
   treatmentPlan,
   prescriptions,
-  onUpdateField
+  onUpdateField,
+  patientInsurance,
+  patientType = 'cash'
 }) => {
   const [showCostDisplay, setShowCostDisplay] = useState(false);
-  const [selectedTreatments, setSelectedTreatments] = useState<TreatmentPrice[]>([]);
+  const [selectedTreatments, setSelectedTreatments] = useState<TreatmentPricing[]>([]);
 
-  const handleAddTreatmentToPlan = (treatment: TreatmentPrice) => {
+  console.log('TreatmentTab - Patient Type:', patientType, 'Insurance:', patientInsurance);
+
+  const handleAddTreatmentToPlan = (treatment: TreatmentPricing) => {
     if (!selectedTreatments.find(t => t.id === treatment.id)) {
       const updatedTreatments = [...selectedTreatments, treatment];
       setSelectedTreatments(updatedTreatments);
       
       // Add treatment to the treatment plan text
-      const treatmentText = `${treatment.name} - ${treatmentPricingService.formatPrice(treatment.basePrice)} (${treatment.duration})`;
+      const treatmentText = `${treatment.name} - ${supabaseTreatmentPricingService.formatPrice(treatment.basePrice)} (${treatment.duration} min)`;
       const currentPlan = treatmentPlan || '';
       const newPlan = currentPlan 
         ? `${currentPlan}\n• ${treatmentText}`
@@ -37,9 +43,9 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
       
       onUpdateField('treatmentPlan', newPlan);
       
-      // Update estimated cost - FIXED CALCULATION
+      // Update estimated cost
       const totalCost = updatedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-      console.log('Setting estimated cost (fixed calculation):', totalCost);
+      console.log('Setting estimated cost:', totalCost);
       onUpdateField('estimatedCost', totalCost.toString());
       
       // Update treatment items
@@ -57,13 +63,13 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     
     // Rebuild treatment plan without the removed treatment
     const treatmentTexts = updatedTreatments.map(t => 
-      `• ${t.name} - ${treatmentPricingService.formatPrice(t.basePrice)} (${t.duration})`
+      `• ${t.name} - ${supabaseTreatmentPricingService.formatPrice(t.basePrice)} (${t.duration} min)`
     );
     onUpdateField('treatmentPlan', treatmentTexts.join('\n'));
     
-    // Update estimated cost - FIXED CALCULATION
+    // Update estimated cost
     const totalCost = updatedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-    console.log('Updated estimated cost (fixed calculation):', totalCost);
+    console.log('Updated estimated cost:', totalCost);
     onUpdateField('estimatedCost', totalCost.toString());
     
     // Update treatment items
@@ -74,21 +80,39 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     }))));
   };
 
-  // FIXED CALCULATION - use the actual basePrice values
   const totalCost = selectedTreatments.reduce((sum, treatment) => sum + treatment.basePrice, 0);
 
   // Effect to update estimated cost whenever treatments change
   useEffect(() => {
     if (selectedTreatments.length > 0) {
-      // FIXED CALCULATION - no extra multiplication
       const totalCost = selectedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-      console.log('TreatmentTab useEffect - updating estimated cost (fixed):', totalCost);
+      console.log('TreatmentTab useEffect - updating estimated cost:', totalCost);
       onUpdateField('estimatedCost', totalCost.toString());
     }
   }, [selectedTreatments, onUpdateField]);
 
+  const getPaymentTypeDisplay = () => {
+    if (patientType === 'insurance' && patientInsurance) {
+      return patientInsurance.toUpperCase();
+    }
+    return 'CASH';
+  };
+
   return (
     <div className="space-y-6 mt-6">
+      {/* Patient Payment Type Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-blue-600" />
+          <span className="font-medium text-blue-800">
+            Patient Payment Type: {getPaymentTypeDisplay()}
+          </span>
+        </div>
+        <p className="text-sm text-blue-600 mt-1">
+          Treatment prices shown are specific to this payment type
+        </p>
+      </div>
+
       {/* Treatment Plan */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -117,6 +141,8 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
       {showCostDisplay && (
         <TreatmentCostDisplay 
           onAddTreatmentToPlan={handleAddTreatmentToPlan}
+          patientInsurance={patientInsurance}
+          patientType={patientType}
         />
       )}
 
@@ -133,7 +159,7 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
                   <span>{treatment.name}</span>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">
-                      {treatmentPricingService.formatPrice(treatment.basePrice)}
+                      {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
                     </Badge>
                     <Button
                       variant="ghost"
@@ -147,9 +173,9 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
                 </div>
               ))}
               <div className="border-t pt-2 flex justify-between items-center font-semibold">
-                <span>Total Estimated Cost:</span>
+                <span>Total Estimated Cost ({getPaymentTypeDisplay()}):</span>
                 <span className="text-lg text-green-600">
-                  {treatmentPricingService.formatPrice(totalCost)}
+                  {supabaseTreatmentPricingService.formatPrice(totalCost)}
                 </span>
               </div>
               <p className="text-xs text-gray-500">
