@@ -5,7 +5,7 @@ import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Badge } from '../../ui/badge';
-import { AlertCircle, CheckCircle, CreditCard, DollarSign, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle, CreditCard, DollarSign, Lock, FileText } from 'lucide-react';
 import { paymentService } from '../../../services/paymentService';
 import { paymentUtils } from '../../../utils/paymentUtils';
 import { treatmentPricingService } from '../../../services/treatmentPricingService';
@@ -14,6 +14,7 @@ import { supabaseConsultationService } from '../../../services/supabaseConsultat
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { Consultation } from '../../../types/consultation';
+import InsuranceClaimForm from '../../insurance/InsuranceClaimForm';
 
 interface CheckoutTabProps {
   patientId: string;
@@ -21,6 +22,8 @@ interface CheckoutTabProps {
   consultationData: Consultation;
   onPaymentComplete: () => void;
   selectedAppointment: string;
+  patientType?: 'cash' | 'insurance';
+  patientInsurance?: string;
 }
 
 const CheckoutTab: React.FC<CheckoutTabProps> = ({
@@ -28,15 +31,18 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
   patientName,
   consultationData,
   onPaymentComplete,
-  selectedAppointment
+  selectedAppointment,
+  patientType = 'cash',
+  patientInsurance
 }) => {
   const { userProfile } = useAuth();
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'insurance'>('cash');
-  const [insuranceProvider, setInsuranceProvider] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'insurance'>(patientType);
+  const [insuranceProvider, setInsuranceProvider] = useState(patientInsurance || '');
   const [amountPaid, setAmountPaid] = useState('');
   const [collectedBy, setCollectedBy] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showInsuranceClaim, setShowInsuranceClaim] = useState(false);
 
   // Check if diagnosis and treatment are complete
   const isDiagnosisComplete = consultationData.diagnosis && consultationData.diagnosis.trim() !== '';
@@ -48,10 +54,11 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
   const totalAmount = hasEstimatedCost ? (typeof estimatedCost === 'string' ? Math.round(parseFloat(estimatedCost)) : estimatedCost) : 0;
   
   console.log('CheckoutTab - consultationData:', consultationData);
-  console.log('CheckoutTab - estimatedCost:', estimatedCost, 'hasEstimatedCost:', hasEstimatedCost, 'totalAmount:', totalAmount);
+  console.log('CheckoutTab - patientType:', patientType, 'patientInsurance:', patientInsurance);
   
   const isReadyForPayment = isDiagnosisComplete && isTreatmentComplete && hasEstimatedCost;
   const isAdmin = userProfile?.role === 'admin';
+  const isInsurancePatient = patientType === 'insurance' && patientInsurance;
 
   const handleCheckoutProcess = async () => {
     try {
@@ -91,6 +98,15 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
       console.error('❌ CheckoutTab: Error during checkout:', error);
       toast.error('Failed to check out patient');
       throw error;
+    }
+  };
+
+  const handleInsuranceClaimSubmitted = async () => {
+    try {
+      await handleCheckoutProcess();
+      onPaymentComplete();
+    } catch (error) {
+      console.error('Failed to complete after insurance claim:', error);
     }
   };
 
@@ -268,6 +284,13 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
     }
   };
 
+  const getPaymentTypeDisplay = () => {
+    if (patientType === 'insurance' && patientInsurance) {
+      return patientInsurance.toUpperCase();
+    }
+    return 'CASH';
+  };
+
   return (
     <div className="space-y-6 mt-6">
       {/* Completion Status */}
@@ -327,11 +350,11 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
                 <div className="text-sm text-yellow-800">
-                  <p className="font-medium">Complete the following to create payment record:</p>
+                  <p className="font-medium">Complete the following to process checkout:</p>
                   <ul className="mt-1 space-y-1">
                     {!isDiagnosisComplete && <li>• Fill in diagnosis in the Diagnosis tab</li>}
                     {!isTreatmentComplete && <li>• Create treatment plan in the Treatment tab</li>}
-                    {!hasEstimatedCost && <li>• Add treatment items with costs in the Treatment tab (click "Show Treatment Costs" button)</li>}
+                    {!hasEstimatedCost && <li>• Add treatment items with costs in the Treatment tab</li>}
                   </ul>
                 </div>
               </div>
@@ -339,6 +362,22 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Type Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-blue-600" />
+          <span className="font-medium text-blue-800">
+            Patient Payment Type: {getPaymentTypeDisplay()}
+          </span>
+        </div>
+        <p className="text-sm text-blue-600 mt-1">
+          {isInsurancePatient ? 
+            'Insurance claim will be submitted to the insurance provider' : 
+            'Direct payment collection required'
+          }
+        </p>
+      </div>
 
       {/* Admin Access Control Notice */}
       {!isAdmin && (
@@ -348,58 +387,67 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
               <Lock className="h-5 w-5 text-blue-600" />
               <div className="text-sm text-blue-800">
                 <p className="font-medium">Administrator Access Required</p>
-                <p>Only administrators can create payment records and process payments.</p>
+                <p>Only administrators can process payments and insurance claims.</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Payment Form */}
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Complete Consultation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isReadyForPayment && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="paymentMethod">Payment Method</Label>
-                    <Select value={paymentMethod} onValueChange={(value: 'cash' | 'insurance') => setPaymentMethod(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="insurance">Insurance</SelectItem>
-                      </SelectContent>
-                    </Select>
+      {/* Insurance Claim Form or Cash Payment Form */}
+      {isAdmin && isReadyForPayment && (
+        <>
+          {isInsurancePatient ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Insurance Claim Processing
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!showInsuranceClaim ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      This patient has {patientInsurance} insurance. Click below to generate and submit an insurance claim form.
+                    </p>
+                    <Button
+                      onClick={() => setShowInsuranceClaim(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Process Insurance Claim
+                    </Button>
                   </div>
-
-                  {paymentMethod === 'insurance' && (
-                    <div>
-                      <Label htmlFor="insuranceProvider">Insurance Provider</Label>
-                      <Select value={insuranceProvider} onValueChange={setInsuranceProvider}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select insurance provider" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="NHIF">NHIF (National Health Insurance Fund)</SelectItem>
-                          <SelectItem value="Jubilee">Jubilee Insurance</SelectItem>
-                          <SelectItem value="AAR">AAR Insurance</SelectItem>
-                          <SelectItem value="Britam">Britam Insurance</SelectItem>
-                          <SelectItem value="Madison">Madison Insurance</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
+                ) : (
+                  <InsuranceClaimForm
+                    patientId={patientId}
+                    patientName={patientName}
+                    consultationId={consultationData.id || ''}
+                    appointmentId={selectedAppointment}
+                    insuranceProvider={patientInsurance || ''}
+                    treatmentDetails={{
+                      diagnosis: consultationData.diagnosis || '',
+                      treatment_plan: consultationData.treatmentPlan || '',
+                      procedures: JSON.parse(consultationData.treatmentItems || '[]').map((item: any) => item.name),
+                      total_amount: totalAmount
+                    }}
+                    onClaimSubmitted={handleInsuranceClaimSubmitted}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Cash Payment Collection
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="collectedBy">Collected By</Label>
                     <Input
@@ -411,7 +459,7 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
                   </div>
 
                   <div>
-                    <Label htmlFor="amountPaid">Amount Paid (Optional)</Label>
+                    <Label htmlFor="amountPaid">Amount Paid</Label>
                     <Input
                       id="amountPaid"
                       type="number"
@@ -461,22 +509,24 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
                     </Button>
                   </div>
                 </div>
-              </>
-            )}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
 
-            {/* Complete without payment option */}
-            <div className="pt-4 border-t">
-              <Button
-                onClick={handleCompleteWithoutPayment}
-                disabled={loading}
-                variant="outline"
-                className="w-full"
-              >
-                {loading ? 'Processing...' : 'Complete Consultation Without Payment'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Complete without payment option */}
+      {isAdmin && (
+        <div className="pt-4 border-t">
+          <Button
+            onClick={handleCompleteWithoutPayment}
+            disabled={loading}
+            variant="outline"
+            className="w-full"
+          >
+            {loading ? 'Processing...' : 'Complete Consultation Without Payment'}
+          </Button>
+        </div>
       )}
 
       {/* Payment History */}
