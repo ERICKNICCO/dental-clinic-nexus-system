@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -16,7 +15,7 @@ import { toast } from 'sonner';
 const PatientFileContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-  const { patients, loading, error } = useSupabasePatients();
+  const { patients, loading, error, refreshPatients } = useSupabasePatients();
   const [isEditing, setIsEditing] = useState(false);
 
   // Extract patient ID from URL path if useParams doesn't work
@@ -51,11 +50,11 @@ const PatientFileContent: React.FC = () => {
 
   // Force refresh patients if we have an ID but no patient found and not loading
   useEffect(() => {
-    if (patientId && !patient && !loading && patients.length === 0) {
-      console.log('🔥 PatientFileContent - Forcing refresh of patients');
-      // This will trigger a re-fetch through the hook
+    if (patientId && !patient && !loading) {
+      console.log('🔥 PatientFileContent - Patient not found, refreshing patients');
+      refreshPatients();
     }
-  }, [patientId, patient, loading, patients.length]);
+  }, [patientId, patient, loading, refreshPatients]);
 
   if (loading) {
     return (
@@ -147,6 +146,12 @@ const PatientFileContent: React.FC = () => {
               onClick={() => window.location.href = '/patients'}
             >
               View All Patients
+            </Button>
+            <Button 
+              onClick={() => refreshPatients()}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Refresh Patient Data
             </Button>
           </div>
         </div>

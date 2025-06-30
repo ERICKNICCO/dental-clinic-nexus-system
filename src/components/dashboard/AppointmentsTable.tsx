@@ -58,6 +58,39 @@ const AppointmentsTable: React.FC = () => {
 
   console.log('Filtered today\'s appointments:', todaysAppointments);
 
+  const findPatientByAppointment = (appointment) => {
+    // Try multiple approaches to find the patient
+    const appointmentPatientName = (appointment.patient?.name || appointment.patient_name || '').toLowerCase().trim();
+    const appointmentPatientPhone = appointment.patient?.phone || appointment.patient_phone || '';
+    const appointmentPatientEmail = appointment.patient?.email || appointment.patient_email || '';
+    
+    console.log('🔍 Looking for patient with:', {
+      name: appointmentPatientName,
+      phone: appointmentPatientPhone,
+      email: appointmentPatientEmail
+    });
+    
+    // First try exact name match
+    let foundPatient = patients.find(p => 
+      p.name.toLowerCase().trim() === appointmentPatientName
+    );
+    
+    // If not found by name, try phone number
+    if (!foundPatient && appointmentPatientPhone) {
+      foundPatient = patients.find(p => p.phone === appointmentPatientPhone);
+    }
+    
+    // If not found by phone, try email
+    if (!foundPatient && appointmentPatientEmail) {
+      foundPatient = patients.find(p => 
+        p.email && p.email.toLowerCase() === appointmentPatientEmail.toLowerCase()
+      );
+    }
+    
+    console.log('🔍 Found patient:', foundPatient);
+    return foundPatient;
+  };
+
   const handleAcceptAppointment = async (appointment) => {
     try {
       console.log('🔥 Accepting appointment:', appointment);
@@ -71,23 +104,8 @@ const AppointmentsTable: React.FC = () => {
         return;
       }
 
-      // Check if patient already exists by name, phone, or email
-      const existingPatient = patients.find(p => {
-        const nameMatch = p.name.toLowerCase().trim() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase().trim();
-        const phoneMatch = p.phone === (appointment.patient?.phone || appointment.patient_phone || '');
-        const emailMatch = p.email && appointment.patient?.email && p.email.toLowerCase() === appointment.patient.email.toLowerCase();
-        
-        console.log('🔍 Checking patient match:', {
-          patientName: p.name,
-          appointmentName: appointment.patient?.name || appointment.patient_name,
-          nameMatch,
-          phoneMatch,
-          emailMatch
-        });
-        
-        return nameMatch || phoneMatch || emailMatch;
-      });
-      
+      // Find existing patient
+      const existingPatient = findPatientByAppointment(appointment);
       let finalPatientId = existingPatient?.id;
       
       // If patient doesn't exist, create new patient
@@ -172,13 +190,13 @@ const AppointmentsTable: React.FC = () => {
 
   const handleContinueConsultation = (appointment) => {
     // Find the patient and navigate to their consultation
-    const existingPatient = patients.find(p => 
-      p.name.toLowerCase() === (appointment.patient?.name || appointment.patient_name || '').toLowerCase()
-    );
+    const existingPatient = findPatientByAppointment(appointment);
     
     if (existingPatient) {
+      console.log('✅ Continuing consultation for patient:', existingPatient.id);
       navigate(`/patients/${existingPatient.id}/file`);
     } else {
+      console.error('❌ Patient not found for continuing consultation');
       toast({
         title: "Patient Not Found",
         description: "Could not find patient record. Please check the Patients section.",
