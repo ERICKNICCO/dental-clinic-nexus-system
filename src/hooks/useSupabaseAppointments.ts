@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabaseAppointmentService } from '../services/supabaseAppointmentService';
 import { Appointment } from '../types/appointment';
@@ -56,16 +57,16 @@ export const useSupabaseAppointments = () => {
       });
     };
 
-    // Initial load
+    // Initial load with automatic patient creation for approved appointments
     const loadInitialAppointments = async () => {
       try {
         const appointmentsList = await supabaseAppointmentService.getAppointments();
         console.log('🔥 Initial appointments loaded:', appointmentsList.length);
         
-        // Process existing approved appointments that might not have patients created
+        // For admin users, automatically process all approved appointments
         if (userProfile?.role === 'admin') {
-          console.log('🔥 Admin user detected, processing existing approved appointments...');
-          await supabaseAppointmentService.processExistingApprovedAppointments();
+          console.log('🔥 Admin user detected, processing all existing approved appointments...');
+          await supabaseAppointmentService.processAllApprovedAppointments();
           
           // Reload appointments after processing
           const updatedAppointmentsList = await supabaseAppointmentService.getAppointments();
@@ -133,17 +134,17 @@ export const useSupabaseAppointments = () => {
     }
   };
 
-  const processExistingApprovedAppointments = async () => {
+  const processAllApprovedAppointments = async () => {
     try {
-      console.log('🔥 Manually processing existing approved appointments...');
-      await supabaseAppointmentService.processExistingApprovedAppointments();
+      console.log('🔥 Manually processing all approved appointments...');
+      await supabaseAppointmentService.processAllApprovedAppointments();
       
       // Reload appointments after processing
       const updatedAppointments = await supabaseAppointmentService.getAppointments();
       processAppointments(updatedAppointments);
     } catch (err) {
-      console.error('❌ Error processing existing approved appointments:', err);
-      setError('Failed to process existing appointments');
+      console.error('❌ Error processing all approved appointments:', err);
+      setError('Failed to process approved appointments');
     }
   };
 
@@ -154,6 +155,6 @@ export const useSupabaseAppointments = () => {
     addAppointment,
     updateAppointment,
     deleteAppointment,
-    processExistingApprovedAppointments
+    processAllApprovedAppointments
   };
 };

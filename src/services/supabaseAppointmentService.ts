@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { Appointment } from '../types/appointment';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -147,13 +148,18 @@ export const supabaseAppointmentService = {
       const existingPatients = await supabasePatientService.getPatients();
       console.log('🔥 Existing patients count:', existingPatients.length);
 
-      // Check if patient already exists by name, email, or phone
+      // Enhanced duplicate check - check by name, email, and phone
       const existingPatient = existingPatients.find(p => {
         const nameMatch = p.name.toLowerCase().trim() === (appointment.patient_name || '').toLowerCase().trim();
-        const emailMatch = appointment.patient_email && p.email && p.email.toLowerCase() === appointment.patient_email.toLowerCase();
-        const phoneMatch = appointment.patient_phone && p.phone && p.phone === appointment.patient_phone;
+        const emailMatch = appointment.patient_email && p.email && 
+          p.email.toLowerCase().trim() === appointment.patient_email.toLowerCase().trim();
+        const phoneMatch = appointment.patient_phone && p.phone && 
+          p.phone.replace(/\s+/g, '') === appointment.patient_phone.replace(/\s+/g, '');
         
-        console.log('🔍 Checking patient:', p.name, 'vs', appointment.patient_name, 'nameMatch:', nameMatch);
+        console.log('🔍 Checking patient:', p.name);
+        console.log('🔍 Name match:', nameMatch);
+        console.log('🔍 Email match:', emailMatch);
+        console.log('🔍 Phone match:', phoneMatch);
         
         return nameMatch || emailMatch || phoneMatch;
       });
@@ -191,21 +197,21 @@ export const supabaseAppointmentService = {
         return `SD-25-${nextNumber.toString().padStart(5, '0')}`;
       };
 
-      // Create new patient
+      // Create new patient with proper data from appointment
       const newPatientData = {
         patientId: generatePatientId(),
         name: appointment.patient_name || 'Unknown Patient',
         email: appointment.patient_email || '',
         phone: appointment.patient_phone || '',
-        dateOfBirth: '1990-01-01', // Default date - should be updated later
-        gender: 'Other', // Default - should be updated later
-        address: 'Not provided', // Default - should be updated later
-        emergencyContact: 'Not provided', // Default - should be updated later
-        emergencyPhone: 'Not provided', // Default - should be updated later
-        insurance: '', // Default - should be updated later
-        lastVisit: new Date().toISOString().split('T')[0],
+        dateOfBirth: '1990-01-01', // Default date - should be updated by staff
+        gender: 'Other', // Default - should be updated by staff
+        address: 'Not provided', // Default - should be updated by staff
+        emergencyContact: 'Not provided', // Default - should be updated by staff
+        emergencyPhone: 'Not provided', // Default - should be updated by staff
+        insurance: '', // Default - should be updated based on patient type
+        lastVisit: '',
         nextAppointment: appointment.date,
-        patientType: 'cash' as const // Default - should be updated later
+        patientType: 'cash' as const // Default - should be updated by staff
       };
 
       console.log('🔥 Creating new patient with data:', newPatientData);
@@ -227,10 +233,57 @@ export const supabaseAppointmentService = {
     }
   },
 
-  // New method to manually trigger patient creation for existing approved appointments
+  // Enhanced method to process ALL existing approved appointments
+  async processAllApprovedAppointments() {
+    try {
+      console.log('🔥 Processing ALL approved appointments to create missing patients...');
+      
+      // Get all approved appointments
+      const { data: approvedAppointments, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('status', 'Approved');
+
+      if (error) {
+        console.error('❌ Error fetching approved appointments:', error);
+        return;
+      }
+
+      console.log('🔥 Found approved appointments:', approvedAppointments?.length || 0);
+
+      if (approvedAppointments && approvedAppointments.length > 0) {
+        let processedCount = 0;
+        let newPatientsCount = 0;
+        
+        for (const appointment of approvedAppointments) {
+          console.log('🔄 Processing appointment:', appointment.id, appointment.patient_name);
+          
+          try {
+            const patientId = await this.createPatientFromAppointment(appointment.id);
+            processedCount++;
+            
+            // Check if a new patient was created (not just linked to existing)
+            if (patientId && !appointment.patient_id) {
+              newPatientsCount++;
+            }
+          } catch (error) {
+            console.error('❌ Error processing appointment:', appointment.id, error);
+          }
+        }
+        
+        console.log(`✅ Processed ${processedCount} appointments, created ${newPatientsCount} new patients`);
+      }
+
+      console.log('✅ Finished processing all approved appointments');
+    } catch (error) {
+      console.error('❌ Error processing approved appointments:', error);
+    }
+  },
+
+  // New method to automatically process existing approved appointments without patient_id
   async processExistingApprovedAppointments() {
     try {
-      console.log('🔥 Processing existing approved appointments...');
+      console.log('🔥 Processing existing approved appointments without patient_id...');
       
       // Get all approved appointments without patient_id
       const { data: approvedAppointments, error } = await supabase
@@ -272,7 +325,6 @@ export const supabaseAppointmentService = {
 
       if (paymentsError) {
         console.warn('⚠️ Could not delete payment records:', paymentsError);
-        // Continue with appointment deletion even if payment deletion fails
       }
 
       // Now delete the appointment
@@ -305,16 +357,34 @@ export const supabaseAppointmentService = {
           schema: 'public',
           table: 'appointments'
         },
-        async () => {
-          console.log('🔥 Appointments changed, fetching updated data');
+        async (payload) => {
+          console.log('🔥 Appointments changed, processing and fetching updated data');
+          
+          // If an appointment was updated to 'Approved', process it
+          if (payload.eventType === 'UPDATE' && payload.new?.status === 'Approved') {
+            console.log('🔥 Appointment approved, creating patient if needed');
+            try {
+              await this.createPatientFromAppointment(payload.new.id);
+            } catch (error) {
+              console.error('❌ Error processing approved appointment:', error);
+            }
+          }
+          
           const appointments = await this.getAppointments();
           callback(appointments);
         }
       )
       .subscribe();
 
-    // Initial fetch
-    this.getAppointments().then(callback);
+    // Initial fetch and process any existing approved appointments
+    this.getAppointments().then(async (appointments) => {
+      // Process existing approved appointments
+      await this.processExistingApprovedAppointments();
+      
+      // Then send the appointments to callback
+      const updatedAppointments = await this.getAppointments();
+      callback(updatedAppointments);
+    });
 
     return channel;
   }
