@@ -36,6 +36,16 @@ const PatientInfo: React.FC<PatientInfoProps> = ({ patient, canEdit }) => {
   const { toast } = useToast();
   const { updatePatient } = usePatients();
 
+  const insuranceProviders = [
+    { value: 'NHIF', label: 'NHIF' },
+    { value: 'GA', label: 'GA Insurance' },
+    { value: 'Jubilee', label: 'Jubilee Insurance' },
+    { value: 'MO', label: 'MO Insurance' },
+    { value: 'Britam', label: 'Britam Insurance' },
+    { value: 'AAR', label: 'AAR Insurance' },
+    { value: 'Other', label: 'Other' }
+  ];
+
   const handleEdit = () => {
     setIsEditing(true);
     setEditedPatient(patient);
@@ -83,10 +93,8 @@ const PatientInfo: React.FC<PatientInfoProps> = ({ patient, canEdit }) => {
   };
 
   const formatInsuranceProvider = (insurance: string) => {
-    if (insurance.toLowerCase() === 'jubilee') {
-      return 'Jubilee';
-    }
-    return insurance;
+    const provider = insuranceProviders.find(p => p.value === insurance);
+    return provider ? provider.label : insurance;
   };
 
   return (
@@ -302,13 +310,18 @@ const PatientInfo: React.FC<PatientInfoProps> = ({ patient, canEdit }) => {
                 <div className="flex-1">
                   <label className="text-sm font-medium text-gray-700">Insurance Provider</label>
                   {isEditing ? (
-                    <input
-                      type="text"
+                    <select
                       value={editedPatient.insurance}
                       onChange={(e) => handleInputChange('insurance', e.target.value)}
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Jubilee"
-                    />
+                    >
+                      <option value="">Select Insurance Provider</option>
+                      {insuranceProviders.map((provider) => (
+                        <option key={provider.value} value={provider.value}>
+                          {provider.label}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     <p className="mt-1 text-gray-900">{formatInsuranceProvider(patient.insurance)}</p>
                   )}

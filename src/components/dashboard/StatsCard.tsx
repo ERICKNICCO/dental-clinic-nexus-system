@@ -7,9 +7,10 @@ interface StatsCardProps {
   value: string | number;
   icon: string;
   color: string;
+  onClick?: () => void;
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
+const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, onClick }) => {
   const getIcon = () => {
     switch (icon) {
       case 'calendar':
@@ -34,7 +35,10 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 flex items-center">
+    <div 
+      className={`bg-white rounded-lg shadow p-6 flex items-center ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+      onClick={onClick}
+    >
       <div className={`p-3 rounded-full ${color} mr-4`}>
         {getIcon()}
       </div>

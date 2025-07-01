@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
-import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { useToast } from '../../ui/use-toast';
 import { Printer, Mail, Download, Lock } from 'lucide-react';
@@ -56,19 +55,6 @@ const FollowUpTab: React.FC<FollowUpTabProps> = ({
             />
           </div>
         )}
-        
-        {nextAppointment && (
-          <div>
-            <Label htmlFor="nextAppointment">Next Appointment Date (Read Only)</Label>
-            <Input
-              id="nextAppointment"
-              type="date"
-              value={nextAppointment}
-              readOnly
-              className="bg-gray-50 cursor-not-allowed"
-            />
-          </div>
-        )}
       </div>
     );
   }
@@ -83,16 +69,6 @@ const FollowUpTab: React.FC<FollowUpTabProps> = ({
           value={followUpInstructions}
           onChange={(e) => onUpdateField('followUpInstructions', e.target.value)}
           rows={4}
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="nextAppointment">Next Appointment Date (for reference)</Label>
-        <Input
-          id="nextAppointment"
-          type="date"
-          value={nextAppointment}
-          onChange={(e) => onUpdateField('nextAppointment', e.target.value)}
         />
       </div>
 

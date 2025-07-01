@@ -29,6 +29,7 @@ const DiagnosisTab: React.FC<DiagnosisTabProps> = ({
   onSendToXRay,
 }) => {
   const [buttonLoading, setButtonLoading] = useState(false);
+  const [localDiagnosis, setLocalDiagnosis] = useState(diagnosis);
 
   // Move useEffect to the top, before any conditional logic
   useEffect(() => {
@@ -36,6 +37,15 @@ const DiagnosisTab: React.FC<DiagnosisTabProps> = ({
       onDiagnosisTypeChange('clinical');
     }
   }, [diagnosisType, onDiagnosisTypeChange]);
+
+  useEffect(() => {
+    setLocalDiagnosis(diagnosis);
+  }, [diagnosis]);
+
+  const handleDiagnosisChange = (value: string) => {
+    setLocalDiagnosis(value);
+    onChange(value);
+  };
 
   return (
     <div className="space-y-4 mt-6">
@@ -98,8 +108,8 @@ const DiagnosisTab: React.FC<DiagnosisTabProps> = ({
         <Textarea
           id="diagnosis"
           placeholder="Primary and secondary diagnoses..."
-          value={diagnosis}
-          onChange={(e) => onChange(e.target.value)}
+          value={localDiagnosis}
+          onChange={(e) => handleDiagnosisChange(e.target.value)}
           rows={4}
         />
       </div>
