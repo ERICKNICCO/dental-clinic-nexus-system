@@ -89,7 +89,15 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
 
   const getPaymentTypeDisplay = () => {
     if (patientType === 'insurance' && patientInsurance) {
-      return patientInsurance.toUpperCase();
+      // Map insurance codes to display names
+      const insuranceDisplayMap: { [key: string]: string } = {
+        'NHIF': 'NHIF',
+        'GA': 'GA Insurance',
+        'JUBILEE': 'Jubilee Insurance',
+        'MO': 'MO Insurance'
+      };
+      
+      return insuranceDisplayMap[patientInsurance] || patientInsurance.toUpperCase();
     }
     return 'CASH';
   };

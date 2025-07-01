@@ -93,9 +93,38 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
 
   const getPaymentTypeDisplay = () => {
     if (patientType === 'insurance' && patientInsurance) {
-      return patientInsurance.toUpperCase();
+      // Map insurance names to match our payment method codes
+      const insuranceMapping: { [key: string]: string } = {
+        'NHIF': 'NHIF',
+        'GA Insurance': 'GA',
+        'GA': 'GA',
+        'Jubilee Insurance': 'JUBILEE',
+        'Jubilee': 'JUBILEE',
+        'MO Insurance': 'MO',
+        'MO': 'MO'
+      };
+      
+      return insuranceMapping[patientInsurance] || patientInsurance.toUpperCase();
     }
     return 'CASH';
+  };
+
+  const getActualInsuranceProvider = () => {
+    if (patientType === 'insurance' && patientInsurance) {
+      // Map insurance names to match our payment method codes
+      const insuranceMapping: { [key: string]: string } = {
+        'NHIF': 'NHIF',
+        'GA Insurance': 'GA',
+        'GA': 'GA',
+        'Jubilee Insurance': 'JUBILEE',
+        'Jubilee': 'JUBILEE',
+        'MO Insurance': 'MO',
+        'MO': 'MO'
+      };
+      
+      return insuranceMapping[patientInsurance] || patientInsurance;
+    }
+    return 'cash';
   };
 
   return (
@@ -141,7 +170,7 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
       {showCostDisplay && (
         <TreatmentCostDisplay 
           onAddTreatmentToPlan={handleAddTreatmentToPlan}
-          patientInsurance={patientInsurance}
+          patientInsurance={getActualInsuranceProvider()}
           patientType={patientType}
         />
       )}

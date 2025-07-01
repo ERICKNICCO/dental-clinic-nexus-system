@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -10,9 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Plus, Edit, Trash2, DollarSign, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, DollarSign, Copy, Upload } from 'lucide-react';
 import { supabaseTreatmentPricingService, TreatmentPricing } from '../../services/supabaseTreatmentPricingService';
 import { useToast } from '../../hooks/use-toast';
+import { importGAPricing } from '../../utils/importGAPricing';
+import { importJubileePricing } from '../../utils/importJubileePricing';
 
 const TreatmentPricingManagement: React.FC = () => {
   const [treatments, setTreatments] = useState<TreatmentPricing[]>([]);
@@ -21,6 +22,8 @@ const TreatmentPricingManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTreatment, setEditingTreatment] = useState<TreatmentPricing | null>(null);
   const [activeTab, setActiveTab] = useState('cash');
+  const [importingGA, setImportingGA] = useState(false);
+  const [importingJubilee, setImportingJubilee] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -85,6 +88,48 @@ const TreatmentPricingManagement: React.FC = () => {
       setInsuranceProviders(providers);
     } catch (error) {
       console.error('Error loading insurance providers:', error);
+    }
+  };
+
+  const handleImportGA = async () => {
+    try {
+      setImportingGA(true);
+      const result = await importGAPricing();
+      toast({
+        title: "Success",
+        description: `Successfully imported ${result.count} GA insurance treatments`,
+      });
+      loadTreatments();
+    } catch (error) {
+      console.error('Error importing GA pricing:', error);
+      toast({
+        title: "Error",
+        description: "Failed to import GA pricing",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingGA(false);
+    }
+  };
+
+  const handleImportJubilee = async () => {
+    try {
+      setImportingJubilee(true);
+      const result = await importJubileePricing();
+      toast({
+        title: "Success",
+        description: `Successfully imported ${result.count} Jubilee insurance treatments`,
+      });
+      loadTreatments();
+    } catch (error) {
+      console.error('Error importing Jubilee pricing:', error);
+      toast({
+        title: "Error",
+        description: "Failed to import Jubilee pricing",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingJubilee(false);
     }
   };
 
@@ -202,7 +247,6 @@ const TreatmentPricingManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Filter treatments by selected payment method
   const getTreatmentsByPaymentMethod = (paymentMethod: string) => {
     return treatments.filter(t => t.insuranceProvider === paymentMethod);
   };
@@ -230,10 +274,32 @@ const TreatmentPricingManagement: React.FC = () => {
           <p className="text-sm mb-4">
             No treatments found for {paymentMethodInfo?.name}.
           </p>
-          <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Treatment for {paymentMethodInfo?.name}
-          </Button>
+          <div className="flex justify-center gap-2">
+            <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Treatment for {paymentMethodInfo?.name}
+            </Button>
+            {paymentMethod === 'GA' && (
+              <Button 
+                onClick={handleImportGA} 
+                disabled={importingGA}
+                variant="outline"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {importingGA ? 'Importing...' : 'Import GA Prices'}
+              </Button>
+            )}
+            {paymentMethod === 'JUBILEE' && (
+              <Button 
+                onClick={handleImportJubilee} 
+                disabled={importingJubilee}
+                variant="outline"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {importingJubilee ? 'Importing...' : 'Import Jubilee Prices'}
+              </Button>
+            )}
+          </div>
         </div>
       );
     }
@@ -315,10 +381,28 @@ const TreatmentPricingManagement: React.FC = () => {
           <h2 className="text-2xl font-bold">Treatment Pricing Management</h2>
           <p className="text-gray-600">Manage treatment prices for different payment methods</p>
         </div>
-        <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Treatment
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Treatment
+          </Button>
+          <Button 
+            onClick={handleImportGA} 
+            disabled={importingGA}
+            variant="outline"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {importingGA ? 'Importing...' : 'Import GA Prices'}
+          </Button>
+          <Button 
+            onClick={handleImportJubilee} 
+            disabled={importingJubilee}
+            variant="outline"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {importingJubilee ? 'Importing...' : 'Import Jubilee Prices'}
+          </Button>
+        </div>
       </div>
 
       <Card>
