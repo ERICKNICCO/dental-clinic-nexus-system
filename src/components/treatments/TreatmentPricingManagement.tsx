@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -8,9 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
-import { Plus, Edit, Trash2, DollarSign, Copy, Upload } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Plus, Edit, Trash2, DollarSign, Copy } from 'lucide-react';
 import { supabaseTreatmentPricingService, TreatmentPricing } from '../../services/supabaseTreatmentPricingService';
-import { importNHIFPricing } from '../../utils/importNHIFPricing';
 import { useToast } from '../../hooks/use-toast';
 
 const TreatmentPricingManagement: React.FC = () => {
@@ -19,8 +20,7 @@ const TreatmentPricingManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTreatment, setEditingTreatment] = useState<TreatmentPricing | null>(null);
-  const [selectedInsurance, setSelectedInsurance] = useState('all');
-  const [importing, setImporting] = useState(false);
+  const [activeTab, setActiveTab] = useState('cash');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -49,13 +49,11 @@ const TreatmentPricingManagement: React.FC = () => {
     'Other'
   ];
 
-  const predefinedInsuranceProviders = [
+  const paymentMethods = [
     { code: 'cash', name: 'Cash' },
     { code: 'NHIF', name: 'NHIF' },
     { code: 'GA', name: 'GA Insurance' },
     { code: 'JUBILEE', name: 'Jubilee Insurance' },
-    { code: 'AAR', name: 'AAR Insurance' },
-    { code: 'BRITAM', name: 'Britam Insurance' },
     { code: 'MO', name: 'MO Insurance' }
   ];
 
@@ -87,34 +85,6 @@ const TreatmentPricingManagement: React.FC = () => {
       setInsuranceProviders(providers);
     } catch (error) {
       console.error('Error loading insurance providers:', error);
-    }
-  };
-
-  const handleImportNHIF = async () => {
-    if (window.confirm('This will import NHIF pricing data. Are you sure you want to continue?')) {
-      try {
-        setImporting(true);
-        const importedCount = await importNHIFPricing();
-        
-        toast({
-          title: "Success",
-          description: `Successfully imported ${importedCount} NHIF treatments`,
-        });
-        
-        // Reload treatments and insurance providers
-        await loadTreatments();
-        await loadInsuranceProviders();
-        
-      } catch (error) {
-        console.error('Error importing NHIF pricing:', error);
-        toast({
-          title: "Error",
-          description: "Failed to import NHIF pricing data",
-          variant: "destructive",
-        });
-      } finally {
-        setImporting(false);
-      }
     }
   };
 
@@ -190,7 +160,7 @@ const TreatmentPricingManagement: React.FC = () => {
       basePrice: treatment.basePrice.toString(),
       category: treatment.category,
       duration: treatment.duration.toString(),
-      insuranceProvider: 'cash' // Default to cash for copying
+      insuranceProvider: activeTab // Use current active tab as default
     });
     setIsModalOpen(true);
   };
@@ -222,7 +192,7 @@ const TreatmentPricingManagement: React.FC = () => {
       basePrice: '',
       category: '',
       duration: '',
-      insuranceProvider: 'cash'
+      insuranceProvider: activeTab // Use current active tab as default
     });
     setEditingTreatment(null);
   };
@@ -232,22 +202,100 @@ const TreatmentPricingManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Filter treatments by selected insurance provider
-  const filteredTreatments = selectedInsurance === 'all' 
-    ? treatments 
-    : treatments.filter(t => t.insuranceProvider === selectedInsurance);
+  // Filter treatments by selected payment method
+  const getTreatmentsByPaymentMethod = (paymentMethod: string) => {
+    return treatments.filter(t => t.insuranceProvider === paymentMethod);
+  };
 
-  const getInsuranceColor = (provider: string) => {
+  const getPaymentMethodColor = (provider: string) => {
     switch (provider) {
       case 'cash': return 'bg-green-100 text-green-800';
       case 'NHIF': return 'bg-blue-100 text-blue-800';
       case 'GA': return 'bg-purple-100 text-purple-800';
       case 'JUBILEE': return 'bg-orange-100 text-orange-800';
-      case 'AAR': return 'bg-red-100 text-red-800';
-      case 'BRITAM': return 'bg-yellow-100 text-yellow-800';
       case 'MO': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const renderTreatmentTable = (paymentMethod: string) => {
+    const filteredTreatments = getTreatmentsByPaymentMethod(paymentMethod);
+    const paymentMethodInfo = paymentMethods.find(p => p.code === paymentMethod);
+
+    if (filteredTreatments.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <h3 className="text-lg font-medium mb-2">No treatments found</h3>
+          <p className="text-sm mb-4">
+            No treatments found for {paymentMethodInfo?.name}.
+          </p>
+          <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Treatment for {paymentMethodInfo?.name}
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Treatment Name</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Duration</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredTreatments.map((treatment) => (
+            <TableRow key={treatment.id}>
+              <TableCell className="font-medium">{treatment.name}</TableCell>
+              <TableCell>
+                <Badge variant="secondary">{treatment.category}</Badge>
+              </TableCell>
+              <TableCell>{treatment.duration} min</TableCell>
+              <TableCell className="font-semibold">
+                {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
+              </TableCell>
+              <TableCell className="max-w-xs">
+                <div className="truncate">{treatment.description}</div>
+              </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopyTreatment(treatment)}
+                  className="mr-2"
+                  title="Copy treatment for different payment method"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(treatment)}
+                  className="mr-2"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(treatment.id)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
   };
 
   if (loading) {
@@ -265,135 +313,47 @@ const TreatmentPricingManagement: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Treatment Pricing Management</h2>
-          <p className="text-gray-600">Manage treatment prices for cash and insurance patients</p>
+          <p className="text-gray-600">Manage treatment prices for different payment methods</p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleImportNHIF} 
-            disabled={importing}
-            variant="outline"
-            className="bg-blue-50 hover:bg-blue-100"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            {importing ? 'Importing...' : 'Import NHIF Prices'}
-          </Button>
-          <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Treatment
-          </Button>
-        </div>
+        <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Treatment
+        </Button>
       </div>
-
-      {/* Filter by Insurance Provider */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Label>Filter by Payment Type:</Label>
-            <Select value={selectedInsurance} onValueChange={setSelectedInsurance}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Payment Types</SelectItem>
-                {predefinedInsuranceProviders.map((provider) => (
-                  <SelectItem key={provider.code} value={provider.code}>
-                    {provider.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
-            Treatment Pricing List
-            {selectedInsurance !== 'all' && (
-              <Badge className={getInsuranceColor(selectedInsurance)}>
-                {predefinedInsuranceProviders.find(p => p.code === selectedInsurance)?.name}
-              </Badge>
-            )}
+            Treatment Pricing by Payment Method
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredTreatments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium mb-2">No treatments found</h3>
-              <p className="text-sm mb-4">
-                {selectedInsurance === 'all' 
-                  ? 'Add your first treatment pricing to get started.'
-                  : `No treatments found for ${predefinedInsuranceProviders.find(p => p.code === selectedInsurance)?.name}.`
-                }
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Treatment Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Payment Type</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTreatments.map((treatment) => (
-                  <TableRow key={treatment.id}>
-                    <TableCell className="font-medium">{treatment.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{treatment.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getInsuranceColor(treatment.insuranceProvider)}>
-                        {predefinedInsuranceProviders.find(p => p.code === treatment.insuranceProvider)?.name || treatment.insuranceProvider}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{treatment.duration} min</TableCell>
-                    <TableCell className="font-semibold">
-                      {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
-                    </TableCell>
-                    <TableCell className="max-w-xs">
-                      <div className="truncate">{treatment.description}</div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyTreatment(treatment)}
-                        className="mr-2"
-                        title="Copy treatment for different insurance"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(treatment)}
-                        className="mr-2"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(treatment.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              {paymentMethods.map((method) => (
+                <TabsTrigger key={method.code} value={method.code} className="text-sm">
+                  {method.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            {paymentMethods.map((method) => (
+              <TabsContent key={method.code} value={method.code} className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Badge className={getPaymentMethodColor(method.code)}>
+                      {method.name}
+                    </Badge>
+                    <span className="text-sm text-gray-500">
+                      {getTreatmentsByPaymentMethod(method.code).length} treatments
+                    </span>
+                  </div>
+                </div>
+                {renderTreatmentTable(method.code)}
+              </TabsContent>
+            ))}
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -433,15 +393,15 @@ const TreatmentPricingManagement: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="insuranceProvider">Payment Type *</Label>
+              <Label htmlFor="insuranceProvider">Payment Method *</Label>
               <Select value={formData.insuranceProvider} onValueChange={(value) => setFormData({ ...formData, insuranceProvider: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select payment type" />
+                  <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
                 <SelectContent>
-                  {predefinedInsuranceProviders.map((provider) => (
-                    <SelectItem key={provider.code} value={provider.code}>
-                      {provider.name}
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method.code} value={method.code}>
+                      {method.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
