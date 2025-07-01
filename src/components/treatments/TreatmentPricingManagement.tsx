@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -9,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
-import { Plus, Edit, Trash2, DollarSign, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, DollarSign, Copy, Upload } from 'lucide-react';
 import { supabaseTreatmentPricingService, TreatmentPricing } from '../../services/supabaseTreatmentPricingService';
+import { importNHIFPricing } from '../../utils/importNHIFPricing';
 import { useToast } from '../../hooks/use-toast';
 
 const TreatmentPricingManagement: React.FC = () => {
@@ -20,6 +20,7 @@ const TreatmentPricingManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTreatment, setEditingTreatment] = useState<TreatmentPricing | null>(null);
   const [selectedInsurance, setSelectedInsurance] = useState('all');
+  const [importing, setImporting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -42,6 +43,9 @@ const TreatmentPricingManagement: React.FC = () => {
     'Endodontics',
     'Prosthodontics',
     'Emergency',
+    'Minor Procedures',
+    'Ordinary Procedures',
+    'Specialized Procedures',
     'Other'
   ];
 
@@ -51,7 +55,8 @@ const TreatmentPricingManagement: React.FC = () => {
     { code: 'GA', name: 'GA Insurance' },
     { code: 'JUBILEE', name: 'Jubilee Insurance' },
     { code: 'AAR', name: 'AAR Insurance' },
-    { code: 'BRITAM', name: 'Britam Insurance' }
+    { code: 'BRITAM', name: 'Britam Insurance' },
+    { code: 'MO', name: 'MO Insurance' }
   ];
 
   useEffect(() => {
@@ -82,6 +87,34 @@ const TreatmentPricingManagement: React.FC = () => {
       setInsuranceProviders(providers);
     } catch (error) {
       console.error('Error loading insurance providers:', error);
+    }
+  };
+
+  const handleImportNHIF = async () => {
+    if (window.confirm('This will import NHIF pricing data. Are you sure you want to continue?')) {
+      try {
+        setImporting(true);
+        const importedCount = await importNHIFPricing();
+        
+        toast({
+          title: "Success",
+          description: `Successfully imported ${importedCount} NHIF treatments`,
+        });
+        
+        // Reload treatments and insurance providers
+        await loadTreatments();
+        await loadInsuranceProviders();
+        
+      } catch (error) {
+        console.error('Error importing NHIF pricing:', error);
+        toast({
+          title: "Error",
+          description: "Failed to import NHIF pricing data",
+          variant: "destructive",
+        });
+      } finally {
+        setImporting(false);
+      }
     }
   };
 
@@ -212,6 +245,7 @@ const TreatmentPricingManagement: React.FC = () => {
       case 'JUBILEE': return 'bg-orange-100 text-orange-800';
       case 'AAR': return 'bg-red-100 text-red-800';
       case 'BRITAM': return 'bg-yellow-100 text-yellow-800';
+      case 'MO': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -233,10 +267,21 @@ const TreatmentPricingManagement: React.FC = () => {
           <h2 className="text-2xl font-bold">Treatment Pricing Management</h2>
           <p className="text-gray-600">Manage treatment prices for cash and insurance patients</p>
         </div>
-        <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Treatment
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleImportNHIF} 
+            disabled={importing}
+            variant="outline"
+            className="bg-blue-50 hover:bg-blue-100"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {importing ? 'Importing...' : 'Import NHIF Prices'}
+          </Button>
+          <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Treatment
+          </Button>
+        </div>
       </div>
 
       {/* Filter by Insurance Provider */}
