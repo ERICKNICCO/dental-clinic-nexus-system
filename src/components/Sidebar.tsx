@@ -29,7 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleSidebar }) => {
   // Define which routes each role can access
   const rolePermissions = {
     admin: ['/', '/appointments', '/schedule', '/patients', '/treatments', '/payments', '/reports', '/pricing'],
-    doctor: ['/', '/patients', '/schedule', '/treatments'],
+    doctor: ['/', '/appointments', '/patients', '/schedule', '/treatments'],
     staff: ['/', '/appointments', '/patients', '/treatments'],
     radiologist: ['/xray-room'] // Only give access to the X-ray Room
   };

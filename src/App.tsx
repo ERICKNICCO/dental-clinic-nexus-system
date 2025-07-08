@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from './components/ui/toaster';
 import Index from './pages/Index';
 import LoginPage from './pages/LoginPage';
@@ -20,8 +20,98 @@ import RoleBasedRoute from './components/RoleBasedRoute';
 import './App.css';
 import { XRayRoomPage } from './components/xray/XRayRoomPage';
 import NotificationTest from './components/NotificationTest';
+import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
 
 const queryClient = new QueryClient();
+
+function AppRoutes() {
+  const { userProfile } = useAuth();
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={
+        <ProtectedRoute>
+          <Index />
+        </ProtectedRoute>
+      } />
+      <Route path="/appointments" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={['admin', 'staff', 'doctor']}>
+            <AppointmentPage />
+          </RoleBasedRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/schedule" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={['admin', 'doctor']}>
+            <SchedulePage />
+          </RoleBasedRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/patients" element={
+        <ProtectedRoute>
+          <PatientPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/patients/:patientId" element={
+        <ProtectedRoute>
+          <PatientFilePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/patients/:patientId/file" element={
+        <ProtectedRoute>
+          <PatientFilePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/treatments" element={
+        <ProtectedRoute>
+          <TreatmentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/payments" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={['admin']}>
+            <PaymentPage />
+          </RoleBasedRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/pricing" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={['admin', 'doctor']}>
+            <TreatmentPricingPage />
+          </RoleBasedRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/reports" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={['admin']}>
+            <ReportPage />
+          </RoleBasedRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/inventory" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={['admin']}>
+            <InventoryPage />
+          </RoleBasedRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/xray-room" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={['radiologist']}>
+            <XRayRoomPage />
+          </RoleBasedRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/notification-test" element={
+        <ProtectedRoute>
+          <NotificationTest />
+        </ProtectedRoute>
+      } />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 function App() {
   return (
@@ -29,89 +119,7 @@ function App() {
       <AuthProvider>
         <Router>
           <div className="App">
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              } />
-              <Route path="/appointments" element={
-                <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['admin', 'staff']}>
-                    <AppointmentPage />
-                  </RoleBasedRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/schedule" element={
-                <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['admin', 'doctor']}>
-                    <SchedulePage />
-                  </RoleBasedRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/patients" element={
-                <ProtectedRoute>
-                  <PatientPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/patients/:patientId" element={
-                <ProtectedRoute>
-                  <PatientFilePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/patients/:patientId/file" element={
-                <ProtectedRoute>
-                  <PatientFilePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/treatments" element={
-                <ProtectedRoute>
-                  <TreatmentPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/payments" element={
-                <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['admin']}>
-                    <PaymentPage />
-                  </RoleBasedRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/pricing" element={
-                <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['admin', 'doctor']}>
-                    <TreatmentPricingPage />
-                  </RoleBasedRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/reports" element={
-                <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['admin']}>
-                    <ReportPage />
-                  </RoleBasedRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/inventory" element={
-                <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['admin']}>
-                    <InventoryPage />
-                  </RoleBasedRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/xray-room" element={
-                <ProtectedRoute>
-                  <RoleBasedRoute allowedRoles={['radiologist']}>
-                    <XRayRoomPage />
-                  </RoleBasedRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/notification-test" element={
-                <ProtectedRoute>
-                  <NotificationTest />
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppRoutes />
           </div>
         </Router>
         <Toaster />

@@ -80,21 +80,11 @@ export const useAppointments = () => {
 
         const filteredAppointments = allAppointments.filter((appt) => {
           if (userProfile.role === 'doctor') {
-            // Filter by doctor's name using flexible matching
-            // Include 'Approved', 'Confirmed', 'Checked In', and 'In Progress' statuses
-            // This ensures patients remain visible until consultation is fully completed
+            // Filter by doctor's name using flexible matching, but allow all statuses
             const appointmentDoctor = appt.dentist || '';
             const userDoctor = userProfile.name || '';
-            
-            console.log('useAppointments filtering - Appointment doctor:', appointmentDoctor);
-            console.log('useAppointments filtering - User doctor:', userDoctor);
-            
             const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
-            const isValidStatus = ['Approved', 'Confirmed', 'Checked In', 'In Progress'].includes(appt.status);
-            
-            console.log('Doctor match:', isDoctorMatch, 'Status valid:', isValidStatus, 'Status:', appt.status);
-            
-            return isValidStatus && isDoctorMatch;
+            return isDoctorMatch;
           }
           return true; // Admin and other roles see all
         });
@@ -133,8 +123,7 @@ export const useAppointments = () => {
               const appointmentDoctor = appt.dentist || '';
               const userDoctor = userProfile.name || '';
               const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
-              const isValidStatus = ['Approved', 'Confirmed', 'Checked In', 'In Progress'].includes(appt.status);
-              return isValidStatus && isDoctorMatch;
+              return isDoctorMatch;
             }
             return true;
           });
@@ -207,8 +196,7 @@ export const useAppointments = () => {
           const appointmentDoctor = appt.dentist || '';
           const userDoctor = userProfile.name || '';
           const isDoctorMatch = isDoctorNameMatch(appointmentDoctor, userDoctor);
-          const isValidStatus = ['Approved', 'Confirmed', 'Checked In', 'In Progress'].includes(appt.status);
-          return isValidStatus && isDoctorMatch;
+          return isDoctorMatch;
         }
         return true;
       });

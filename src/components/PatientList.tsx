@@ -49,40 +49,8 @@ const PatientList: React.FC = () => {
   console.log('PatientList: Error state:', error);
   console.log('PatientList: patients from main table:', patients.map(p => p.patientId));
 
-  // Merge patients from the patients table and from appointments
-  const appointmentPatients: Patient[] = appointments
-    .map(a => {
-      const p: any = a.patient || {};
-      return {
-        id: a.patientId || a.patient_id || p?.id || '',
-        patientId: a.patientId || a.patient_id || p?.patientId || '',
-        name: p?.name || a.patient_name || '',
-        email: p?.email || a.patient_email || '',
-        phone: p?.phone || a.patient_phone || '',
-        dateOfBirth: p?.dateOfBirth || '',
-        gender: p?.gender || '',
-        address: p?.address || '',
-        emergencyContact: p?.emergencyContact || '',
-        emergencyPhone: p?.emergencyPhone || '',
-        insurance: a.insurance || p?.insurance || '',
-        lastVisit: '',
-        nextAppointment: '',
-        patientType: a.patientType || p?.patientType || 'cash',
-      } as Patient;
-    })
-    .filter((p: any) => p.id);
-
-  // Combine and deduplicate patients by email (fallback to phone)
-  const dedupedPatientsMap = new Map();
-  [...patients, ...appointmentPatients].forEach(p => {
-    if (p) {
-      const key = p.email ? p.email.toLowerCase() : (p.phone || '').replace(/\D/g, '');
-      if (key && !dedupedPatientsMap.has(key)) {
-        dedupedPatientsMap.set(key, p);
-      }
-    }
-  });
-  let filteredPatients = Array.from(dedupedPatientsMap.values());
+  // Only use patients from the database table
+  let filteredPatients = [...patients];
 
   // Filter patients based on search term
   filteredPatients = filteredPatients.filter(patient => 
@@ -91,20 +59,6 @@ const PatientList: React.FC = () => {
     patient.phone.includes(searchTerm) ||
     (patient.patientId && patient.patientId.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  // If doctor, further filter to only patients with appointments with this doctor
-  if (userProfile?.role === 'doctor') {
-    const doctorPatientIds = new Set(
-      appointments.map(a => (a.patient && (a.patient.id || a.patient.patientId)) || a.patient_id)
-    );
-    filteredPatients = filteredPatients.filter(p => doctorPatientIds.has(p.id || p.patientId));
-  }
-
-  const mainPatientIds = new Set(patients.map(p => p.patientId));
-  console.log('PatientList: mainPatientIds set:', Array.from(mainPatientIds));
-  console.log('PatientList: filteredPatients before mainPatientIds filter:', filteredPatients.map(p => p.patientId));
-  // filteredPatients = filteredPatients.filter(p => mainPatientIds.has(p.patientId));
-  console.log('PatientList: filteredPatients after mainPatientIds filter (disabled):', filteredPatients.map(p => p.patientId));
 
   const handleAddPatient = async (newPatientData: NewPatient) => {
     console.log('PatientList: Handling add patient request');
@@ -154,7 +108,7 @@ const PatientList: React.FC = () => {
   };
 
   const handleFileClick = (patient: Patient) => {
-    const navId = patient.id || patient.patientId;
+    const navId = patient.patientId;
     console.log('🔥 PatientList: File button clicked for patient:', navId, patient.name);
     console.log('🔥 PatientList: Navigating to:', `/patients/${navId}/file`);
   };
@@ -216,7 +170,7 @@ const PatientList: React.FC = () => {
         </TableHeader>
         <TableBody>
           {filteredPatients.map((patient, idx) => (
-            <TableRow key={patient.id || patient.patientId || idx}>
+            <TableRow key={patient.patientId}>
               <TableCell className="font-medium">
                 {`SD-P${String(idx + 1).padStart(5, '0')}`}
               </TableCell>
@@ -242,7 +196,7 @@ const PatientList: React.FC = () => {
               </TableCell>
               <TableCell className="text-right">
                 <Link 
-                  to={`/patients/${patient.id || patient.patientId}/file`}
+                  to={`/patients/${patient.patientId}/file`}
                   onClick={() => handleFileClick(patient)}
                 >
                   <Button variant="ghost" size="sm">
@@ -278,7 +232,7 @@ const PatientList: React.FC = () => {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction 
-                          onClick={() => handleDeletePatient(patient.id || patient.patientId, patient.name)}
+                          onClick={() => handleDeletePatient(patient.patientId, patient.name)}
                           className="bg-red-600 hover:bg-red-700"
                         >
                           Delete Patient

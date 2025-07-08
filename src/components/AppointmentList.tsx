@@ -13,14 +13,19 @@ const AppointmentList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [selectedDate, setSelectedDate] = useState('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   
   const { appointments, loading, error, updateAppointment, deleteAppointment, refreshAppointments } = useAppointments();
   const { toast } = useToast();
   const { userProfile } = useAuth();
 
-  // Filter appointments based on search term and status filter
-  const filteredAppointments = filterAppointments(appointments, searchTerm, statusFilter);
+  // Filter appointments based on search term, status filter, and selected date
+  const filteredAppointments = filterAppointments(appointments, searchTerm, statusFilter).filter(appt => {
+    if (!selectedDate) return true;
+    // Assume appt.date is in YYYY-MM-DD format
+    return appt.date === selectedDate;
+  });
 
   const handleEditClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
@@ -131,6 +136,8 @@ const AppointmentList = () => {
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
           onNewAppointment={handleNewAppointment}
         />
         

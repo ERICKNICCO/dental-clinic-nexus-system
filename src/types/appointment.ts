@@ -19,7 +19,7 @@ export interface Appointment {
   patient_name?: string; // Add database field name
   patient_phone?: string; // Add database field name
   patient_email?: string; // Add database field name
-  patientType?: 'cash' | 'insurance';
+  patientType?: string; // 'cash' or insurance provider name
   insurance?: string;
   notes?: string;
 }

@@ -102,6 +102,12 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
     return 'CASH';
   };
 
+  // Helper to format treatment name in sentence case
+  function toSentenceCase(str: string) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  }
+
   if (loading) {
     return (
       <Card>
@@ -171,7 +177,7 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium">{treatment.name}</h4>
+                        <h4 className="font-medium">{toSentenceCase(treatment.name)}</h4>
                         <Badge className={getCategoryColor(treatment.category)}>
                           {treatment.category}
                         </Badge>
@@ -220,7 +226,7 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
                   className="flex items-center justify-between p-2 bg-gray-50 rounded"
                 >
                   <div>
-                    <span className="font-medium">{treatment.name}</span>
+                    <span className="font-medium">{toSentenceCase(treatment.name)}</span>
                     <span className="ml-2 text-sm text-gray-500">({treatment.duration} min)</span>
                   </div>
                   <div className="flex items-center gap-2">

@@ -53,9 +53,13 @@ export const supabaseNotificationService = {
     const { data, error } = await supabase
       .from('notifications')
       .insert({
-        ...notification,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
         timestamp: new Date().toISOString(),
         read: false,
+        appointment_id: notification.appointment_id || null,
+        target_doctor_name: notification.target_doctor_name || null,
         target_role: notification.target_role || null,
         target_user: notification.target_user || null,
       })

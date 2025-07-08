@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { MedicalRecord } from '../../../services/medicalHistoryService';
 import { useAuth } from '../../../contexts/AuthContext';
 
 export const useMedicalHistoryState = () => {

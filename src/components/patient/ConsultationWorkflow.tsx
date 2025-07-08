@@ -13,11 +13,11 @@ import { Button } from '../ui/button';
 import { Clock, User, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { paymentService } from '../../services/paymentService';
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase";
 import { adminNotificationService } from '../../services/adminNotificationService';
 import { useSupabasePatients } from '../../hooks/useSupabasePatients';
 import { supabaseConsultationService } from '../../services/supabaseConsultationService';
+import { supabaseAppointmentService } from '../../services/supabaseAppointmentService';
+import { useAppointments } from '../../hooks/useAppointments';
 
 interface ConsultationWorkflowProps {
   patientId: string;
@@ -38,6 +38,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
   const [refreshing, setRefreshing] = useState(false);
   const { patients } = useSupabasePatients();
   const patient = patients.find(p => p.id === patientId);
+  const { refreshAppointments } = useAppointments();
 
   // Check if user is admin to restrict editing
   const isAdmin = userProfile?.role === 'admin';
@@ -115,12 +116,12 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
     
     try {
       console.log('Starting consultation with:', { 
-        doctorId: currentUser.uid, 
+        doctorId: currentUser.id, 
         doctorName: userProfile.name || userProfile.email,
         appointmentId: selectedAppointment
       });
       await startConsultation(
-        currentUser.uid, 
+        currentUser.id, 
         userProfile.name || userProfile.email,
         selectedAppointment || undefined
       );
@@ -162,6 +163,19 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       console.log('Patient ID:', patientId);
       console.log('User Profile:', userProfile);
       
+      // Update appointment status to Completed if appointment exists
+      if (selectedAppointment) {
+        try {
+          await supabaseAppointmentService.updateAppointment(selectedAppointment, { status: 'Completed' });
+          console.log('Appointment status updated to Completed');
+          if (refreshAppointments) {
+            await refreshAppointments();
+            console.log('Appointments list refreshed after completion');
+          }
+        } catch (err) {
+          console.error('Failed to update appointment status:', err);
+        }
+      }
       // Complete the consultation first
       await completeConsultation(activeConsultation.id, consultationData);
       
@@ -346,17 +360,26 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
     try {
       await updateConsultation(activeConsultation.id, { status: "waiting-xray" });
 
-      const consultRef = doc(db, "consultations", activeConsultation.id);
-      await updateDoc(consultRef, {
-        status: "waiting-xray",
-        updatedAt: new Date().toISOString(),
-      });
+      // Removed: const consultRef = doc(db, "consultations", activeConsultation.id);
+      // Removed: await updateDoc(consultRef, {
+      // Removed:   status: "waiting-xray",
+      // Removed:   updatedAt: new Date().toISOString(),
+      // Removed: });
 
       toast.success("Patient sent to X-ray room!");
     } catch (error) {
       console.error("Failed to send to X-ray room:", error);
       toast.error("Failed to send to X-ray room.");
     }
+  };
+
+  // Add auto-save on tab change
+  const handleTabChangeWithAutoSave = async (nextStep: string) => {
+    if (currentStep === 'treatment' && nextStep !== 'treatment') {
+      // Only save if leaving the treatment tab
+      await handleSaveProgress();
+    }
+    setCurrentStep(nextStep);
   };
 
   // Don't show consultation workflow for admins - they should only view
@@ -451,7 +474,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
 
       <ConsultationTabs
         currentStep={currentStep}
-        onStepChange={setCurrentStep}
+        onStepChange={handleTabChangeWithAutoSave}
         consultationData={consultationData}
         onUpdateField={updateField}
         patientName={patientName}

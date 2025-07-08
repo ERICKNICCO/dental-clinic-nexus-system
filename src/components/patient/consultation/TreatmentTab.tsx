@@ -60,12 +60,18 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     setLocalPrescriptions(prescriptions);
   }, [prescriptions]);
 
+  // Helper to format treatment name in sentence case
+  function toSentenceCase(str: string) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  }
+
   const handleAddTreatmentToPlan = (treatment: TreatmentPricing) => {
     if (!selectedTreatments.find(t => t.id === treatment.id)) {
       const updatedTreatments = [...selectedTreatments, treatment];
       setSelectedTreatments(updatedTreatments);
       
-      const treatmentText = `${treatment.name} - ${supabaseTreatmentPricingService.formatPrice(treatment.basePrice)} (${treatment.duration} min)`;
+      const treatmentText = `${toSentenceCase(treatment.name)} - ${supabaseTreatmentPricingService.formatPrice(treatment.basePrice)} (${treatment.duration} min)`;
       const currentPlan = localTreatmentPlan || '';
       const newPlan = currentPlan 
         ? `${currentPlan}\n• ${treatmentText}`
@@ -92,7 +98,7 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     setSelectedTreatments(updatedTreatments);
     
     const treatmentTexts = updatedTreatments.map(t => 
-      `• ${t.name} - ${supabaseTreatmentPricingService.formatPrice(t.basePrice)} (${t.duration} min)`
+      `• ${toSentenceCase(t.name)} - ${supabaseTreatmentPricingService.formatPrice(t.basePrice)} (${t.duration} min)`
     );
     const newPlan = treatmentTexts.join('\n');
     setLocalTreatmentPlan(newPlan);

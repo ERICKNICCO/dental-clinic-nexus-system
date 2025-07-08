@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Edit, Save, X, User, Phone, Mail, Calendar, MapPin, Contact, Heart, CreditCard } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
-import { usePatients } from '../../hooks/usePatients';
+import { useSupabasePatients } from '../../hooks/useSupabasePatients';
 
 interface Patient {
   id: string;
@@ -34,7 +34,7 @@ const PatientInfo: React.FC<PatientInfoProps> = ({ patient, canEdit }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedPatient, setEditedPatient] = useState(patient);
   const { toast } = useToast();
-  const { updatePatient } = usePatients();
+  const { updatePatient, refreshPatients } = useSupabasePatients();
 
   const insuranceProviders = [
     { value: 'NHIF', label: 'NHIF' },
@@ -70,6 +70,7 @@ const PatientInfo: React.FC<PatientInfoProps> = ({ patient, canEdit }) => {
         insurance: editedPatient.insurance,
         patientType: editedPatient.patientType,
       });
+      await refreshPatients();
       setIsEditing(false);
       toast({
         title: "Success",

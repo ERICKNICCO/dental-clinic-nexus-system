@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Calendar, Users, DollarSign, Activity } from 'lucide-react';
 import { useDoctorStats } from '../../hooks/useDoctorStats';
 import { useFinancialReports } from '../../hooks/useFinancialReports';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../integrations/supabase/client';
 
 const DashboardStats = () => {
   const { userProfile } = useAuth();
-  const { stats, loading } = useDoctorStats(userProfile?.name || '', userProfile?.role);
-  const { totalRevenue, loading: financialLoading } = useFinancialReports();
+  // Dummy state to force update
+  const [forceUpdate, setForceUpdate] = useState(0);
+  // Subscribe to changes in relevant tables
+  useEffect(() => {
+    const channels = [
+      supabase.channel('dashboard-appointments').on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => setForceUpdate(f => f + 1)).subscribe(),
+      supabase.channel('dashboard-patients').on('postgres_changes', { event: '*', schema: 'public', table: 'patients' }, () => setForceUpdate(f => f + 1)).subscribe(),
+      supabase.channel('dashboard-payments').on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => setForceUpdate(f => f + 1)).subscribe(),
+      supabase.channel('dashboard-consultations').on('postgres_changes', { event: '*', schema: 'public', table: 'consultations' }, () => setForceUpdate(f => f + 1)).subscribe(),
+    ];
+    return () => { channels.forEach(ch => supabase.removeChannel(ch)); };
+  }, []);
+  // Pass forceUpdate as a dependency to hooks to force re-run
+  const { stats, loading } = useDoctorStats(userProfile?.name || '', userProfile?.role, forceUpdate);
+  const { totalRevenue, loading: financialLoading } = useFinancialReports(forceUpdate);
 
   if (loading) {
     return (

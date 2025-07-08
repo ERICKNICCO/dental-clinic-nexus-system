@@ -43,7 +43,7 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [showInsuranceClaim, setShowInsuranceClaim] = useState(false);
-  const [consultationFee, setConsultationFee] = useState<number>(0);
+  const [consultationFee, setConsultationFee] = useState<number>(30000);
   const [discountPercent, setDiscountPercent] = useState<number>(0);
 
   // Check if diagnosis and treatment are complete
@@ -63,18 +63,51 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
   const isInsurancePatient = patientType === 'insurance' && patientInsurance;
 
   // Always use a safe array for treatment items
-  const items = Array.isArray(consultationData.treatmentItems) ? consultationData.treatmentItems : [];
+  let items: any[] = [];
+  if (Array.isArray(consultationData.treatmentItems)) {
+    items = consultationData.treatmentItems;
+  } else if (typeof consultationData.treatmentItems === 'string') {
+    try {
+      items = JSON.parse(consultationData.treatmentItems);
+    } catch {
+      items = [];
+    }
+  }
+  // Always include CONSULTATION fee if not present
+  const hasConsultation = items.some(item => item.name && item.name.toLowerCase().includes('consultation'));
+  if (!hasConsultation) {
+    items = [
+      { name: 'CONSULTATION', cost: consultationFee, duration: 10 },
+      ...items
+    ];
+  }
 
-  // Calculate treatments total (excluding consultation fee)
-  const treatmentsTotal = items.reduce((sum: number, item: any) => sum + (item.cost || 0), 0);
+  // Helper to parse treatment plan text into array of { name, cost, duration }
+  function parseTreatmentPlan(plan: string): { name: string; cost: number; duration?: number }[] {
+    if (!plan) return [];
+    // Match lines like: • Extraction-permanent tooth - TSh 40,000 (90 min)
+    const lines = plan.split('\n').map(l => l.trim()).filter(l => l.startsWith('•'));
+    return lines.map(line => {
+      // Remove bullet
+      let rest = line.replace(/^•\s*/, '');
+      // Extract name, cost, duration
+      const match = rest.match(/^(.*?)\s*-\s*TSh\s*([\d,]+)(?:\s*\((\d+)\s*min\))?/i);
+      if (match) {
+        const name = match[1].trim();
+        const cost = parseInt(match[2].replace(/,/g, ''));
+        const duration = match[3] ? parseInt(match[3]) : undefined;
+        return { name, cost, duration };
+      } else {
+        return { name: rest, cost: 0 };
+      }
+    });
+  }
 
-  // Calculate subtotal (treatments + consultation fee)
-  const subtotal = treatmentsTotal + consultationFee;
-
-  // Calculate discount amount
+  // Use parsed treatments from treatment plan text for summary
+  const parsedTreatments = parseTreatmentPlan(consultationData.treatmentPlan || '');
+  const treatmentsTotal = parsedTreatments.reduce((sum, item) => sum + (item.cost || 0), 0);
+  const subtotal = treatmentsTotal;
   const discountAmount = subtotal * (discountPercent / 100);
-
-  // Calculate final total
   const finalTotal = Math.max(0, Math.round(subtotal - discountAmount));
 
   const handleCheckoutProcess = async () => {
@@ -608,17 +641,6 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <Label htmlFor="consultationFee">Consultation Fee (Tsh)</Label>
-              <Input
-                id="consultationFee"
-                type="number"
-                min={0}
-                value={consultationFee}
-                onChange={e => setConsultationFee(Number(e.target.value))}
-                className="mt-1"
-              />
-            </div>
-            <div className="flex-1">
               <Label htmlFor="discountPercent">Discount (%)</Label>
               <Input
                 id="discountPercent"
@@ -643,21 +665,32 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span>Treatments Total:</span>
-            <span>{treatmentPricingService.formatPrice(treatmentsTotal)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Consultation Fee:</span>
-            <span>{treatmentPricingService.formatPrice(consultationFee)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Discount ({discountPercent}%):</span>
-            <span>-{treatmentPricingService.formatPrice(Math.round(discountAmount))}</span>
-          </div>
-          <div className="flex items-center justify-between font-bold border-t pt-2 mt-2">
-            <span>Final Total:</span>
-            <span className="text-green-600">{treatmentPricingService.formatPrice(finalTotal)}</span>
+          <div>
+            {/* Treatment breakdown from treatment plan */}
+            {parsedTreatments.length > 0 ? (
+              <div className="space-y-1 mb-2">
+                {parsedTreatments.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm">
+                    <span>{item.name}</span>
+                    <span>{treatmentPricingService.formatPrice(item.cost)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">No treatments added</div>
+            )}
+            <div className="flex items-center justify-between">
+              <span>Treatments Total:</span>
+              <span>{treatmentPricingService.formatPrice(treatmentsTotal)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Discount ({discountPercent}%):</span>
+              <span>-{treatmentPricingService.formatPrice(Math.round(discountAmount))}</span>
+            </div>
+            <div className="flex items-center justify-between font-bold border-t pt-2 mt-2">
+              <span>Final Total:</span>
+              <span className="text-green-600">{treatmentPricingService.formatPrice(finalTotal)}</span>
+            </div>
           </div>
         </CardContent>
       </Card>

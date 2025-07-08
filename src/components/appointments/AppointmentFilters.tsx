@@ -7,6 +7,8 @@ interface AppointmentFiltersProps {
   setSearchTerm: (value: string) => void;
   statusFilter: string;
   setStatusFilter: (value: string) => void;
+  selectedDate: string;
+  setSelectedDate: (value: string) => void;
   onNewAppointment: () => void;
 }
 
@@ -15,6 +17,8 @@ const AppointmentFilters: React.FC<AppointmentFiltersProps> = ({
   setSearchTerm,
   statusFilter,
   setStatusFilter,
+  selectedDate,
+  setSelectedDate,
   onNewAppointment
 }) => {
   return (
@@ -30,7 +34,6 @@ const AppointmentFilters: React.FC<AppointmentFiltersProps> = ({
         />
         <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
       </div>
-      
       <div className="flex items-center gap-3 w-full sm:w-auto">
         {/* Status Filter */}
         <div className="relative flex-1 sm:flex-none">
@@ -52,13 +55,16 @@ const AppointmentFilters: React.FC<AppointmentFiltersProps> = ({
             </svg>
           </div>
         </div>
-        
-        {/* Date Filter */}
-        <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-          <Calendar className="h-5 w-5 text-gray-500" />
-          <span className="hidden sm:inline text-gray-700">Date Filter</span>
-        </button>
-        
+        {/* Date Picker */}
+        <div className="relative flex-1 sm:flex-none">
+          <input
+            type="date"
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-dental-500"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+          <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        </div>
         {/* New Appointment Button */}
         <button 
           className="flex items-center gap-2 px-4 py-2 bg-dental-600 text-white rounded-lg hover:bg-dental-700"

@@ -46,6 +46,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
 
   useEffect(() => {
     if (appointment) {
+      // If patientType is not 'cash', treat as insurance and set insurance provider
+      const isInsurance = appointment.patientType && appointment.patientType !== 'cash';
       setFormData({
         patient: {
           name: appointment.patient.name,
@@ -58,8 +60,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
         time: appointment.time.replace(' AM', '').replace(' PM', ''),
         treatment: appointment.treatment,
         status: appointment.status,
-        patientType: appointment.patientType || 'cash',
-        insurance: appointment.insurance || '',
+        patientType: isInsurance ? 'insurance' : 'cash',
+        insurance: isInsurance ? appointment.patientType : '',
         notes: appointment.notes || ''
       });
       setIsNewPatient(false);
@@ -137,8 +139,13 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
     }
 
     try {
+      // Determine patientType value for backend
+      let patientTypeValue = formData.patientType === 'insurance' ? formData.insurance : 'cash';
       const appointmentData = {
         ...formData,
+        patientType: patientTypeValue,
+        // Remove insurance field from backend data
+        insurance: undefined,
         time: formData.time + (hour >= 12 ? ' PM' : ' AM'),
         patient: {
           ...formData.patient,

@@ -39,7 +39,8 @@ export const supabaseAppointmentService = {
       date: data.date,
       time: data.time,
       notes: data.notes || '',
-      patient_id: data.patient_id
+      patient_id: data.patient_id,
+      patientType: (data as any).patienttype || 'cash',
     };
   },
 
@@ -56,7 +57,8 @@ export const supabaseAppointmentService = {
         date: appointmentData.date,
         time: appointmentData.time,
         notes: appointmentData.notes,
-        patient_id: appointmentData.patient_id
+        patient_id: appointmentData.patient_id,
+        patienttype: appointmentData.patientType,
       })
       .select()
       .single();
@@ -100,8 +102,8 @@ export const supabaseAppointmentService = {
       console.log('✅ Admin, doctor, and patient notifications created successfully');
       result.notificationSent = true;
     } catch (notificationError) {
-      console.error('⚠️ Failed to create notifications:', notificationError);
-      result.notificationError = notificationError instanceof Error ? notificationError.message : 'Unknown error';
+      console.error('⚠️ Failed to create notifications:', notificationError, JSON.stringify(notificationError));
+      result.notificationError = notificationError instanceof Error ? notificationError.message : JSON.stringify(notificationError);
       // Don't throw error - appointment was created successfully
     }
 
@@ -579,6 +581,9 @@ export const supabaseAppointmentService = {
       callback(updatedAppointments);
     });
 
+  
     return channel;
   }
+
+
 };

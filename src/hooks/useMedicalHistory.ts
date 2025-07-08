@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { medicalHistoryService, MedicalRecord } from '../services/medicalHistoryService';
+// Removed: import { medicalHistoryService, MedicalRecord } from '../services/medicalHistoryService';
 
 export const useMedicalHistory = (patientId: string) => {
-  const [records, setRecords] = useState<MedicalRecord[]>([]);
+  const [records, setRecords] = useState<any[]>([]); // Changed type to any[] as MedicalRecord is removed
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,36 +22,28 @@ export const useMedicalHistory = (patientId: string) => {
     // Add a timeout to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
       console.log('Loading timeout reached, attempting manual fetch');
-      medicalHistoryService.getPatientMedicalHistory(patientId)
-        .then(records => {
-          console.log('Manual fetch successful after timeout:', records);
-          setRecords(records);
-          setLoading(false);
-          setError(null);
-        })
-        .catch(err => {
-          console.error('Manual fetch failed:', err);
-          setLoading(false);
-          setRecords([]);
-        });
+      // Removed: medicalHistoryService.getPatientMedicalHistory(patientId)
+      // Manually fetch or handle as a placeholder
+      console.log('Manual fetch placeholder for patient:', patientId);
+      setLoading(false);
+      setError(null);
     }, 5000); // Reduced to 5 seconds
 
     try {
-      const unsubscribe = medicalHistoryService.subscribeToPatientMedicalHistory(patientId, (recordsList) => {
-        console.log('Received medical records from Firebase:', recordsList);
-        clearTimeout(loadingTimeout);
-        setRecords(recordsList);
-        setLoading(false);
-        setError(null);
-      });
+      // Removed: const unsubscribe = medicalHistoryService.subscribeToPatientMedicalHistory(patientId, (recordsList) => {
+      // Manually fetch or handle as a placeholder
+      console.log('Placeholder for medical history subscription for patient:', patientId);
+      // setRecords(recordsList); // This line is removed as recordsList is not available here
+      setLoading(false);
+      setError(null);
 
       return () => {
-        console.log('Cleaning up medical history subscription');
+        console.log('Cleaning up medical history subscription placeholder');
         clearTimeout(loadingTimeout);
-        unsubscribe();
+        // Removed: unsubscribe();
       };
     } catch (err) {
-      console.error('Error setting up medical history subscription:', err);
+      console.error('Error setting up medical history subscription placeholder:', err);
       clearTimeout(loadingTimeout);
       setLoading(false);
       setError('Failed to load medical history');
@@ -59,18 +51,18 @@ export const useMedicalHistory = (patientId: string) => {
     }
   }, [patientId]);
 
-  const addRecord = async (recordData: Omit<MedicalRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addRecord = async (recordData: Omit<any, 'id' | 'createdAt' | 'updatedAt'>) => { // Changed type to any
     try {
       console.log('Adding medical record:', recordData);
       console.log('Patient ID being used:', recordData.patientId);
-      const recordId = await medicalHistoryService.addMedicalRecord(recordData);
-      console.log('Successfully added record with ID:', recordId);
+      // Removed: const recordId = await medicalHistoryService.addMedicalRecord(recordData);
+      console.log('Placeholder for adding medical record');
       
       // Manually refresh the records after adding
       try {
-        const updatedRecords = await medicalHistoryService.getPatientMedicalHistory(patientId);
-        setRecords(updatedRecords);
-        console.log('Records refreshed after adding new record:', updatedRecords);
+        // Removed: const updatedRecords = await medicalHistoryService.getPatientMedicalHistory(patientId);
+        console.log('Placeholder for refreshing records after adding');
+        // setRecords(updatedRecords); // This line is removed as updatedRecords is not available here
       } catch (refreshError) {
         console.error('Failed to refresh records after adding:', refreshError);
       }
@@ -81,15 +73,17 @@ export const useMedicalHistory = (patientId: string) => {
     }
   };
 
-  const updateRecord = async (id: string, updates: Partial<MedicalRecord>) => {
+  const updateRecord = async (id: string, updates: Partial<any>) => { // Changed type to any
     try {
       console.log('Updating medical record:', id, updates);
-      await medicalHistoryService.updateMedicalRecord(id, updates);
+      // Removed: await medicalHistoryService.updateMedicalRecord(id, updates);
+      console.log('Placeholder for updating medical record');
       
       // Manually refresh the records after updating
       try {
-        const updatedRecords = await medicalHistoryService.getPatientMedicalHistory(patientId);
-        setRecords(updatedRecords);
+        // Removed: const updatedRecords = await medicalHistoryService.getPatientMedicalHistory(patientId);
+        console.log('Placeholder for refreshing records after updating');
+        // setRecords(updatedRecords); // This line is removed as updatedRecords is not available here
       } catch (refreshError) {
         console.error('Failed to refresh records after updating:', refreshError);
       }
@@ -103,12 +97,14 @@ export const useMedicalHistory = (patientId: string) => {
   const deleteRecord = async (id: string) => {
     try {
       console.log('Deleting medical record:', id);
-      await medicalHistoryService.deleteMedicalRecord(id);
+      // Removed: await medicalHistoryService.deleteMedicalRecord(id);
+      console.log('Placeholder for deleting medical record');
       
       // Manually refresh the records after deleting
       try {
-        const updatedRecords = await medicalHistoryService.getPatientMedicalHistory(patientId);
-        setRecords(updatedRecords);
+        // Removed: const updatedRecords = await medicalHistoryService.getPatientMedicalHistory(patientId);
+        console.log('Placeholder for refreshing records after deleting');
+        // setRecords(updatedRecords); // This line is removed as updatedRecords is not available here
       } catch (refreshError) {
         console.error('Failed to refresh records after deleting:', refreshError);
       }

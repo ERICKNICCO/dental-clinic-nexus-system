@@ -33,7 +33,7 @@ const ReportList = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
 
   const { monthlyData: financeMonthlyData, totalRevenue, loading: financialLoading, error: financialError } = useFinancialReports();
-  const { monthlyPatientData, totalPatients, newPatientsCount, retentionRate, loading: patientLoading, error: patientError } = usePatientReports();
+  const { monthlyData, totalPatients, newPatientsCount, retentionRate, loading: patientLoading, error: patientError } = usePatientReports();
   const { treatmentDistribution, loading: treatmentLoading, error: treatmentError } = useTreatmentReports();
 
   const currentYear = date?.getFullYear() || new Date().getFullYear();
@@ -117,11 +117,11 @@ const ReportList = () => {
                 <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
               ) : patientError ? (
                 <div className="text-center text-red-500">Error: {patientError}</div>
-              ) : monthlyPatientData.length === 0 ? (
+              ) : (monthlyData ?? []).length === 0 ? (
                 <div className="text-center text-gray-500">No patient data available for {currentYear}.</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyPatientData}>
+                  <LineChart data={monthlyData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -147,7 +147,7 @@ const ReportList = () => {
                   <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
                 ) : treatmentError ? (
                   <div className="text-center text-red-500">Error: {treatmentError}</div>
-                ) : treatmentDistribution.length === 0 ? (
+                ) : (treatmentDistribution ?? []).length === 0 ? (
                   <div className="text-center text-gray-500">No treatment data available for {currentYear}.</div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">

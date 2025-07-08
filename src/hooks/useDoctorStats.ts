@@ -9,7 +9,7 @@ interface DoctorStats {
   pendingTreatments: number;
 }
 
-export const useDoctorStats = (doctorName: string, userRole?: string) => {
+export const useDoctorStats = (doctorName: string, userRole?: string, forceUpdate?: number) => {
   const [stats, setStats] = useState<DoctorStats>({
     monthlyAppointments: 0,
     totalPatients: 0,
@@ -153,7 +153,7 @@ export const useDoctorStats = (doctorName: string, userRole?: string) => {
       }
     };
     fetchStats();
-  }, [appointments, patients, doctorName, userRole]);
+  }, [appointments, patients, doctorName, userRole, forceUpdate]);
 
   return { stats, loading };
 };

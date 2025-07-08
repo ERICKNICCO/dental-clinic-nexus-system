@@ -45,13 +45,12 @@ export const useSupabasePatients = () => {
     try {
       console.log('🔥 useSupabasePatients: Adding patient:', patientData);
       
-      // Generate a unique patient ID if not provided
+      // Generate a unique patient ID in SD-25-xxxxx format
       const generatePatientId = () => {
         const existingIds = patients.map(p => p.patientId).filter(Boolean);
         let maxNumber = 0;
-        
         existingIds.forEach(id => {
-          const match = id.match(/SD-P(\d+)/);
+          const match = id.match(/SD-25-(\d+)/);
           if (match) {
             const number = parseInt(match[1]);
             if (number > maxNumber) {
@@ -59,14 +58,19 @@ export const useSupabasePatients = () => {
             }
           }
         });
-        
         const nextNumber = maxNumber + 1;
-        return `SD-P${nextNumber.toString().padStart(5, '0')}`;
+        return `SD-25-${nextNumber.toString().padStart(5, '0')}`;
       };
+
+      // Always enforce SD-25-xxxxx format for patientId
+      let enforcedPatientId = patientData.patientId;
+      if (!enforcedPatientId || !/^SD-25-\d{5}$/.test(enforcedPatientId)) {
+        enforcedPatientId = generatePatientId();
+      }
 
       // Ensure all required fields are present
       const completePatientData: Omit<Patient, 'id'> = {
-        patientId: patientData.patientId || generatePatientId(),
+        patientId: enforcedPatientId,
         name: patientData.name,
         email: patientData.email,
         phone: patientData.phone,

@@ -48,14 +48,14 @@ export const useNotifications = () => {
     if (userProfile.name) {
       console.log('Setting up notifications subscription for user:', userProfile.name);
       unsubscribers.push(supabaseNotificationService.subscribeToNotifications(
-        userProfile.name,
-        (newNotification) => {
-          setNotifications((prev) => {
-            const exists = prev.some(n => n.id === newNotification.id);
+      userProfile.name,
+      (newNotification) => {
+        setNotifications((prev) => {
+          const exists = prev.some(n => n.id === newNotification.id);
             if (exists) return prev;
-            return [newNotification, ...prev];
-          });
-        }
+          return [newNotification, ...prev];
+        });
+      }
       ));
     }
 

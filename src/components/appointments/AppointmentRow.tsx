@@ -4,6 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Appointment } from '../../types/appointment';
 import ReceiptModal from './ReceiptModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface AppointmentRowProps {
   appointment: Appointment;
@@ -142,6 +143,16 @@ const AppointmentRow: React.FC<AppointmentRowProps> = ({
                 </button>
               )}
             </>
+          )}
+          {/* View File Link */}
+          {appointment.patient_id && (
+            <Link
+              to={`/patients/${appointment.patient_id}/file`}
+              className="text-blue-600 hover:underline"
+              title="View Patient File"
+            >
+              View File
+            </Link>
           )}
         </div>
         {isReceiptOpen && (

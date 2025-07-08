@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { paymentService } from '../services/paymentService';
 
-export function useFinancialReports() {
+export function useFinancialReports(forceUpdate?: number) {
   const [monthlyData, setMonthlyData] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export function useFinancialReports() {
       }
     }
     fetchFinancialData();
-  }, []);
+  }, [forceUpdate]);
 
   return { monthlyData, totalRevenue, loading, error };
 } 
