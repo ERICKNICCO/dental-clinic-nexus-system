@@ -1,0 +1,30 @@
+
+project_id = "ulknlrckbrwkxpakdrfn"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54322
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://lovable.dev"]
+jwt_expiry = 3600
+enable_signup = true
+enable_confirmations = false
+
+[db]
+port = 54322
+
+[functions.send-appointment-email]
+verify_jwt = false
+
+[functions.send-followup-email]
+verify_jwt = false
+
+[functions.book-appointment]
+verify_jwt = false
