@@ -267,7 +267,7 @@ const PatientList: React.FC = () => {
             setSelectedPatient(null);
           }}
           onUpdatePatient={handleUpdatePatient}
-          patient={selectedPatient!}
+          patient={selectedPatient}
         />
       )}
     </div>

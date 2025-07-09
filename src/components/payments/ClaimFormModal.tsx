@@ -56,7 +56,7 @@ const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
   }, [payment]);
 
   const handlePrint = useReactToPrint({
-    contentRef: printRef,
+    content: () => printRef.current,
     documentTitle: 'NHIF Claim Form',
   });
 

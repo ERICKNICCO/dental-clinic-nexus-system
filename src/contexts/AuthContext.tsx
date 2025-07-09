@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Optionally, insert into users table
     if (data.user) {
       await supabase.from('users').insert({
-        id: data.user.id,
+        uuid: data.user.id,
         email,
         name: name || email.split('@')[0],
         role: role || 'doctor',
