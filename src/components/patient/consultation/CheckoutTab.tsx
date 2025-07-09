@@ -306,10 +306,20 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
         }
       }
       
+      // Use the same treatment_name logic as Create Payment Record
+      let treatmentName = '';
+      if (items.length > 0) {
+        treatmentName = items.map(item =>
+          `${item.name} - TSh ${item.cost.toLocaleString()}${item.duration ? ` (${item.duration})` : ''}`
+        ).join(' • ');
+      } else {
+        treatmentName = consultationData.diagnosis || 'General consultation';
+      }
+
       const paymentData = {
         patient_id: validatedPatientId,
         patient_name: patientName,
-        treatment_name: consultationData.diagnosis || 'General consultation',
+        treatment_name: treatmentName,
         total_amount: finalTotal,
         amount_paid: paymentAmount,
         payment_status: paymentAmount >= finalTotal ? 'paid' as const : 'partial' as const,
