@@ -27,7 +27,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, appointmen
   }, [isOpen, appointment.id]);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     documentTitle: `Receipt-${appointment.patient?.name || ''}-${appointment.date}`,
   });
 

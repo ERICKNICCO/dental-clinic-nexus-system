@@ -7,8 +7,7 @@ import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
 import { Badge } from '../../ui/badge';
 import { Edit, Save, X, Trash2, Calendar, User, FileText, Stethoscope } from 'lucide-react';
-// Removed: import { MedicalRecord } from '../../../services/medicalHistoryService';
-// If needed, define MedicalRecord type locally or import from Supabase types.
+import { MedicalRecord } from '../../../types/medicalRecord';
 
 interface MedicalRecordCardProps {
   record: MedicalRecord;

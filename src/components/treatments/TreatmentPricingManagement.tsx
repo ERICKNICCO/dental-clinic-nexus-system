@@ -152,7 +152,8 @@ const TreatmentPricingManagement: React.FC = () => {
         basePrice: parseInt(formData.basePrice),
         category: formData.category,
         insuranceProvider: formData.insuranceProvider,
-        isActive: true
+        isActive: true,
+        duration: 30, // Default duration
       };
 
       if (editingTreatment) {

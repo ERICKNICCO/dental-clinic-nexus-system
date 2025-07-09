@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { MedicalRecord } from '../../../types/medicalRecord';
 
 export const useMedicalHistoryState = () => {
   const { userProfile } = useAuth();

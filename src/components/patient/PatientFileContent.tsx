@@ -3,12 +3,10 @@ import { useParams, useLocation } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Edit3, Save, X, FileText, History, Stethoscope, Calendar, CreditCard } from 'lucide-react';
-import PatientInfo from './PatientInfo';
+import { Edit3, Save, X, FileText, History, Stethoscope, Calendar, CreditCard, Heart, Settings } from 'lucide-react';
 import MedicalHistory from './MedicalHistory';
-import TreatmentNotes from './TreatmentNotes';
 import AppointmentHistory from './AppointmentHistory';
-import ConsultationWorkflow from './ConsultationWorkflow';
+import PatientInfo from './PatientInfo';
 import { useSupabasePatients } from '../../hooks/useSupabasePatients';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
@@ -225,20 +223,9 @@ const PatientFileContent: React.FC = () => {
     );
   }
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    toast.info('Editing mode enabled');
-  };
-
-  const handleSave = () => {
-    setIsEditing(false);
+  const setPatient = (updatedPatient: any) => {
+    // Function for updating patient data
     refreshPatients();
-    toast.success('Changes saved successfully');
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    toast.info('Edit cancelled');
   };
 
   return (
@@ -261,58 +248,34 @@ const PatientFileContent: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div className="flex space-x-2">
-              {!isEditing ? (
-                <Button onClick={handleEdit} variant="outline" className="gap-2">
-                  <Edit3 className="w-4 h-4" />
-                  Edit
-                </Button>
-              ) : (
-                <div className="flex space-x-2">
-                  <Button onClick={handleSave} className="gap-2">
-                    <Save className="w-4 h-4" />
-                    Save
-                  </Button>
-                  <Button onClick={handleCancel} variant="outline" className="gap-2">
-                    <X className="w-4 h-4" />
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
           </div>
         </CardHeader>
       </Card>
 
       {/* Main Content */}
-      <Tabs defaultValue="consultation" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="consultation" className="gap-2">
-            <Stethoscope className="w-4 h-4" />
-            Consultation
-          </TabsTrigger>
-          <TabsTrigger value="info" className="gap-2">
-            <FileText className="w-4 h-4" />
-            Patient Info
-          </TabsTrigger>
-          <TabsTrigger value="history" className="gap-2">
-            <History className="w-4 h-4" />
+      <Tabs defaultValue="medical-history" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="medical-history" className="flex items-center gap-2">
+            <Heart className="h-4 w-4" />
             Medical History
           </TabsTrigger>
-          <TabsTrigger value="treatment" className="gap-2">
-            <Stethoscope className="w-4 h-4" />
-            Treatment Notes
-          </TabsTrigger>
-          <TabsTrigger value="appointments" className="gap-2">
-            <Calendar className="w-4 h-4" />
+          <TabsTrigger value="appointments" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
             Appointments
+          </TabsTrigger>
+          <TabsTrigger value="info" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Patient Info
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="consultation">
-          <ConsultationWorkflow 
-            patientId={patient?.id || ''} 
-            patientName={patient?.name || ''}
+        <TabsContent value="medical-history">
+          <MedicalHistory patientId={patientId} isEditing={isEditing} />
+        </TabsContent>
+
+        <TabsContent value="appointments">
+          <AppointmentHistory 
+            patientId={patientId}
           />
         </TabsContent>
 
@@ -320,27 +283,15 @@ const PatientFileContent: React.FC = () => {
           <PatientInfo 
             patient={{
               ...patient!,
+              id: patient!.id || '',
+              insurance: patient!.insurance || '',
+              lastVisit: patient!.lastVisit || '',
+              nextAppointment: patient!.nextAppointment || '',
               createdAt: new Date(),
               updatedAt: new Date()
             }}
             canEdit={isEditing}
           />
-        </TabsContent>
-
-        <TabsContent value="history">
-          <MedicalHistory patientId={patient?.id || ''} isEditing={isEditing} />
-        </TabsContent>
-
-        <TabsContent value="treatment">
-          <TreatmentNotes 
-            patientId={patient?.id || ''} 
-            patientName={patient?.name || ''}
-            isEditing={isEditing} 
-          />
-        </TabsContent>
-
-        <TabsContent value="appointments">
-          <AppointmentHistory patientId={patient?.id || ''} />
         </TabsContent>
       </Tabs>
     </div>
