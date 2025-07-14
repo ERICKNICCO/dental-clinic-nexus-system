@@ -61,6 +61,13 @@ const PatientFileContent: React.FC = () => {
 
   useEffect(() => {
     const checkDoctorAccess = async () => {
+      // Allow admins to access any patient file
+      if (userProfile?.role === 'admin') {
+        setCanAccess(true);
+        setCheckingAccess(false);
+        return;
+      }
+
       if (userProfile?.role === 'doctor' && patientId) {
         setCheckingAccess(true);
         const today = new Date();
