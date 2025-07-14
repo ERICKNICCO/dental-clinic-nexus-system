@@ -30,6 +30,7 @@ export interface Consultation {
     cost: number;
     duration: string;
   }>;
+  discountPercent?: number;
 
   startedAt: Date;
   completedAt?: Date;

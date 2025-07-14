@@ -46,7 +46,10 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
           const treatmentNameStr = items.length > 0
             ? items.map(item => `${item.name} - TSh ${item.cost.toLocaleString()}${item.duration ? ` (${item.duration})` : ''}`).join(' • ')
             : latestConsultation.diagnosis || 'General consultation';
-          const total = items.reduce((sum, item) => sum + (item.cost || 0), 0);
+          const subtotal = items.reduce((sum, item) => sum + (item.cost || 0), 0);
+          const discountPercent = latestConsultation.discountPercent || 0;
+          const discountAmount = subtotal * (discountPercent / 100);
+          const total = Math.max(0, Math.round(subtotal - discountAmount));
           setTreatmentName(treatmentNameStr);
           setTotalAmount(total.toString());
           setAutoFilled(true);

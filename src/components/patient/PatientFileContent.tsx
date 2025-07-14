@@ -6,9 +6,7 @@ import { Button } from '../ui/button';
 import { Edit3, Save, X, FileText, History, Stethoscope, Calendar, CreditCard } from 'lucide-react';
 import PatientInfo from './PatientInfo';
 import MedicalHistory from './MedicalHistory';
-import TreatmentNotes from './TreatmentNotes';
 import AppointmentHistory from './AppointmentHistory';
-import ConsultationWorkflow from './ConsultationWorkflow';
 import { useSupabasePatients } from '../../hooks/useSupabasePatients';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
@@ -285,12 +283,8 @@ const PatientFileContent: React.FC = () => {
       </Card>
 
       {/* Main Content */}
-      <Tabs defaultValue="consultation" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="consultation" className="gap-2">
-            <Stethoscope className="w-4 h-4" />
-            Consultation
-          </TabsTrigger>
+      <Tabs defaultValue="info" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="info" className="gap-2">
             <FileText className="w-4 h-4" />
             Patient Info
@@ -299,22 +293,11 @@ const PatientFileContent: React.FC = () => {
             <History className="w-4 h-4" />
             Medical History
           </TabsTrigger>
-          <TabsTrigger value="treatment" className="gap-2">
-            <Stethoscope className="w-4 h-4" />
-            Treatment Notes
-          </TabsTrigger>
           <TabsTrigger value="appointments" className="gap-2">
             <Calendar className="w-4 h-4" />
             Appointments
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="consultation">
-          <ConsultationWorkflow 
-            patientId={patient?.id || ''} 
-            patientName={patient?.name || ''}
-          />
-        </TabsContent>
 
         <TabsContent value="info">
           <PatientInfo 
@@ -331,13 +314,6 @@ const PatientFileContent: React.FC = () => {
           <MedicalHistory patientId={patient?.id || ''} isEditing={isEditing} />
         </TabsContent>
 
-        <TabsContent value="treatment">
-          <TreatmentNotes 
-            patientId={patient?.id || ''} 
-            patientName={patient?.name || ''}
-            isEditing={isEditing} 
-          />
-        </TabsContent>
 
         <TabsContent value="appointments">
           <AppointmentHistory patientId={patient?.id || ''} />

@@ -29,6 +29,7 @@ export interface SupabaseConsultation {
     cost: number;
     duration: string;
   }>;
+  discount_percent?: number;
   xray_result?: {
     images: string[];
     note: string;
@@ -61,6 +62,7 @@ export const supabaseConsultationService = {
       nextAppointment: data.next_appointment,
       estimatedCost: data.estimated_cost,
       treatmentItems: data.treatment_items || [],
+      discountPercent: data.discount_percent || 0,
       xrayResult: data.xray_result,
       startedAt: new Date(data.started_at),
       completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
@@ -150,6 +152,7 @@ export const supabaseConsultationService = {
     if (updates.estimatedCost !== undefined) updateData.estimated_cost = updates.estimatedCost;
     if (updates.treatmentItems !== undefined) updateData.treatment_items = updates.treatmentItems;
     if (updates.xrayResult !== undefined) updateData.xray_result = updates.xrayResult;
+    if (updates.discountPercent !== undefined) updateData.discount_percent = updates.discountPercent;
     if (updates.status !== undefined) updateData.status = updates.status;
 
     updateData.updated_at = new Date().toISOString();

@@ -238,6 +238,13 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
         consultation_id: consultationData.id
       };
 
+      // Save discount percentage to consultation before creating payment
+      if (discountPercent > 0) {
+        await supabaseConsultationService.updateConsultation(consultationData.id, {
+          discountPercent: discountPercent
+        });
+      }
+
       console.log("✅ CheckoutTab: Creating payment record with validated data:", paymentData);
       await paymentService.createPayment(paymentData);
       toast.success('Payment record created successfully');
@@ -323,6 +330,13 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
 
       console.log("🔥 CheckoutTab: Recording payment with validated data:", paymentData);
       const createdPayment = await paymentService.createPayment(paymentData);
+      
+      // Save discount percentage to consultation before completing
+      if (discountPercent > 0) {
+        await supabaseConsultationService.updateConsultation(consultationData.id, {
+          discountPercent: discountPercent
+        });
+      }
       
       // If payment is complete, the paymentService will automatically handle checkout
       // through the handleCheckoutProcess method
