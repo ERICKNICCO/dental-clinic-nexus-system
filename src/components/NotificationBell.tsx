@@ -56,10 +56,10 @@ export const NotificationBell: React.FC = () => {
       <DropdownMenuContent align="end" className="w-80">
         {loading ? (
           <DropdownMenuItem disabled>Loading notifications...</DropdownMenuItem>
-        ) : notifications.length === 0 ? (
+        ) : notifications.filter(n => !n.read).length === 0 ? (
           <DropdownMenuItem disabled>No notifications</DropdownMenuItem>
         ) : (
-          notifications.map((notification) => (
+          notifications.filter(n => !n.read).map((notification) => (
             <DropdownMenuItem
               key={notification.id}
               onClick={() => handleNotificationClick(notification.id)}

@@ -68,10 +68,9 @@ export const useNotifications = () => {
   const markAsRead = async (notificationId: string) => {
     try {
       await supabaseNotificationService.markAsRead(notificationId);
+      // Remove the notification from the list instead of marking it as read
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId ? { ...n, read: true } : n
-        )
+        prev.filter((n) => n.id !== notificationId)
       );
     } catch (error) {
       console.error('Error marking notification as read:', error);
