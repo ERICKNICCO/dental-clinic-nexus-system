@@ -1,5 +1,5 @@
 export interface Patient {
-  id?: string;
+  id: string;
   patientId: string;
   name: string;
   email: string;
@@ -13,6 +13,18 @@ export interface Patient {
   lastVisit: string;
   nextAppointment: string;
   patientType: 'cash' | 'insurance';
+}
+
+export interface MedicalRecord {
+  id: string;
+  patientId: string;
+  condition: string;
+  description?: string;
+  date: string;
+  doctor?: string;
+  treatment?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Helper interface for creating new patients

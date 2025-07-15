@@ -30,7 +30,8 @@ const TreatmentPricingManagement: React.FC = () => {
     description: '',
     basePrice: '',
     category: '',
-    insuranceProvider: 'cash'
+    insuranceProvider: 'cash',
+    duration: '30'
   });
   const { toast } = useToast();
 
@@ -152,6 +153,7 @@ const TreatmentPricingManagement: React.FC = () => {
         basePrice: parseInt(formData.basePrice),
         category: formData.category,
         insuranceProvider: formData.insuranceProvider,
+        duration: parseInt(formData.duration) || 30,
         isActive: true
       };
 
@@ -190,7 +192,8 @@ const TreatmentPricingManagement: React.FC = () => {
       description: treatment.description || '',
       basePrice: treatment.basePrice.toString(),
       category: treatment.category,
-      insuranceProvider: treatment.insuranceProvider
+      insuranceProvider: treatment.insuranceProvider,
+      duration: treatment.duration?.toString() || '30'
     });
     setIsModalOpen(true);
   };
@@ -202,7 +205,8 @@ const TreatmentPricingManagement: React.FC = () => {
       description: treatment.description || '',
       basePrice: treatment.basePrice.toString(),
       category: treatment.category,
-      insuranceProvider: activeTab // Use current active tab as default
+      insuranceProvider: activeTab, // Use current active tab as default
+      duration: treatment.duration?.toString() || '30'
     });
     setIsModalOpen(true);
   };
@@ -233,7 +237,8 @@ const TreatmentPricingManagement: React.FC = () => {
       description: '',
       basePrice: '',
       category: '',
-      insuranceProvider: activeTab // Use current active tab as default
+      insuranceProvider: activeTab, // Use current active tab as default
+      duration: '30'
     });
     setEditingTreatment(null);
   };

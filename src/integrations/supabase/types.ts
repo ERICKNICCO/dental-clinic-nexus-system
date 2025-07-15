@@ -477,6 +477,9 @@ export type Database = {
           collected_by: string | null
           consultation_id: string | null
           created_at: string
+          discount_amount: number | null
+          discount_percent: number | null
+          final_total: number | null
           id: string
           insurance_provider: string | null
           notes: string | null
@@ -495,6 +498,9 @@ export type Database = {
           collected_by?: string | null
           consultation_id?: string | null
           created_at?: string
+          discount_amount?: number | null
+          discount_percent?: number | null
+          final_total?: number | null
           id?: string
           insurance_provider?: string | null
           notes?: string | null
@@ -513,6 +519,9 @@ export type Database = {
           collected_by?: string | null
           consultation_id?: string | null
           created_at?: string
+          discount_amount?: number | null
+          discount_percent?: number | null
+          final_total?: number | null
           id?: string
           insurance_provider?: string | null
           notes?: string | null
