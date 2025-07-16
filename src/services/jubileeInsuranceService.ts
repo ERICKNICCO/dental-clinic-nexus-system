@@ -1,7 +1,12 @@
 import { supabase } from '../integrations/supabase/client';
 
-const JUBILEE_API_BASE_URL = 'https://cms.jubileetanzania.co.tz';
+// Using UAT environment for testing
+const JUBILEE_API_BASE_URL = 'https://cmsuat.jubileetanzania.co.tz';
 const JUBILEE_UAT_BASE_URL = 'https://cmsuat.jubileetanzania.co.tz';
+
+// Test members for verification:
+// Mr Amini Ally Kigalu - 11910808 - BGM FAMOUS FURNITURE LTD
+// Mrd Linda Shukrani - 12182196 - Willows International Tanzania
 
 export interface JubileeAuthResponse {
   Status: 'OK' | 'ERROR';

@@ -12,9 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const jubileeUsername = Deno.env.get('JUBILEE_USERNAME')
-    const jubileePassword = Deno.env.get('JUBILEE_PASSWORD')
-    const jubileeProviderId = Deno.env.get('JUBILEE_PROVIDER_ID')
+    // UAT credentials for sddental
+    const jubileeUsername = Deno.env.get('JUBILEE_USERNAME') || 'sddental'
+    const jubileePassword = Deno.env.get('JUBILEE_PASSWORD') || 'sd@1234'
+    const jubileeProviderId = Deno.env.get('JUBILEE_PROVIDER_ID') || '11665468'
 
     if (!jubileeUsername || !jubileePassword || !jubileeProviderId) {
       throw new Error('Missing Jubilee credentials in environment variables')
