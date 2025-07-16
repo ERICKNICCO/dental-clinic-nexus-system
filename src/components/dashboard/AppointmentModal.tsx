@@ -26,6 +26,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
     status: 'Pending' as 'Confirmed' | 'Pending' | 'Cancelled' | 'Approved',
     patientType: 'cash' as 'cash' | 'insurance',
     insurance: '',
+    jubileeMemberId: '', // Add Jubilee member ID field
     notes: ''
   });
   
@@ -62,6 +63,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
         status: appointment.status,
         patientType: isInsurance ? 'insurance' : 'cash',
         insurance: isInsurance ? appointment.patientType : '',
+        jubileeMemberId: '', // Initialize for existing appointments
         notes: appointment.notes || ''
       });
       setIsNewPatient(false);
@@ -76,6 +78,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
         status: 'Pending',
         patientType: 'cash',
         insurance: '',
+        jubileeMemberId: '',
         notes: ''
       });
       setIsNewPatient(true);
@@ -95,7 +98,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
         image: 'https://randomuser.me/api/portraits/men/32.jpg'
       },
       patientType: patient.patientType || 'cash',
-      insurance: patient.insurance || ''
+      insurance: patient.insurance || '',
+      jubileeMemberId: '' // Reset member ID for existing patients
     });
     setPatientSearch(capitalizeName(patient.name));
   };
@@ -138,14 +142,45 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
       return;
     }
 
+    // Validate Jubilee Member ID if required
+    if (formData.patientType === 'insurance' && formData.insurance === 'Jubilee') {
+      if (!formData.jubileeMemberId.trim()) {
+        toast({
+          title: 'Missing Jubilee Member ID',
+          description: 'Jubilee Member ID is required for Jubilee insurance patients.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Validate Member ID format (8-15 digits)
+      if (!/^\d{8,15}$/.test(formData.jubileeMemberId.trim())) {
+        toast({
+          title: 'Invalid Jubilee Member ID',
+          description: 'Member ID must be 8-15 digits only.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     try {
       // Determine patientType value for backend
       let patientTypeValue = formData.patientType === 'insurance' ? formData.insurance : 'cash';
+      
+      // Include Jubilee Member ID in notes for Jubilee patients
+      let notesWithMemberId = formData.notes;
+      if (formData.patientType === 'insurance' && formData.insurance === 'Jubilee' && formData.jubileeMemberId) {
+        notesWithMemberId = `Jubilee Member ID: ${formData.jubileeMemberId}${formData.notes ? '\n' + formData.notes : ''}`;
+      }
+      
       const appointmentData = {
         ...formData,
         patientType: patientTypeValue,
+        notes: notesWithMemberId,
         // Remove insurance field from backend data
         insurance: undefined,
+        jubileeMemberId: undefined, // Don't send this field to backend
         time: formData.time + (hour >= 12 ? ' PM' : ' AM'),
         patient: {
           ...formData.patient,
@@ -229,7 +264,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                       type="button"
                       onClick={() => {
                         setIsNewPatient(false);
-                        setFormData({...formData, patient: {name: '', phone: '', email: '', image: ''}, patientType: 'cash', insurance: ''});
+                        setFormData({...formData, patient: {name: '', phone: '', email: '', image: ''}, patientType: 'cash', insurance: '', jubileeMemberId: ''});
                       }}
                       className={`px-4 py-2 rounded-lg font-medium ${
                         !isNewPatient 
@@ -245,7 +280,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                         setIsNewPatient(true);
                         setSelectedPatientId('');
                         setPatientSearch('');
-                        setFormData({...formData, patient: {name: '', phone: '', email: '', image: ''}, patientType: 'cash', insurance: ''});
+                        setFormData({...formData, patient: {name: '', phone: '', email: '', image: ''}, patientType: 'cash', insurance: '', jubileeMemberId: ''});
                       }}
                       className={`px-4 py-2 rounded-lg font-medium ${
                         isNewPatient 
@@ -378,7 +413,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                       <select 
                         className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
                         value={formData.insurance}
-                        onChange={(e) => setFormData({...formData, insurance: e.target.value})}
+                        onChange={(e) => setFormData({...formData, insurance: e.target.value, jubileeMemberId: ''})}
                         required={formData.patientType === 'insurance'}
                         disabled={!isNewPatient && Boolean(selectedPatientId)}
                       >
@@ -391,6 +426,27 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                     </div>
                   )}
                 </div>
+                
+                {/* Jubilee Member ID field - appears when Jubilee is selected */}
+                {formData.patientType === 'insurance' && formData.insurance === 'Jubilee' && (
+                  <div className="mt-4">
+                    <label className="block text-gray-700 mb-2">Jubilee Member ID</label>
+                    <input 
+                      type="text"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-dental-500"
+                      value={formData.jubileeMemberId}
+                      onChange={(e) => setFormData({...formData, jubileeMemberId: e.target.value})}
+                      placeholder="Enter Jubilee Member ID (e.g., 11910808)"
+                      required={formData.patientType === 'insurance' && formData.insurance === 'Jubilee'}
+                      disabled={!isNewPatient && Boolean(selectedPatientId)}
+                      pattern="[0-9]{8,15}"
+                      title="Member ID should be 8-15 digits"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Member ID will be verified with Jubilee system during appointment processing
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Appointment Details */}
