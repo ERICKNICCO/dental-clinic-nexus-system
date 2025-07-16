@@ -67,8 +67,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
         notes: appointment.notes || ''
       });
       setIsNewPatient(false);
-    } else {
-      // Reset form for new appointment
+    } else if (isOpen && !appointment) {
+      // Only reset form when modal opens for new appointment
       setFormData({
         patient: { name: '', image: '', phone: '', email: '' },
         dentist: '',
@@ -85,7 +85,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
       setSelectedPatientId('');
       setPatientSearch('');
     }
-  }, [appointment, isOpen]);
+  }, [appointment]);
 
   const handlePatientSelect = (patient: any) => {
     setSelectedPatientId(patient.id);
