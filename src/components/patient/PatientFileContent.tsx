@@ -79,7 +79,9 @@ const PatientFileContent: React.FC = () => {
           const appointments = await supabaseAppointmentService.getAppointmentsByPatientId(patientId);
           const todayAppointments = appointments.filter(a => a.date === todayStr);
           console.log('🔍 Today appointments for patient:', todayAppointments.map(a => ({ id: a.id, status: a.status, dentist: a.dentist })));
-          const canProceed = todayAppointments.some(
+          
+          // Find matching appointment for today with this doctor
+          const matchingAppointment = todayAppointments.find(
             (a) =>
               (a.status === 'Approved' || a.status === 'Checked In') &&
               a.dentist && userProfile.name &&
@@ -88,7 +90,26 @@ const PatientFileContent: React.FC = () => {
                 userProfile.name.toLowerCase().includes(a.dentist.toLowerCase())
               )
           );
-          setCanAccess(canProceed);
+
+          if (matchingAppointment) {
+            setCanAccess(true);
+            
+            // Auto check-in patient if appointment is still in Approved status
+            if (matchingAppointment.status === 'Approved') {
+              console.log('🔄 Auto checking in patient for appointment:', matchingAppointment.id);
+              try {
+                await supabaseAppointmentService.updateAppointment(matchingAppointment.id, {
+                  status: 'Checked In'
+                });
+                toast.success(`Patient ${patient?.name || 'patient'} has been automatically checked in`);
+              } catch (error) {
+                console.error('Error auto-checking in patient:', error);
+                // Don't block access if check-in fails
+              }
+            }
+          } else {
+            setCanAccess(false);
+          }
         } catch (e) {
           setCanAccess(false);
         } finally {
@@ -100,7 +121,7 @@ const PatientFileContent: React.FC = () => {
       }
     };
     checkDoctorAccess();
-  }, [userProfile, patientId]);
+  }, [userProfile, patientId, patient?.name]);
 
   if (checkingAccess) {
     return (
