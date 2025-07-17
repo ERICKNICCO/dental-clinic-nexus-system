@@ -119,187 +119,230 @@ export interface JubileeClaimResponse {
 }
 
 class JubileeInsuranceService {
-  private accessToken: string | null = null;
-  private tokenExpiry: number | null = null;
-  private providerId: string | null = null;
-
-  private async getCredentials() {
-    // Get credentials from Supabase Edge Function secrets
-    const { data, error } = await supabase.functions.invoke('jubilee-credentials');
-    if (error) throw new Error('Failed to get Jubilee credentials');
-    return data;
-  }
-
-  private async authenticate(): Promise<string> {
-    // Check if we have a valid token
-    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
-      return this.accessToken;
-    }
-
-    try {
-      const credentials = await this.getCredentials();
-      
-      const formData = new FormData();
-      formData.append('username', credentials.username);
-      formData.append('password', credentials.password);
-      formData.append('providerid', credentials.providerId);
-
-      const response = await fetch(`${JUBILEE_API_BASE_URL}/jubileeapi/Token`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data: JubileeAuthResponse = await response.json();
-      
-      if (data.Status === 'OK' && typeof data.Description === 'object') {
-        this.accessToken = data.Description.access_token;
-        this.tokenExpiry = data.Description.expires_in * 1000; // Convert to milliseconds
-        this.providerId = data.Description.provider_id;
-        return this.accessToken;
-      } else {
-        throw new Error(typeof data.Description === 'string' ? data.Description : 'Authentication failed');
-      }
-    } catch (error) {
-      console.error('Jubilee authentication error:', error);
-      throw error;
-    }
-  }
+  // Production-ready methods using edge functions for better security and reliability
 
   async getMemberDetails(memberNo: string): Promise<JubileeMemberDetails> {
-    const token = await this.authenticate();
+    console.log('🔍 Getting member details for:', memberNo);
     
-    const response = await fetch(
-      `${JUBILEE_API_BASE_URL}/jubileeapi/Getcarddetails?MemberNo=${memberNo}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      }
-    );
+    const { data, error } = await supabase.functions.invoke('jubilee-member-verify', {
+      body: { memberNo }
+    });
 
-    return await response.json();
+    if (error) {
+      console.error('❌ Error getting member details:', error);
+      throw new Error('Failed to get member details');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to get member details');
+    }
+
+    return data.data.memberDetails;
   }
 
   async checkMemberVerification(memberNo: string): Promise<JubileeVerificationResponse> {
-    const token = await this.authenticate();
+    console.log('🔍 Checking member verification for:', memberNo);
     
-    const response = await fetch(
-      `${JUBILEE_API_BASE_URL}/jubileeapi/CheckVerification?MemberNo=${memberNo}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      }
-    );
+    const { data, error } = await supabase.functions.invoke('jubilee-member-verify', {
+      body: { memberNo }
+    });
 
-    return await response.json();
+    if (error) {
+      console.error('❌ Error checking member verification:', error);
+      throw new Error('Failed to check member verification');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to check member verification');
+    }
+
+    return data.data.verification;
+  }
+
+  async verifyMemberComplete(memberNo: string) {
+    console.log('🔍 Complete member verification for:', memberNo);
+    
+    const { data, error } = await supabase.functions.invoke('jubilee-member-verify', {
+      body: { memberNo }
+    });
+
+    if (error) {
+      console.error('❌ Error in complete member verification:', error);
+      throw new Error('Failed to verify member');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to verify member');
+    }
+
+    return data.data;
   }
 
   async verifyItems(payload: {
-    BenefitCode: string;
-    MemberNo: string;
-    VerifyItems: Array<{
-      ItemId: string;
-      ItemQuantity: string;
-      ItemPrice: string;
+    memberNo: string;
+    benefitCode?: string;
+    verifyItems: Array<{
+      itemId: string;
+      itemQuantity: string;
+      itemPrice: string;
     }>;
-    Amount: string;
-    Procedured: string;
+    amount: string;
+    procedureCode?: string;
   }) {
-    const token = await this.authenticate();
+    console.log('🔍 Verifying items for member:', payload.memberNo);
     
-    const formData = new FormData();
-    Object.entries(payload).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        formData.append(key, JSON.stringify(value));
-      } else {
-        formData.append(key, value);
-      }
+    const { data, error } = await supabase.functions.invoke('jubilee-items-verify', {
+      body: payload
     });
 
-    const response = await fetch(`${JUBILEE_API_BASE_URL}/jubileeapi/VerifyItems`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
-    });
+    if (error) {
+      console.error('❌ Error verifying items:', error);
+      throw new Error('Failed to verify items');
+    }
 
-    return await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to verify items');
+    }
+
+    return data.data;
   }
 
   async getPriceList() {
-    const token = await this.authenticate();
+    console.log('📋 Getting price list from Jubilee API');
     
-    const response = await fetch(`${JUBILEE_API_BASE_URL}/jubileeapi/GetPriceList`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    const { data, error } = await supabase.functions.invoke('jubilee-price-lists', {
+      body: { type: 'price' }
     });
 
-    return await response.json();
+    if (error) {
+      console.error('❌ Error getting price list:', error);
+      throw new Error('Failed to get price list');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to get price list');
+    }
+
+    return data.data;
   }
 
   async getProcedureList() {
-    const token = await this.authenticate();
+    console.log('📋 Getting procedure list from Jubilee API');
     
-    const response = await fetch(`${JUBILEE_API_BASE_URL}/jubileeapi/GetProcedureList`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    const { data, error } = await supabase.functions.invoke('jubilee-price-lists', {
+      body: { type: 'procedure' }
     });
 
-    return await response.json();
+    if (error) {
+      console.error('❌ Error getting procedure list:', error);
+      throw new Error('Failed to get procedure list');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to get procedure list');
+    }
+
+    return data.data;
   }
 
-  async submitClaim(claimData: JubileeClaimSubmission): Promise<JubileeClaimResponse> {
-    const token = await this.authenticate();
+  async submitClaim(payload: {
+    memberNo: string;
+    authorizationNo: string;
+    patientData: any;
+    doctorData: any;
+    treatments: any[];
+    totalAmount: number;
+    clinicalNotes?: string;
+    diagnosisRemarks?: string;
+  }): Promise<JubileeClaimResponse> {
+    console.log('📄 Submitting claim for member:', payload.memberNo);
     
-    const response = await fetch(`${JUBILEE_API_BASE_URL}/jubileeapi/SendClaim`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(claimData),
+    const { data, error } = await supabase.functions.invoke('jubilee-preauth', {
+      body: {
+        ...payload,
+        submissionType: 'claim'
+      }
     });
 
-    return await response.json();
+    if (error) {
+      console.error('❌ Error submitting claim:', error);
+      throw new Error('Failed to submit claim');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to submit claim');
+    }
+
+    return data.data;
   }
 
-  async requestPreauthorization(preAuthData: any) {
-    const token = await this.authenticate();
+  async requestPreauthorization(payload: {
+    memberNo: string;
+    authorizationNo: string;
+    patientData: any;
+    doctorData: any;
+    treatments: any[];
+    totalAmount: number;
+    clinicalNotes?: string;
+    diagnosisRemarks?: string;
+  }) {
+    console.log('📋 Requesting preauthorization for member:', payload.memberNo);
     
-    const response = await fetch(`${JUBILEE_API_BASE_URL}/jubileeapi/SendPreauthorization`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(preAuthData),
+    const { data, error } = await supabase.functions.invoke('jubilee-preauth', {
+      body: {
+        ...payload,
+        submissionType: 'preauth'
+      }
     });
 
-    return await response.json();
+    if (error) {
+      console.error('❌ Error requesting preauthorization:', error);
+      throw new Error('Failed to request preauthorization');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to request preauthorization');
+    }
+
+    return data.data;
   }
 
   async getPreauthorizationStatus(submissionId: string) {
-    const token = await this.authenticate();
+    console.log('🔍 Checking preauthorization status for:', submissionId);
     
-    const response = await fetch(
-      `${JUBILEE_API_BASE_URL}/jubileeapi/getPreauthorizationStatus?submissionID=${submissionId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      }
-    );
+    const { data, error } = await supabase.functions.invoke('jubilee-status-check', {
+      body: { submissionId, type: 'preauth' }
+    });
 
-    return await response.json();
+    if (error) {
+      console.error('❌ Error checking preauth status:', error);
+      throw new Error('Failed to check preauthorization status');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to check preauthorization status');
+    }
+
+    return data.data;
+  }
+
+  async getClaimStatus(submissionId: string) {
+    console.log('🔍 Checking claim status for:', submissionId);
+    
+    const { data, error } = await supabase.functions.invoke('jubilee-status-check', {
+      body: { submissionId, type: 'claim' }
+    });
+
+    if (error) {
+      console.error('❌ Error checking claim status:', error);
+      throw new Error('Failed to check claim status');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to check claim status');
+    }
+
+    return data.data;
   }
 }
 

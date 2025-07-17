@@ -286,6 +286,195 @@ export type Database = {
         }
         Relationships: []
       }
+      jubilee_auth_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          provider_id: string
+          token_type: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          provider_id: string
+          token_type?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider_id?: string
+          token_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jubilee_item_verifications: {
+        Row: {
+          benefit_code: string
+          id: string
+          items: Json
+          member_no: string
+          procedure_code: string
+          total_amount: number
+          verification_response: Json
+          verification_status: string
+          verified_at: string
+        }
+        Insert: {
+          benefit_code: string
+          id?: string
+          items: Json
+          member_no: string
+          procedure_code: string
+          total_amount: number
+          verification_response: Json
+          verification_status: string
+          verified_at?: string
+        }
+        Update: {
+          benefit_code?: string
+          id?: string
+          items?: Json
+          member_no?: string
+          procedure_code?: string
+          total_amount?: number
+          verification_response?: Json
+          verification_status?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
+      jubilee_price_lists: {
+        Row: {
+          id: string
+          last_updated: string
+          list_data: Json
+          list_type: string
+        }
+        Insert: {
+          id?: string
+          last_updated?: string
+          list_data: Json
+          list_type: string
+        }
+        Update: {
+          id?: string
+          last_updated?: string
+          list_data?: Json
+          list_type?: string
+        }
+        Relationships: []
+      }
+      jubilee_submissions: {
+        Row: {
+          authorization_no: string
+          bill_no: string
+          created_at: string
+          current_status: string | null
+          doctor_data: Json
+          folio_no: string
+          id: string
+          last_status_check: string | null
+          member_no: string
+          patient_data: Json
+          status_response: Json | null
+          submission_id: string | null
+          submission_response: Json
+          submission_status: string
+          submission_type: string
+          submitted_at: string
+          total_amount: number
+          treatments: Json
+          updated_at: string
+        }
+        Insert: {
+          authorization_no: string
+          bill_no: string
+          created_at?: string
+          current_status?: string | null
+          doctor_data: Json
+          folio_no: string
+          id?: string
+          last_status_check?: string | null
+          member_no: string
+          patient_data: Json
+          status_response?: Json | null
+          submission_id?: string | null
+          submission_response: Json
+          submission_status: string
+          submission_type: string
+          submitted_at?: string
+          total_amount: number
+          treatments: Json
+          updated_at?: string
+        }
+        Update: {
+          authorization_no?: string
+          bill_no?: string
+          created_at?: string
+          current_status?: string | null
+          doctor_data?: Json
+          folio_no?: string
+          id?: string
+          last_status_check?: string | null
+          member_no?: string
+          patient_data?: Json
+          status_response?: Json | null
+          submission_id?: string | null
+          submission_response?: Json
+          submission_status?: string
+          submission_type?: string
+          submitted_at?: string
+          total_amount?: number
+          treatments?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jubilee_verifications: {
+        Row: {
+          authorization_no: string | null
+          benefits: Json | null
+          daily_limit: number | null
+          id: string
+          member_details: Json
+          member_no: string
+          verification_response: Json
+          verification_status: string
+          verified_at: string
+        }
+        Insert: {
+          authorization_no?: string | null
+          benefits?: Json | null
+          daily_limit?: number | null
+          id?: string
+          member_details: Json
+          member_no: string
+          verification_response: Json
+          verification_status: string
+          verified_at?: string
+        }
+        Update: {
+          authorization_no?: string | null
+          benefits?: Json | null
+          daily_limit?: number | null
+          id?: string
+          member_details?: Json
+          member_no?: string
+          verification_response?: Json
+          verification_status?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
       medical_history: {
         Row: {
           condition: string

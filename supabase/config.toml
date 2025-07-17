@@ -28,3 +28,24 @@ verify_jwt = false
 
 [functions.book-appointment]
 verify_jwt = false
+
+[functions.jubilee-credentials]
+verify_jwt = false
+
+[functions.jubilee-auth]
+verify_jwt = false
+
+[functions.jubilee-member-verify]
+verify_jwt = false
+
+[functions.jubilee-items-verify]
+verify_jwt = false
+
+[functions.jubilee-preauth]
+verify_jwt = false
+
+[functions.jubilee-status-check]
+verify_jwt = false
+
+[functions.jubilee-price-lists]
+verify_jwt = false

@@ -41,15 +41,15 @@ const JubileeCheckoutTab: React.FC<JubileeCheckoutTabProps> = ({
 
     try {
       const verifyPayload = {
-        BenefitCode: '7927', // Default benefit code for outpatient
-        MemberNo: memberNo,
-        VerifyItems: selectedTreatments.map(treatment => ({
-          ItemId: treatment.id,
-          ItemQuantity: '1',
-          ItemPrice: treatment.basePrice.toString()
+        memberNo: memberNo,
+        benefitCode: '7927', // Default benefit code for outpatient
+        verifyItems: selectedTreatments.map(treatment => ({
+          itemId: treatment.id,
+          itemQuantity: '1',
+          itemPrice: treatment.basePrice.toString()
         })),
-        Amount: totalAmount.toString(),
-        Procedured: 'JIC0333' // Default procedure code
+        amount: totalAmount.toString(),
+        procedureCode: 'JIC0333' // Default procedure code
       };
 
       const response = await jubileeInsuranceService.verifyItems(verifyPayload);
@@ -88,52 +88,33 @@ const JubileeCheckoutTab: React.FC<JubileeCheckoutTabProps> = ({
 
     try {
       const preAuthPayload = {
-        entities: [{
-          ClaimYear: new Date().getFullYear().toString(),
-          ClaimMonth: (new Date().getMonth() + 1).toString().padStart(2, '0'),
-          CardNo: memberNo,
-          FirstName: selectedTreatments[0]?.patientName?.split(' ')[0] || 'Patient',
-          LastName: selectedTreatments[0]?.patientName?.split(' ').slice(1).join(' ') || 'Name',
-          Gender: 'Male', // This should come from patient data
-          DateOfBirth: '1990-01-01', // This should come from patient data
-          Age: '34', // This should be calculated
-          TelephoneNo: '0700000000', // This should come from patient data
-          PatientFileNo: 'PAT001', // This should come from patient data
-          AuthorizationNo: authorizationNo,
-          AttendanceDate: new Date().toISOString().split('T')[0],
-          PatientTypeCode: 'OP',
-          DateAdmitted: null,
-          DateDischarged: null,
-          PractitionerNo: 'DENT001', // This should come from doctor data
-          CreatedBy: 'Dental System',
-          DateCreated: new Date().toISOString().split('T')[0],
-          LastModifiedBy: 'Dental System',
-          LastModified: new Date().toISOString().split('T')[0],
-          FolioDiseases: [{
-            DiseaseCode: 'K02', // Dental caries code
-            Remarks: null,
-            CreatedBy: 'Dental System',
-            DateCreated: new Date().toISOString().split('T')[0],
-            LastModifiedBy: 'Dental System',
-            LastModified: new Date().toISOString().split('T')[0]
-          }],
-          FolioItems: selectedTreatments.map(treatment => ({
-            ItemCode: treatment.id,
-            ItemQuantity: '1',
-            UnitPrice: treatment.basePrice.toString(),
-            AmountClaimed: treatment.basePrice.toString(),
-            CreatedBy: 'Dental System',
-            DateCreated: new Date().toISOString().split('T')[0],
-            LastModifiedBy: 'Dental System',
-            LastModified: new Date().toISOString().split('T')[0]
-          })),
-          QualificationID: '1',
-          AmountClaimed: totalAmount,
-          jubileeProcedure: 'JIC0333',
-          jubileeBenefits: '7927',
-          BillNo: `BILL${Date.now()}`,
-          ProviderID: '123456' // This should come from provider configuration
-        }]
+        memberNo: memberNo,
+        authorizationNo: authorizationNo,
+        patientData: {
+          firstName: selectedTreatments[0]?.patientName?.split(' ')[0] || 'Patient',
+          lastName: selectedTreatments[0]?.patientName?.split(' ').slice(1).join(' ') || 'Name',
+          gender: 'Male', // This should come from patient data
+          dateOfBirth: '1990-01-01', // This should come from patient data
+          age: '34', // This should be calculated
+          phone: '0700000000', // This should come from patient data
+          patientId: 'PAT001' // This should come from patient data
+        },
+        doctorData: {
+          name: 'Dental System',
+          practitionerNo: 'DENT001',
+          id: 'DENT001'
+        },
+        treatments: selectedTreatments.map(treatment => ({
+          id: treatment.id,
+          name: treatment.name,
+          basePrice: treatment.basePrice,
+          quantity: 1,
+          unitPrice: treatment.basePrice,
+          totalPrice: treatment.basePrice
+        })),
+        totalAmount: totalAmount,
+        clinicalNotes: 'Routine dental treatment',
+        diagnosisRemarks: 'Dental examination and treatment'
       };
 
       const response = await jubileeInsuranceService.requestPreauthorization(preAuthPayload);

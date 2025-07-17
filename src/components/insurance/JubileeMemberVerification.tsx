@@ -24,8 +24,8 @@ const JubileeMemberVerification: React.FC<JubileeMemberVerificationProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const handleVerifyMember = async () => {
-    if (!memberNo || memberNo.length !== 15) {
-      setError('Please enter a valid 15-digit member number');
+    if (!memberNo || memberNo.length < 8) {
+      setError('Please enter a valid member number (8-15 digits)');
       return;
     }
 
@@ -35,25 +35,22 @@ const JubileeMemberVerification: React.FC<JubileeMemberVerificationProps> = ({
     setVerificationStatus(null);
 
     try {
-      // First get member details
-      const detailsResponse = await jubileeInsuranceService.getMemberDetails(memberNo);
+      // Use the new comprehensive verification service
+      const response = await jubileeInsuranceService.verifyMemberComplete(memberNo);
       
-      if (detailsResponse.Status === 'ERROR') {
-        setError(typeof detailsResponse.Description === 'string' ? detailsResponse.Description : 'Failed to get member details');
+      if (response.memberDetails?.Status === 'ERROR') {
+        setError(typeof response.memberDetails.Description === 'string' ? response.memberDetails.Description : 'Failed to get member details');
         return;
       }
 
-      setMemberDetails(detailsResponse);
-
-      // Then check verification status
-      const verificationResponse = await jubileeInsuranceService.checkMemberVerification(memberNo);
-      setVerificationStatus(verificationResponse);
+      setMemberDetails(response.memberDetails);
+      setVerificationStatus(response.verification);
 
       // Call callback if member is verified
-      if (verificationResponse.Status === 'OK' && onMemberVerified) {
+      if (response.verification.Status === 'OK' && onMemberVerified) {
         onMemberVerified({
-          memberDetails: detailsResponse.Description,
-          verification: verificationResponse,
+          memberDetails: response.memberDetails.Description,
+          verification: response.verification,
         });
       }
 
@@ -76,12 +73,12 @@ const JubileeMemberVerification: React.FC<JubileeMemberVerificationProps> = ({
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <div className="flex-1">
-            <Label htmlFor="memberNo">Member Number (15 digits)</Label>
+            <Label htmlFor="memberNo">Member Number (8-15 digits)</Label>
             <Input
               id="memberNo"
               value={memberNo}
               onChange={(e) => setMemberNo(e.target.value)}
-              placeholder="Enter 15-digit member number"
+              placeholder="Enter member number (8-15 digits)"
               maxLength={15}
             />
           </div>
