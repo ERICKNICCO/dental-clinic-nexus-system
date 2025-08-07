@@ -1,18 +1,5 @@
 
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot,
-  Timestamp 
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
+// Firebase imports removed - using Supabase instead
 import { supabase } from '../integrations/supabase/client';
 
 export interface TreatmentNote {

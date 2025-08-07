@@ -1,10 +1,9 @@
-import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../integrations/supabase/client';
 
 interface PaymentData {
-  amountPaid: number;
-  date: string; // YYYY-MM-DD format
-  type?: 'revenue' | 'expense'; // To differentiate between revenue and expenses
+  amount_paid: number;
+  payment_date: string; // YYYY-MM-DD format
+  payment_status: string;
 }
 
 interface MonthlyFinancialData {
@@ -24,23 +23,20 @@ export const financeService = {
     }
 
     try {
-      const paymentsRef = collection(db, 'payments');
-      const q = query(
-        paymentsRef,
-        where('date', '>=', `${year}-01-01`),
-        where('date', '<=', `${year}-12-31`),
-        orderBy('date', 'asc')
-      );
-      const snapshot = await getDocs(q);
+      const { data, error } = await supabase
+        .from('payments')
+        .select('amount_paid, payment_date, payment_status')
+        .gte('payment_date', `${year}-01-01`)
+        .lte('payment_date', `${year}-12-31`)
+        .order('payment_date', { ascending: true });
 
-      snapshot.forEach(doc => {
-        const data = doc.data() as PaymentData;
-        const month = new Date(data.date).toLocaleString('default', { month: 'short' });
-        const amount = Number(data.amountPaid) || 0;
+      if (error) throw error;
 
-        if (data.type === 'expense') {
-          monthlyData[month].expenses += amount;
-        } else {
+      data?.forEach(payment => {
+        const month = new Date(payment.payment_date).toLocaleString('default', { month: 'short' });
+        const amount = Number(payment.amount_paid) || 0;
+
+        if (payment.payment_status === 'paid') {
           monthlyData[month].revenue += amount;
         }
       });
@@ -95,4 +91,4 @@ export const financeService = {
     }
     return netProfit;
   }
-}; 
+};

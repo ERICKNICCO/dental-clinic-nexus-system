@@ -162,7 +162,10 @@ const TreatmentPricingManagement: React.FC = () => {
           description: "Treatment pricing updated successfully",
         });
       } else {
-        await supabaseTreatmentPricingService.addTreatment(treatmentData);
+        await supabaseTreatmentPricingService.addTreatment({
+          ...treatmentData,
+          duration: 30 // default duration
+        });
         toast({
           title: "Success",
           description: "Treatment pricing added successfully",
