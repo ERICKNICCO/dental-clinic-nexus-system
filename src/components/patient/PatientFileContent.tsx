@@ -15,7 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabaseAppointmentService } from '../../services/supabaseAppointmentService';
 
 const PatientFileContent: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { patientId: routePatientId } = useParams<{ patientId: string }>();
   const location = useLocation();
   const { patients, loading, error, refreshPatients } = useSupabasePatients();
   const [isEditing, setIsEditing] = useState(false);
@@ -26,8 +26,7 @@ const PatientFileContent: React.FC = () => {
 
   // Extract patient ID from URL path if useParams doesn't work
   const getPatientIdFromPath = () => {
-    if (id) return id;
-    
+    if (routePatientId) return routePatientId;
     // Fallback: extract from pathname
     const pathParts = location.pathname.split('/');
     const patientsIndex = pathParts.indexOf('patients');
@@ -37,30 +36,25 @@ const PatientFileContent: React.FC = () => {
     return null;
   };
 
-  const patientId = getPatientIdFromPath();
+  const rawId = getPatientIdFromPath();
+  const patientId = rawId ? decodeURIComponent(rawId) : null;
 
   console.log('🔥 PatientFileContent - Patient ID from URL:', patientId);
-  console.log('🔥 PatientFileContent - useParams id:', id);
+  console.log('🔥 PatientFileContent - useParams patientId:', routePatientId);
   console.log('🔥 PatientFileContent - Location pathname:', location.pathname);
-  console.log('🔥 PatientFileContent - All patients:', patients);
   console.log('🔥 PatientFileContent - Loading:', loading);
   console.log('🔥 PatientFileContent - Error:', error);
 
-  // Find patient by ID with proper string comparison
+  // Find patient by either UUID or clinic ID (e.g., SD-25-xxxxx)
   const patient = patients.find(p => {
-    console.log('🔍 Comparing patient ID:', p.id, 'with URL id:', patientId, 'Match:', p.id === patientId);
-    return p.id === patientId;
+    const match = p.id === patientId || p.patientId === patientId;
+    if (patientId && !match) {
+      console.log('🔍 Compare IDs => uuid:', p.id, ' patientId:', p.patientId, ' target:', patientId, ' match:', match);
+    }
+    return match;
   });
 
   console.log('🔥 PatientFileContent - Found patient:', patient);
-
-  // Force refresh patients if we have an ID but no patient found and not loading
-  useEffect(() => {
-    if (patientId && !patient && !loading) {
-      console.log('🔥 PatientFileContent - Patient not found, refreshing patients');
-      refreshPatients();
-    }
-  }, [patientId, patient, loading, refreshPatients]);
 
 
   if (loading) {
