@@ -58,6 +58,25 @@ const PaymentList = () => {
     return { baseTotal, discountValue, finalTotal };
   };
 
+  // Parse human-readable treatment plan text into item list
+  const parseTreatmentPlan = (plan?: string): { name: string; cost: number }[] => {
+    if (!plan || typeof plan !== 'string') return [];
+    try {
+      const parts = plan.split('•').map(s => s.trim()).filter(Boolean);
+      const items = parts.map((part) => {
+        const costMatch = part.match(/(?:tsh|tzs|sh|ts?h)\s*([\d,]+)|([\d,]+)\s*(?:tsh|tzs|sh)/i);
+        const numStr = (costMatch?.[1] || costMatch?.[2] || '').replace(/,/g, '');
+        const cost = numStr ? Number(numStr) : 0;
+        let name = part.split('-')[0]?.trim() || part.trim();
+        name = name.replace(/^\W+/, '');
+        return { name, cost };
+      }).filter(it => it.cost > 0);
+      return items;
+    } catch {
+      return [];
+    }
+  };
+
   useEffect(() => {
     loadPayments();
   }, []);
@@ -78,25 +97,41 @@ const PaymentList = () => {
 
   useEffect(() => {
     async function fetchConsultationTreatments() {
-      const paymentsWithConsultation = payments.filter(p => p.consultation_id);
-      const uniqueConsultationIds = Array.from(new Set(paymentsWithConsultation.map(p => p.consultation_id)));
-      if (uniqueConsultationIds.length === 0) {
+      try {
+        const paymentsWithConsultation = payments.filter(p => p.consultation_id);
+        const uniqueConsultationIds = Array.from(new Set(paymentsWithConsultation.map(p => p.consultation_id as string).filter(Boolean)));
+        if (uniqueConsultationIds.length === 0) {
+          setConsultationTreatments({});
+          return;
+        }
+        const results = await Promise.allSettled(
+          uniqueConsultationIds.map(async (id) => {
+            const consultation = await supabaseConsultationService.getConsultation(id);
+            let items: { name: string; cost: number }[] = [];
+            const raw: any = (consultation as any)?.treatment_items;
+            if (Array.isArray(raw)) {
+              items = raw.map((item: any) => ({ name: item?.name ?? 'Item', cost: Number(item?.cost) || 0 }));
+            } else if (raw && Array.isArray((raw as any).items)) {
+              items = (raw as any).items.map((item: any) => ({ name: item?.name ?? 'Item', cost: Number(item?.cost) || 0 }));
+            }
+            if ((!items || items.length === 0) && (consultation as any)?.treatment_plan) {
+              items = parseTreatmentPlan((consultation as any).treatment_plan);
+            }
+            return [id, items] as [string, { name: string; cost: number }[]];
+          })
+        );
+        const treatmentsMap: Record<string, { name: string; cost: number }[]> = {};
+        results.forEach((res) => {
+          if (res.status === 'fulfilled') {
+            const [id, items] = res.value;
+            if (id) treatmentsMap[id] = items;
+          }
+        });
+        setConsultationTreatments(treatmentsMap);
+      } catch (e) {
+        console.error('Failed to fetch consultation treatments:', e);
         setConsultationTreatments({});
-        return;
       }
-      const results = await Promise.all(
-        uniqueConsultationIds.map(async (id): Promise<[string, { name: string; cost: number }[]]> => {
-          if (!id) return [id as string, []];
-          const consultation = await supabaseConsultationService.getConsultation(id as string);
-          const items = (consultation?.treatment_items || []).map(item => ({ name: item.name, cost: item.cost }));
-          return [id as string, items];
-        })
-      );
-      const treatmentsMap: Record<string, { name: string; cost: number }[]> = {};
-      (results as [string, { name: string; cost: number }[]][]).forEach(([id, items]) => {
-        if (id) treatmentsMap[id] = items;
-      });
-      setConsultationTreatments(treatmentsMap);
     }
     fetchConsultationTreatments();
   }, [payments]);
