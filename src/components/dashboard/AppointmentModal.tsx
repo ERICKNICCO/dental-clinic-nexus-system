@@ -406,10 +406,9 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, ap
                       required
                     >
                       <option value="">Select Dentist</option>
-                      <option>Dr. Shabbir</option>
-                      <option>Dr. Israel</option>
-                      <option>Dr. Rashid</option>
-                      <option>Dr. Nyaki</option>
+                      <option>Dr. Shabbir Mohammedali</option>
+                      <option>Dr. Israel Kombole</option>
+                      <option>Dr. Rashid Qurban</option>
                     </select>
                   </div>
                   <div>

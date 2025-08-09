@@ -82,12 +82,12 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
 
   const getDoctorColor = (doctorName: string) => {
     const colors = {
-      'Dr. Shabbir': 'bg-blue-200 text-blue-800 border-blue-300',
-      'Dr. Israel': 'bg-green-200 text-green-800 border-green-300',
+      'Dr. Shabbir Mohammedali': 'bg-blue-200 text-blue-800 border-blue-300',
+      'Dr. Shabbir': 'bg-blue-200 text-blue-800 border-blue-300', // Fallback for old names
       'Dr. Israel Kombole': 'bg-green-200 text-green-800 border-green-300',
-      'Dr. Rashid': 'bg-yellow-200 text-yellow-800 border-yellow-300',
-      'Dr. Nyaki': 'bg-pink-200 text-pink-800 border-pink-300',
-      'Dr. Ewald Nyaki': 'bg-pink-200 text-pink-800 border-pink-300'
+      'Dr. Israel': 'bg-green-200 text-green-800 border-green-300', // Fallback for old names
+      'Dr. Rashid Qurban': 'bg-yellow-200 text-yellow-800 border-yellow-300',
+      'Dr. Rashid': 'bg-yellow-200 text-yellow-800 border-yellow-300', // Fallback for old names
     };
     return colors[doctorName as keyof typeof colors] || 'bg-gray-200 text-gray-800 border-gray-300';
   };

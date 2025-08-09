@@ -21,12 +21,12 @@ const getUniqueDoctors = (appointments: Appointment[]) => {
 // Get doctor profile image based on name
 const getDoctorImage = (doctorName: string) => {
   const imageMap: { [key: string]: string } = {
-    'Dr. Shabbir': 'https://randomuser.me/api/portraits/men/1.jpg',
-    'Dr. Israel': 'https://randomuser.me/api/portraits/men/2.jpg',
-    'Dr. Rashid': 'https://randomuser.me/api/portraits/men/3.jpg',
-    'Dr. Nyaki': 'https://randomuser.me/api/portraits/men/4.jpg',
+    'Dr. Shabbir Mohammedali': 'https://randomuser.me/api/portraits/men/1.jpg',
+    'Dr. Shabbir': 'https://randomuser.me/api/portraits/men/1.jpg', // Fallback
     'Dr. Israel Kombole': 'https://randomuser.me/api/portraits/men/2.jpg',
-    'Dr. Ewald Nyaki': 'https://randomuser.me/api/portraits/men/4.jpg'
+    'Dr. Israel': 'https://randomuser.me/api/portraits/men/2.jpg', // Fallback
+    'Dr. Rashid Qurban': 'https://randomuser.me/api/portraits/men/3.jpg',
+    'Dr. Rashid': 'https://randomuser.me/api/portraits/men/3.jpg', // Fallback
   };
   
   return imageMap[doctorName] || 'https://randomuser.me/api/portraits/men/5.jpg';

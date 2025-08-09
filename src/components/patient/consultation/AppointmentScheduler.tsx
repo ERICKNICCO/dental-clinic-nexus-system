@@ -188,10 +188,9 @@ const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="Dr. Shabbir Mohammedali">Dr. Shabbir Mohammedali</SelectItem>
+                <SelectItem value="Dr. Israel Kombole">Dr. Israel Kombole</SelectItem>
                 <SelectItem value="Dr. Rashid Qurban">Dr. Rashid Qurban</SelectItem>
-                <SelectItem value="Dr. Sarah Ahmed">Dr. Sarah Ahmed</SelectItem>
-                <SelectItem value="Dr. Michael Johnson">Dr. Michael Johnson</SelectItem>
-                <SelectItem value="Dr. Emily Chen">Dr. Emily Chen</SelectItem>
               </SelectContent>
             </Select>
           </div>
