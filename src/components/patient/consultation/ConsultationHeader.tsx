@@ -33,7 +33,7 @@ const ConsultationHeader: React.FC<ConsultationHeaderProps> = ({
             </span>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onSaveProgress} disabled={loading}>
+            <Button type="button" variant="outline" onClick={onSaveProgress} disabled={loading}>
               {loading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
@@ -41,7 +41,7 @@ const ConsultationHeader: React.FC<ConsultationHeaderProps> = ({
               )}
               Save Progress
             </Button>
-            <Button onClick={onCompleteConsultation} disabled={loading}>
+            <Button type="button" onClick={onCompleteConsultation} disabled={loading}>
               {loading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
