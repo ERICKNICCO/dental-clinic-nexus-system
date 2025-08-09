@@ -62,39 +62,9 @@ const PatientFileContent: React.FC = () => {
   }, [patientId, patient, loading, refreshPatients]);
 
   useEffect(() => {
-    const checkDoctorAccess = async () => {
-      if (userProfile?.role === 'doctor' && patientId) {
-        setCheckingAccess(true);
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const todayStr = `${yyyy}-${mm}-${dd}`;
-        try {
-          const appointments = await supabaseAppointmentService.getAppointmentsByPatientId(patientId);
-          const todayAppointments = appointments.filter(a => a.date === todayStr);
-          console.log('🔍 Today appointments for patient:', todayAppointments.map(a => ({ id: a.id, status: a.status, dentist: a.dentist })));
-          const canProceed = todayAppointments.some(
-            (a) =>
-              (a.status === 'Approved' || a.status === 'Checked In') &&
-              a.dentist && userProfile.name &&
-              (
-                a.dentist.toLowerCase().includes(userProfile.name.toLowerCase()) ||
-                userProfile.name.toLowerCase().includes(a.dentist.toLowerCase())
-              )
-          );
-          setCanAccess(canProceed);
-        } catch (e) {
-          setCanAccess(false);
-        } finally {
-          setCheckingAccess(false);
-        }
-      } else {
-        setCanAccess(true);
-        setCheckingAccess(false);
-      }
-    };
-    checkDoctorAccess();
+    // Doctors and admins have full access to patient files
+    setCanAccess(true);
+    setCheckingAccess(false);
   }, [userProfile, patientId]);
 
   if (checkingAccess) {
