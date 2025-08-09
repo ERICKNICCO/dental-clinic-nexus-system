@@ -23,6 +23,7 @@ import CashPaymentReceipt from './payments/CashPaymentReceipt';
 import { supabaseConsultationService } from '../services/supabaseConsultationService';
 import { toSentenceCase } from '@/lib/utils';
 import { useAppointments } from '../hooks/useAppointments';
+import { supabase } from '@/integrations/supabase/client';
 
 const paymentStatuses = ["All", "Paid", "Partial", "Pending"];
 const paymentMethods = ["All", "Cash", "Card", "Bank Transfer", "Insurance"];
@@ -44,6 +45,20 @@ const PaymentList = () => {
 
   useEffect(() => {
     loadPayments();
+  }, []);
+
+  // Realtime: refresh list when payments table changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('payments-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        loadPayments();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
