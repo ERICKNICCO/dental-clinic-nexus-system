@@ -20,8 +20,9 @@ const PatientFileContent: React.FC = () => {
   const { patients, loading, error, refreshPatients } = useSupabasePatients();
   const [isEditing, setIsEditing] = useState(false);
   const { userProfile } = useAuth();
-  const [canAccess, setCanAccess] = useState(true);
-  const [checkingAccess, setCheckingAccess] = useState(false);
+  
+  // DEBUG: Console log to confirm component is loading
+  console.log('🚀 PatientFileContent loading - Access restrictions REMOVED for doctors');
 
   // Extract patient ID from URL path if useParams doesn't work
   const getPatientIdFromPath = () => {
@@ -61,36 +62,6 @@ const PatientFileContent: React.FC = () => {
     }
   }, [patientId, patient, loading, refreshPatients]);
 
-  useEffect(() => {
-    // Doctors and admins have full access to patient files
-    setCanAccess(true);
-    setCheckingAccess(false);
-  }, [userProfile, patientId]);
-
-  if (checkingAccess) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Checking access...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!canAccess) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h2>
-          <p className="text-gray-600 mb-4">
-            You cannot access this patient file until the appointment is approved by an admin.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
