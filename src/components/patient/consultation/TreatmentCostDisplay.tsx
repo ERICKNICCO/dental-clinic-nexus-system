@@ -9,7 +9,7 @@ import { Search, DollarSign, Clock, Info, AlertCircle } from 'lucide-react';
 import { supabaseTreatmentPricingService, TreatmentPricing } from '../../../services/supabaseTreatmentPricingService';
 
 interface TreatmentCostDisplayProps {
-  onAddTreatmentToPlan: (treatment: TreatmentPricing) => void;
+  onAddTreatmentToPlan: (treatment: TreatmentPricing, quantity: number) => void;
   patientInsurance?: string;
   patientType?: 'cash' | 'insurance';
 }
@@ -20,8 +20,9 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
   patientType = 'cash'
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTreatments, setSelectedTreatments] = useState<TreatmentPricing[]>([]);
+  const [selectedTreatments, setSelectedTreatments] = useState<(TreatmentPricing & { quantity: number })[]>([]);
   const [availableTreatments, setAvailableTreatments] = useState<TreatmentPricing[]>([]);
+  const [qtyById, setQtyById] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   console.log('TreatmentCostDisplay - Patient Type:', patientType, 'Insurance:', patientInsurance);
@@ -64,9 +65,10 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
 
   const handleAddTreatment = (treatment: TreatmentPricing) => {
     if (!selectedTreatments.find(t => t.id === treatment.id)) {
-      const updatedTreatments = [...selectedTreatments, treatment];
+      const qty = Math.max(1, qtyById[treatment.id] ?? 1);
+      const updatedTreatments = [...selectedTreatments, { ...treatment, quantity: qty }];
       setSelectedTreatments(updatedTreatments);
-      onAddTreatmentToPlan(treatment);
+      onAddTreatmentToPlan(treatment, qty);
     }
   };
 
@@ -74,7 +76,7 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
     setSelectedTreatments(prev => prev.filter(t => t.id !== treatmentId));
   };
 
-  const totalCost = selectedTreatments.reduce((sum, treatment) => sum + treatment.basePrice, 0);
+  const totalCost = selectedTreatments.reduce((sum, treatment) => sum + (treatment.basePrice * (treatment.quantity ?? 1)), 0);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -193,14 +195,27 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
                         </span>
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddTreatment(treatment)}
-                      disabled={selectedTreatments.some(t => t.id === treatment.id)}
-                    >
-                      {selectedTreatments.some(t => t.id === treatment.id) ? 'Added' : 'Add'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={qtyById[treatment.id] ?? 1}
+                        onChange={(e) => setQtyById((prev) => ({
+                          ...prev,
+                          [treatment.id]: Math.max(1, Number(e.target.value) || 1)
+                        }))}
+                        className="w-20"
+                        aria-label={`Quantity for ${treatment.name}`}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddTreatment(treatment)}
+                        disabled={selectedTreatments.some(t => t.id === treatment.id)}
+                      >
+                        {selectedTreatments.some(t => t.id === treatment.id) ? 'Added' : 'Add'}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -230,8 +245,9 @@ const TreatmentCostDisplay: React.FC<TreatmentCostDisplayProps> = ({
                     <span className="ml-2 text-sm text-gray-500">({treatment.duration} min)</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Qty: {treatment.quantity}</span>
                     <span className="font-semibold">
-                      {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
+                      {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)} each = {supabaseTreatmentPricingService.formatPrice(treatment.basePrice * (treatment.quantity ?? 1))}
                     </span>
                     <Button
                       variant="ghost"

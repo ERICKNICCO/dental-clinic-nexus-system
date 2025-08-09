@@ -24,33 +24,15 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
   patientType = 'cash'
 }) => {
   const [showCostDisplay, setShowCostDisplay] = useState(false);
-  const [selectedTreatments, setSelectedTreatments] = useState<TreatmentPricing[]>(() => {
-    try {
-      // Try to initialize from treatmentItems if present in parent
-      const items = (typeof (treatmentPlan as any)?.treatmentItems === 'string')
-        ? JSON.parse((treatmentPlan as any).treatmentItems)
-        : (treatmentPlan as any)?.treatmentItems;
-      return Array.isArray(items) ? items : [];
-    } catch {
-      return [];
-    }
-  });
+  type SelectedTreatment = TreatmentPricing & { quantity?: number };
+  const [selectedTreatments, setSelectedTreatments] = useState<SelectedTreatment[]>([]);
   const [localTreatmentPlan, setLocalTreatmentPlan] = useState(treatmentPlan);
   const [localPrescriptions, setLocalPrescriptions] = useState(prescriptions);
 
   console.log('TreatmentTab - Patient Type:', patientType, 'Insurance:', patientInsurance);
 
-  // Keep selectedTreatments in sync with parent consultationData.treatmentItems
-  useEffect(() => {
-    if ((treatmentPlan as any)?.treatmentItems) {
-      try {
-        const items = typeof (treatmentPlan as any).treatmentItems === 'string'
-          ? JSON.parse((treatmentPlan as any).treatmentItems)
-          : (treatmentPlan as any).treatmentItems;
-        if (Array.isArray(items)) setSelectedTreatments(items);
-      } catch {}
-    }
-  }, [(treatmentPlan as any)?.treatmentItems]);
+  // Items are managed locally in this tab and persisted via onUpdateField
+
 
   useEffect(() => {
     setLocalTreatmentPlan(treatmentPlan);
@@ -66,29 +48,31 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   }
 
-  const handleAddTreatmentToPlan = (treatment: TreatmentPricing) => {
+  const handleAddTreatmentToPlan = (treatment: TreatmentPricing, quantity: number) => {
     if (!selectedTreatments.find(t => t.id === treatment.id)) {
-      const updatedTreatments = [...selectedTreatments, treatment];
+      const updatedTreatments = [...selectedTreatments, { ...treatment, quantity }];
       setSelectedTreatments(updatedTreatments);
       
-      const treatmentText = `${toSentenceCase(treatment.name)} - ${supabaseTreatmentPricingService.formatPrice(treatment.basePrice)} (${treatment.duration} min)`;
+      const treatmentText = `${toSentenceCase(treatment.name)} x ${quantity} - ${supabaseTreatmentPricingService.formatPrice(treatment.basePrice * quantity)} (${treatment.duration} min)`;
       const currentPlan = localTreatmentPlan || '';
       const newPlan = currentPlan 
         ? `${currentPlan}\n• ${treatmentText}`
         : `• ${treatmentText}`;
       
       setLocalTreatmentPlan(newPlan);
-      onUpdateField('treatmentPlan', newPlan); // Update parent immediately
+      onUpdateField('treatment_plan', newPlan); // Update parent immediately
       
       // Update estimated cost
-      const totalCost = updatedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-      onUpdateField('estimatedCost', totalCost.toString());
+      const totalCost = updatedTreatments.reduce((sum, t) => sum + (t.basePrice * (t.quantity || 1)), 0);
+      onUpdateField('estimated_cost', totalCost.toString());
       
       // Update treatment items
-      onUpdateField('treatmentItems', JSON.stringify(updatedTreatments.map(t => ({
+      onUpdateField('treatment_items', JSON.stringify(updatedTreatments.map(t => ({
         name: t.name,
-        cost: t.basePrice,
-        duration: t.duration
+        cost: t.basePrice * (t.quantity || 1),
+        duration: t.duration,
+        quantity: t.quantity || 1,
+        unit_cost: t.basePrice
       }))));
     }
   };
