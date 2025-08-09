@@ -21,7 +21,7 @@ const PatientFileContent: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const { userProfile } = useAuth();
   const [canAccess, setCanAccess] = useState(true);
-  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [checkingAccess, setCheckingAccess] = useState(false);
 
   // Extract patient ID from URL path if useParams doesn't work
   const getPatientIdFromPath = () => {
