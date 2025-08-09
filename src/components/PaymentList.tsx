@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, CreditCard, Filter, User } from "lucide-react";
+import { Search, Plus, CreditCard, Filter, User, Receipt } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import { paymentService, Payment } from '../services/paymentService';
 import RecordPaymentModal from './payments/RecordPaymentModal';
 import CreatePaymentModal from './payments/CreatePaymentModal';
 import ClaimFormModal from './payments/ClaimFormModal';
+import CashPaymentReceipt from './payments/CashPaymentReceipt';
 import { supabaseConsultationService } from '../services/supabaseConsultationService';
 import _ from 'lodash';
 import { toSentenceCase } from '@/lib/utils';
@@ -37,6 +38,8 @@ const PaymentList = () => {
   const [isCreatePaymentModalOpen, setIsCreatePaymentModalOpen] = useState(false);
   const [selectedPaymentForModal, setSelectedPaymentForModal] = useState<Payment | null>(null);
   const [isClaimFormModalOpen, setIsClaimFormModalOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState<Payment | null>(null);
   const [consultationTreatments, setConsultationTreatments] = useState<Record<string, { name: string; cost: number }[]>>({});
   const { refreshAppointments } = useAppointments();
 
@@ -282,18 +285,35 @@ const PaymentList = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}</TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          size="sm" 
-                          className="bg-blue-600 hover:bg-blue-700"
-                          onClick={() => {
-                            setSelectedPaymentForModal(payment);
-                            setIsRecordPaymentModalOpen(true);
-                          }}
-                        >
-                          Collect Payment
-                        </Button>
-                      </TableCell>
+                       <TableCell className="text-right">
+                         <div className="flex gap-2 justify-end">
+                           {/* Show Print Receipt button for cash payments with paid amount */}
+                           {payment.payment_method === 'cash' && payment.amount_paid > 0 && (
+                             <Button 
+                               variant="outline" 
+                               size="sm"
+                               onClick={() => {
+                                 setSelectedPaymentForReceipt(payment);
+                                 setIsReceiptModalOpen(true);
+                               }}
+                               className="text-green-600 hover:text-green-700"
+                             >
+                               <Receipt className="h-4 w-4 mr-1" />
+                               Receipt
+                             </Button>
+                           )}
+                           <Button 
+                             size="sm" 
+                             className="bg-blue-600 hover:bg-blue-700"
+                             onClick={() => {
+                               setSelectedPaymentForModal(payment);
+                               setIsRecordPaymentModalOpen(true);
+                             }}
+                           >
+                             Collect Payment
+                           </Button>
+                         </div>
+                       </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -355,18 +375,35 @@ const PaymentList = () => {
                         )}
                       </TableCell>
                       <TableCell>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          className="bg-orange-600 hover:bg-orange-700"
-                          onClick={() => {
-                            setSelectedPaymentForModal(payment);
-                            setIsRecordPaymentModalOpen(true);
-                          }}
-                        >
-                          Collect Balance
-                        </Button>
-                      </TableCell>
+                       <TableCell className="text-right">
+                         <div className="flex gap-2 justify-end">
+                           {/* Show Print Receipt button for cash payments with paid amount */}
+                           {payment.payment_method === 'cash' && payment.amount_paid > 0 && (
+                             <Button 
+                               variant="outline" 
+                               size="sm"
+                               onClick={() => {
+                                 setSelectedPaymentForReceipt(payment);
+                                 setIsReceiptModalOpen(true);
+                               }}
+                               className="text-green-600 hover:text-green-700"
+                             >
+                               <Receipt className="h-4 w-4 mr-1" />
+                               Receipt
+                             </Button>
+                           )}
+                           <Button
+                             size="sm"
+                             className="bg-orange-600 hover:bg-orange-700"
+                             onClick={() => {
+                               setSelectedPaymentForModal(payment);
+                               setIsRecordPaymentModalOpen(true);
+                             }}
+                           >
+                             Collect Balance
+                           </Button>
+                         </div>
+                       </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -427,11 +464,38 @@ const PaymentList = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" className="mr-2">
-                          <CreditCard className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                       <TableCell className="text-right">
+                         <div className="flex gap-2 justify-end">
+                           {/* Show Print Receipt button for cash payments (paid or partial with paid amount) */}
+                           {payment.payment_method === 'cash' && payment.amount_paid > 0 && (
+                             <Button 
+                               variant="outline" 
+                               size="sm"
+                               onClick={() => {
+                                 setSelectedPaymentForReceipt(payment);
+                                 setIsReceiptModalOpen(true);
+                               }}
+                               className="text-green-600 hover:text-green-700"
+                             >
+                               <Receipt className="h-4 w-4 mr-1" />
+                               Receipt
+                             </Button>
+                           )}
+                           {/* Payment action button */}
+                           {payment.payment_status !== 'paid' && (
+                             <Button 
+                               variant="ghost" 
+                               size="sm"
+                               onClick={() => {
+                                 setSelectedPaymentForModal(payment);
+                                 setIsRecordPaymentModalOpen(true);
+                               }}
+                             >
+                               <CreditCard className="h-4 w-4" />
+                             </Button>
+                           )}
+                         </div>
+                       </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -467,6 +531,19 @@ const PaymentList = () => {
           }}
           payment={selectedPaymentForModal}
           onClaimFormSigned={handlePaymentRecorded}
+        />
+      )}
+
+      {/* Cash Payment Receipt Modal */}
+      {isReceiptModalOpen && selectedPaymentForReceipt && (
+        <CashPaymentReceipt
+          isOpen={isReceiptModalOpen}
+          onClose={() => {
+            setIsReceiptModalOpen(false);
+            setSelectedPaymentForReceipt(null);
+          }}
+          payment={selectedPaymentForReceipt}
+          treatmentItems={selectedPaymentForReceipt.consultation_id ? consultationTreatments[selectedPaymentForReceipt.consultation_id] || [] : []}
         />
       )}
     </div>

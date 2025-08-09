@@ -137,5 +137,31 @@
   
   .calendar-day.today {
     @apply border-2 border-dental-600;
+}
+
+/* Print styles for receipts */
+@media print {
+  @page {
+    margin: 0.5in;
+    size: A4;
+  }
+  
+  .print-receipt {
+    font-family: 'Arial', sans-serif;
+    color: black !important;
+    background: white !important;
+  }
+  
+  .print-receipt * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-break {
+    page-break-inside: avoid;
   }
 }

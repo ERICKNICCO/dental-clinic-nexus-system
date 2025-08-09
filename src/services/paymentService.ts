@@ -17,6 +17,9 @@ export interface Payment {
   consultation_id?: string;
   insurance_provider?: string;
   collected_by?: string;
+  discount_amount?: number;
+  discount_percent?: number;
+  final_total?: number;
 }
 
 export const paymentService = {
