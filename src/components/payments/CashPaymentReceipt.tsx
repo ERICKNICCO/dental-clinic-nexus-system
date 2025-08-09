@@ -1,10 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { useReactToPrint } from 'react-to-print';
 import { Payment } from '../../services/paymentService';
+import { supabasePatientService } from '../../services/supabasePatientService';
 import { Receipt, Printer } from 'lucide-react';
-
 interface TreatmentItem {
   name: string;
   cost: number;
@@ -77,6 +77,47 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
 
   const breakdown = calculateBreakdown();
 
+  // Friendly Patient ID (e.g., SD-25-00029)
+  const [displayPatientId, setDisplayPatientId] = useState<string | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    async function loadPatientId() {
+      try {
+        if (!payment?.patient_id) {
+          if (mounted) setDisplayPatientId(null);
+          return;
+        }
+        const patient = await supabasePatientService.getPatient(payment.patient_id);
+        if (mounted) {
+          setDisplayPatientId(patient?.patientId || payment.patient_id);
+        }
+      } catch (e) {
+        if (mounted) setDisplayPatientId(payment?.patient_id || null);
+      }
+    }
+    loadPatientId();
+    return () => { mounted = false; };
+  }, [payment?.patient_id, isOpen]);
+
+  // Derive quantities for treatment items when possible
+  const itemsWithQuantity = useMemo(() => {
+    if (!treatmentItems || treatmentItems.length === 0) return [] as TreatmentItem[];
+
+    const anyQty = treatmentItems.some(i => (i.quantity ?? 0) > 1);
+    if (anyQty) return treatmentItems.map(i => ({ ...i, quantity: i.quantity || 1 }));
+
+    // If only one item, infer quantity from total
+    if (treatmentItems.length === 1) {
+      const item = treatmentItems[0];
+      const total = (breakdown.finalTotal || payment?.total_amount || 0);
+      const qty = item.cost > 0 ? Math.max(1, Math.round(total / item.cost)) : 1;
+      return [{ ...item, quantity: qty }];
+    }
+
+    // Fallback: default quantity 1 for each
+    return treatmentItems.map(i => ({ ...i, quantity: 1 }));
+  }, [treatmentItems, breakdown.finalTotal, payment?.total_amount]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -132,7 +173,7 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
               <h3 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide">Patient Information</h3>
               <div className="space-y-2 text-sm">
                 <div><span className="font-medium">Name:</span> {payment?.patient_name?.toUpperCase() || 'N/A'}</div>
-                <div><span className="font-medium">Patient ID:</span> {payment?.patient_id || 'N/A'}</div>
+                <div><span className="font-medium">Patient ID:</span> {displayPatientId || payment?.patient_id || 'N/A'}</div>
                 <div><span className="font-medium">Payment Date:</span> {payment?.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : 'N/A'}</div>
               </div>
             </div>
@@ -170,8 +211,8 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {treatmentItems.length > 0 ? (
-                    treatmentItems.map((item, index) => (
+                  {itemsWithQuantity.length > 0 ? (
+                    itemsWithQuantity.map((item, index) => (
                       <tr key={index} className="border-t border-gray-200">
                         <td className="p-3">{item.name}</td>
                         <td className="p-3 text-center">{item.quantity || 1}</td>
