@@ -56,7 +56,7 @@ const PaymentList = () => {
         uniqueConsultationIds.map(async (id): Promise<[string, { name: string; cost: number }[]]> => {
           if (!id) return [id as string, []];
           const consultation = await supabaseConsultationService.getConsultation(id as string);
-          const items = (consultation?.treatmentItems || []).map(item => ({ name: item.name, cost: item.cost }));
+          const items = (consultation?.treatment_items || []).map(item => ({ name: item.name, cost: item.cost }));
           return [id as string, items];
         })
       );

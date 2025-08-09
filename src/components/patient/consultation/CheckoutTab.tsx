@@ -48,10 +48,10 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
 
   // Check if diagnosis and treatment are complete
   const isDiagnosisComplete = consultationData.diagnosis && consultationData.diagnosis.trim() !== '';
-  const isTreatmentComplete = consultationData.treatmentPlan && consultationData.treatmentPlan.trim() !== '';
+  const isTreatmentComplete = consultationData.treatment_plan && consultationData.treatment_plan.trim() !== '';
   
   // More robust check for estimated cost
-  const estimatedCost = consultationData.estimatedCost;
+  const estimatedCost = consultationData.estimated_cost;
   const hasEstimatedCost = estimatedCost && (typeof estimatedCost === 'string' ? parseFloat(estimatedCost) > 0 : estimatedCost > 0);
   const totalAmount = hasEstimatedCost ? (typeof estimatedCost === 'string' ? Math.round(parseFloat(estimatedCost)) : estimatedCost) : 0;
   
@@ -64,11 +64,11 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
 
   // Always use a safe array for treatment items
   let items: any[] = [];
-  if (Array.isArray(consultationData.treatmentItems)) {
-    items = consultationData.treatmentItems;
-  } else if (typeof consultationData.treatmentItems === 'string') {
+  if (Array.isArray(consultationData.treatment_items)) {
+    items = consultationData.treatment_items;
+  } else if (typeof consultationData.treatment_items === 'string') {
     try {
-      items = JSON.parse(consultationData.treatmentItems);
+      items = JSON.parse(consultationData.treatment_items);
     } catch {
       items = [];
     }
@@ -104,7 +104,7 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
   }
 
   // Use parsed treatments from treatment plan text for summary
-  const parsedTreatments = parseTreatmentPlan(consultationData.treatmentPlan || '');
+  const parsedTreatments = parseTreatmentPlan(consultationData.treatment_plan || '');
   const treatmentsTotal = parsedTreatments.reduce((sum, item) => sum + (item.cost || 0), 0);
   const subtotal = treatmentsTotal;
   const discountAmount = subtotal * (discountPercent / 100);
@@ -368,7 +368,7 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
   // Helper function to get procedures as string array
   const getProceduresArray = () => {
     try {
-      const treatmentItems = consultationData.treatmentItems;
+      const treatmentItems = consultationData.treatment_items;
       if (typeof treatmentItems === 'string') {
         const parsed = JSON.parse(treatmentItems);
         return Array.isArray(parsed) ? parsed.map((item: any) => item.name || 'Unknown') : [];

@@ -29,7 +29,7 @@ const ConsultationHeader: React.FC<ConsultationHeaderProps> = ({
               In Progress
             </Badge>
             <span className="text-sm text-muted-foreground">
-              Started: {activeConsultation.startedAt ? activeConsultation.startedAt.toLocaleTimeString() : 'N/A'}
+              Started: {activeConsultation.started_at ? new Date(activeConsultation.started_at).toLocaleTimeString() : 'N/A'}
             </span>
           </div>
           <div className="flex gap-2">

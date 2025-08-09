@@ -41,7 +41,7 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
 }) => {
   const { userProfile } = useAuth();
   const [diagnosisType, setDiagnosisType] = useState<'clinical' | 'xray'>(
-    consultationData.diagnosisType || 'clinical'
+    consultationData.diagnosis_type || 'clinical'
   );
 
   const isAdmin = userProfile?.role === 'admin';
@@ -54,32 +54,32 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
   const handleDiagnosisTypeChange = (type: 'clinical' | 'xray') => {
     if (isAdmin) return; // Admins can't change diagnosis type
     setDiagnosisType(type);
-    onUpdateField('diagnosisType', type);
+    onUpdateField('diagnosis_type', type);
   };
 
   // Create a safe consultation data object for CheckoutTab
   const safeConsultationData: Consultation = {
     id: consultationData.id || '',
-    patientId: consultationData.patientId || patientId,
-    doctorId: consultationData.doctorId || '',
-    doctorName: consultationData.doctorName || '',
+    patient_id: consultationData.patient_id || patientId,
+    doctor_id: consultationData.doctor_id || '',
+    doctor_name: consultationData.doctor_name || '',
     status: consultationData.status || 'in-progress',
     symptoms: consultationData.symptoms || '',
     examination: consultationData.examination || '',
-    vitalSigns: consultationData.vitalSigns || {},
+    vital_signs: consultationData.vital_signs || {},
     diagnosis: consultationData.diagnosis || '',
-    diagnosisType: consultationData.diagnosisType || 'clinical',
-    treatmentPlan: consultationData.treatmentPlan || '',
+    diagnosis_type: consultationData.diagnosis_type || 'clinical',
+    treatment_plan: consultationData.treatment_plan || '',
     prescriptions: consultationData.prescriptions || '',
-    followUpInstructions: consultationData.followUpInstructions || '',
-    nextAppointment: consultationData.nextAppointment,
-    estimatedCost: consultationData.estimatedCost,
-    treatmentItems: consultationData.treatmentItems || [],
-    startedAt: consultationData.startedAt || new Date(),
-    completedAt: consultationData.completedAt,
-    createdAt: consultationData.createdAt || new Date(),
-    updatedAt: consultationData.updatedAt || new Date(),
-    xrayResult: consultationData.xrayResult
+    follow_up_instructions: consultationData.follow_up_instructions || '',
+    next_appointment: consultationData.next_appointment,
+    estimated_cost: consultationData.estimated_cost,
+    treatment_items: consultationData.treatment_items || [],
+    started_at: consultationData.started_at || new Date().toISOString(),
+    completed_at: consultationData.completed_at,
+    created_at: consultationData.created_at || new Date().toISOString(),
+    updated_at: consultationData.updated_at || new Date().toISOString(),
+    xray_result: consultationData.xray_result
   };
 
   // Admin-restricted content component
@@ -105,13 +105,13 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
                   </div>
                 </div>
               )}
-              {tabName === 'Treatment' && (consultationData.treatmentPlan || consultationData.prescriptions) && (
+              {tabName === 'Treatment' && (consultationData.treatment_plan || consultationData.prescriptions) && (
                 <div className="space-y-3">
-                  {consultationData.treatmentPlan && (
+                  {consultationData.treatment_plan && (
                     <div>
                       <label className="text-sm font-medium text-gray-700">Treatment Plan (Read Only)</label>
                       <div className="mt-1 p-3 bg-white border rounded-md text-sm">
-                        {consultationData.treatmentPlan}
+                        {consultationData.treatment_plan}
                       </div>
                     </div>
                   )}
@@ -214,7 +214,7 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
         <TabsContent value="treatment">
           <AdminRestrictedContent tabName="Treatment">
             <TreatmentTab
-              treatmentPlan={consultationData.treatmentPlan || ''}
+              treatmentPlan={consultationData.treatment_plan || ''}
               prescriptions={consultationData.prescriptions || ''}
               onUpdateField={onUpdateField}
               patientType={patientType}
@@ -225,8 +225,8 @@ const ConsultationTabs: React.FC<ConsultationTabsProps> = ({
 
         <TabsContent value="followup">
           <FollowUpTab
-            followUpInstructions={consultationData.followUpInstructions || ''}
-            nextAppointment={consultationData.nextAppointment || ''}
+            followUpInstructions={consultationData.follow_up_instructions || ''}
+            nextAppointment={consultationData.next_appointment || ''}
             onUpdateField={onUpdateField}
             patientName={patientName}
             patientId={patientId}
