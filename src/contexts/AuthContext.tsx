@@ -53,8 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUserProfile(null);
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Ensure local state is cleared even if Supabase returns session_not_found
+      setCurrentUser(null);
+      setUserProfile(null);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -64,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserProfile(null);
         return;
       }
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('users')
         .select('role, name, email')
         .eq('id', user.id)
@@ -81,24 +87,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Initial check
-    const session = supabase.auth.getSession().then(({ data }) => {
-      const user = data.session?.user || null;
+    // Listen FIRST, then check for existing session
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user || null;
       setCurrentUser(user);
-      fetchUserProfile(user);
+      // Avoid supabase calls directly inside the callback; defer if needed
+      if (user) {
+        setTimeout(() => fetchUserProfile(user), 0);
+      } else {
+        setUserProfile(null);
+      }
       setLoading(false);
     });
 
-    // Listen for auth state changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user || null;
+    // THEN get the current session
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user || null;
       setCurrentUser(user);
-      fetchUserProfile(user);
+      if (user) {
+        fetchUserProfile(user);
+      } else {
+        setUserProfile(null);
+      }
       setLoading(false);
     });
 
     return () => {
-      listener?.subscription.unsubscribe();
+      authListener?.subscription.unsubscribe();
     };
   }, []);
 

@@ -12,6 +12,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleLogout = () => {
+    setShowUserMenu(false);
     logout();
   };
 
@@ -60,6 +61,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        aria-label="Sign out"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
                         Sign out
