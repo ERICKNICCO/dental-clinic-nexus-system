@@ -43,6 +43,21 @@ const PaymentList = () => {
   const [consultationTreatments, setConsultationTreatments] = useState<Record<string, { name: string; cost: number }[]>>({});
   const { refreshAppointments } = useAppointments();
 
+  // Compute amounts (base total, discount value, final total) for display
+  const computeDisplayAmounts = (payment: Payment) => {
+    const items = payment.consultation_id ? (consultationTreatments[payment.consultation_id] || []) : [];
+    const itemsTotal = items.reduce((sum, it) => sum + (Number(it.cost) || 0), 0);
+    const baseTotal = itemsTotal > 0 ? itemsTotal : Number(payment.total_amount) || 0;
+    const pct = payment.discount_percent ? Number(payment.discount_percent) : 0;
+    const discFromPct = pct > 0 ? Math.round(baseTotal * (pct / 100)) : 0;
+    const amt = payment.discount_amount ? Number(payment.discount_amount) : 0;
+    const discountValue = Math.max(amt, discFromPct);
+    const finalTotal = payment.final_total && Number(payment.final_total) > 0
+      ? Number(payment.final_total)
+      : Math.max(baseTotal - discountValue, 0);
+    return { baseTotal, discountValue, finalTotal };
+  };
+
   useEffect(() => {
     loadPayments();
   }, []);
@@ -261,6 +276,7 @@ const PaymentList = () => {
                   <TableHead>Patient</TableHead>
                   <TableHead>Treatment</TableHead>
                   <TableHead>Total Amount</TableHead>
+                  <TableHead>Discount</TableHead>
                   <TableHead>Amount Paid</TableHead>
                   <TableHead>Balance</TableHead>
                   <TableHead>Status</TableHead>
@@ -272,7 +288,7 @@ const PaymentList = () => {
               <TableBody>
                 {pendingPayments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                       No pending payments
                     </TableCell>
                   </TableRow>
@@ -291,9 +307,10 @@ const PaymentList = () => {
                           }
                         </ul>
                       </TableCell>
-                      <TableCell className="font-semibold">{paymentService.formatPrice(payment.total_amount)}</TableCell>
+                      <TableCell className="font-semibold">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.baseTotal; })())}</TableCell>
+                      <TableCell className="font-semibold text-amber-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.discountValue; })())}</TableCell>
                       <TableCell className="font-semibold text-green-600">{paymentService.formatPrice(payment.amount_paid)}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice(payment.total_amount - payment.amount_paid)}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(payment.payment_status)}>
                           {payment.payment_status === 'claim_submitted' ? 'Claimed' : payment.payment_status.charAt(0).toUpperCase() + payment.payment_status.slice(1)}
@@ -381,7 +398,7 @@ const PaymentList = () => {
                         </ul>
                       </TableCell>
                       <TableCell className="font-semibold text-green-600">{paymentService.formatPrice(payment.amount_paid)}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice(payment.total_amount - payment.amount_paid)}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
                       <TableCell>
                         <Badge className={getMethodColor(payment.payment_method)}>
                           {payment.payment_method.replace('_', ' ').charAt(0).toUpperCase() + payment.payment_method.replace('_', ' ').slice(1)}
@@ -440,6 +457,7 @@ const PaymentList = () => {
                   <TableHead>Patient</TableHead>
                   <TableHead>Treatment</TableHead>
                   <TableHead>Total Amount</TableHead>
+                  <TableHead>Discount</TableHead>
                   <TableHead>Amount Paid</TableHead>
                   <TableHead>Balance</TableHead>
                   <TableHead>Status</TableHead>
@@ -451,7 +469,7 @@ const PaymentList = () => {
               <TableBody>
                 {filteredPayments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                       No payments found
                     </TableCell>
                   </TableRow>
@@ -470,9 +488,10 @@ const PaymentList = () => {
                           }
                         </ul>
                       </TableCell>
-                      <TableCell className="font-semibold">{paymentService.formatPrice(payment.total_amount)}</TableCell>
+                      <TableCell className="font-semibold">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.baseTotal; })())}</TableCell>
+                      <TableCell className="font-semibold text-amber-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.discountValue; })())}</TableCell>
                       <TableCell className="font-semibold text-green-600">{paymentService.formatPrice(payment.amount_paid)}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice(payment.total_amount - payment.amount_paid)}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(payment.payment_status)}>
                           {payment.payment_status === 'claim_submitted' ? 'Claimed' : payment.payment_status.charAt(0).toUpperCase() + payment.payment_status.slice(1)}

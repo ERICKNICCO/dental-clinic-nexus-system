@@ -82,19 +82,19 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
     try {
       // Remove duration in parentheses from treatmentName
       const cleanedTreatmentName = treatmentName.replace(/\s*\([^)]*min\)/gi, '').trim();
-      const paymentData = {
-        patient_id: `manual-${Date.now()}`, // Generate a temporary ID for manual entries
-        patient_name: patientName,
-        treatment_name: cleanedTreatmentName,
-        total_amount: Math.round(amount * 100), // Convert to cents
-        amount_paid: 0,
-        payment_status: 'pending' as const,
-        payment_method: paymentMethod,
-        insurance_provider: paymentMethod === 'insurance' ? insuranceProvider : undefined,
-        collected_by: userProfile.name || userProfile.email,
-        notes: notes || undefined,
-        appointment_id: selectedAppointment
-      };
+        const paymentData = {
+          patient_id: `manual-${Date.now()}`, // Generate a temporary ID for manual entries
+          patient_name: patientName,
+          treatment_name: cleanedTreatmentName,
+          total_amount: Math.round(amount),
+          amount_paid: 0,
+          payment_status: 'pending' as const,
+          payment_method: paymentMethod,
+          insurance_provider: paymentMethod === 'insurance' ? insuranceProvider : undefined,
+          collected_by: userProfile.name || userProfile.email,
+          notes: notes || undefined,
+          appointment_id: selectedAppointment
+        };
 
       await paymentService.createPayment(paymentData);
 
