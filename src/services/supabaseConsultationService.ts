@@ -133,18 +133,30 @@ export const supabaseConsultationService = {
   // Complete consultation
   async completeConsultation(id: string, finalData: Partial<Consultation>) {
     try {
-      console.log('Completing consultation:', id);
-      
-      const { error } = await supabase
-        .from('consultations')
-        .update({
-          ...finalData,
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', id);
+      console.log('Completing consultation (rpc first, then fallback):', id);
 
-      if (error) throw error;
+      // 1) Try server-side procedure for reliability
+      const { error: rpcError } = await supabase.rpc('update_consultation_status', {
+        consultation_id: id,
+        new_status: 'completed',
+        completed_at: new Date().toISOString(),
+      });
+
+      if (rpcError) {
+        console.warn('RPC update_consultation_status failed, falling back to direct update:', rpcError.message);
+        // 2) Fallback to direct table update
+        const { error: updateError } = await supabase
+          .from('consultations')
+          .update({
+            ...finalData,
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', id);
+
+        if (updateError) throw updateError;
+      }
+
       console.log('Consultation completed successfully');
     } catch (error) {
       console.error('Error completing consultation:', error);

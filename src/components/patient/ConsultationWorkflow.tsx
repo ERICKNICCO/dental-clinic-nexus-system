@@ -179,6 +179,10 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       }
       // Complete the consultation first
       await completeConsultation(activeConsultation.id, consultationData);
+      // Ensure UI reflects completion by refreshing active consultation state
+      if (refreshConsultation) {
+        await refreshConsultation();
+      }
       
       // Create medical history record from consultation data
       const medicalHistoryRecord = {
