@@ -137,6 +137,7 @@
   
   .calendar-day.today {
     @apply border-2 border-dental-600;
+  }
 }
 
 /* Print styles for receipts */
