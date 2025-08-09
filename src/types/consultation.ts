@@ -1,15 +1,15 @@
 export interface Consultation {
   id: string;
-  patientId: string;
-  doctorId: string;
-  doctorName: string;
-  appointmentId?: string;
+  patient_id: string;
+  doctor_id: string;
+  doctor_name: string;
+  appointment_id?: string;
   status: 'in-progress' | 'waiting-xray' | 'xray-done' | 'completed' | 'cancelled';
 
   // Consultation steps
   symptoms: string;
   examination: string;
-  vitalSigns: {
+  vital_signs: {
     bloodPressure?: string;
     temperature?: string;
     heartRate?: string;
@@ -17,29 +17,29 @@ export interface Consultation {
     height?: string;
   };
   diagnosis: string;
-  diagnosisType?: 'clinical' | 'xray';
-  treatmentPlan: string;
+  diagnosis_type?: 'clinical' | 'xray';
+  treatment_plan: string;
   prescriptions: string;
-  followUpInstructions: string;
-  nextAppointment?: string;
+  follow_up_instructions: string;
+  next_appointment?: string;
 
   // Treatment cost information
-  estimatedCost?: number;
-  treatmentItems?: Array<{
+  estimated_cost?: number;
+  treatment_items?: Array<{
     name: string;
     cost: number;
     duration: string;
   }>;
+  discount_percent?: number;
 
-  startedAt: Date;
-  completedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  started_at: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
 
-  // Add the xrayResult field
-  xrayResult?: {
+  xray_result?: {
     images: string[];
     note: string;
     radiologist: string;
   } | null;
-} 
+}
