@@ -47,7 +47,7 @@ const JubileeCheckoutTab: React.FC<JubileeCheckoutTabProps> = ({
   useEffect(() => {
     if (memberVerification?.isValid && treatments.length > 0) {
       const calculation = copaymentService.calculateCopayment(
-        treatments,
+        treatments.map(item => ({ ...item, quantity: 1 })),
         'JUBILEE',
         {
           copaymentPercentage: memberVerification.benefits?.copaymentPercentage || 10,

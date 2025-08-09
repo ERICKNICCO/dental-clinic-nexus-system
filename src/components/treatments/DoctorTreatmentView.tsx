@@ -24,7 +24,7 @@ const DoctorTreatmentView: React.FC = () => {
       try {
         const all = await supabaseConsultationService.getAllConsultations();
         // Filter by doctor
-        const doctorConsults = all.filter(c => c.doctorName === userProfile?.name);
+        const doctorConsults = all.filter(c => c.doctor_name === userProfile?.name);
         setConsultations(doctorConsults);
       } catch (err: any) {
         setError('Failed to load consultations');

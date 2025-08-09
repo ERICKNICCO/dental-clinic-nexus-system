@@ -46,7 +46,7 @@ const GACheckoutTab: React.FC<GACheckoutTabProps> = ({
   useEffect(() => {
     if (memberVerification?.isValid && treatments.length > 0) {
       const calculation = copaymentService.calculateCopayment(
-        treatments,
+        treatments.map(item => ({ ...item, quantity: 1 })),
         'GA',
         memberVerification.benefits
       );
@@ -141,7 +141,13 @@ const GACheckoutTab: React.FC<GACheckoutTabProps> = ({
         invoiceNumber: `INV-${Date.now()}`
       };
 
-      const claimResponse = await gaInsuranceService.submitClaim(claimData);
+      const claimResponse = await gaInsuranceService.submitClaim(
+        consultation.patient_id,
+        'GA Patient', // Would get from consultation data
+        authorizationNumber,
+        treatments,
+        claimData.invoiceNumber
+      );
       
       const paymentData = {
         totalAmount,

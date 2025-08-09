@@ -519,7 +519,7 @@ const CheckoutTab: React.FC<CheckoutTabProps> = ({
                     insuranceProvider={patientInsurance || ''}
                     treatmentDetails={{
                       diagnosis: consultationData.diagnosis || '',
-                      treatment_plan: consultationData.treatmentPlan || '',
+                      treatment_plan: consultationData.treatment_plan || '',
                       procedures: getProceduresArray(),
                       total_amount: totalAmount
                     }}

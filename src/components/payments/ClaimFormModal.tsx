@@ -75,7 +75,7 @@ const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
   const finalDiagnosis = '';
   const serviceFee = payment ? payment.treatment_name : '';
   const serviceCost = payment ? payment.total_amount : '';
-  const clinicianName = consultation?.doctorName || 'Dr. Clinician';
+  const clinicianName = consultation?.doctor_name || 'Dr. Clinician';
   const clinicianQualification = 'BDS';
   const clinicianRegNo = 'Reg No.';
   const clinicianMobile = 'Mobile No.';
@@ -97,8 +97,8 @@ const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
       insurance_provider: payment.insurance_provider || '',
       treatment_details: {
         diagnosis: consultation?.diagnosis || '',
-        treatment_plan: consultation?.treatmentPlan || '',
-        procedures: Array.isArray(consultation?.treatmentItems) ? consultation.treatmentItems.map(item => item.name) : [],
+        treatment_plan: consultation?.treatment_plan || '',
+        procedures: Array.isArray(consultation?.treatment_items) ? consultation.treatment_items.map(item => item.name) : [],
         total_amount: payment.total_amount,
       },
       patient_signature: signature,

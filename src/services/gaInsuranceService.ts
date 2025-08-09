@@ -179,22 +179,23 @@ export const gaInsuranceService = {
   },
 
   // Submit claim to GA
-  async submitClaim(claim: GAClaimSubmission): Promise<GAClaimResponse> {
+  async submitClaim(patientId: string, patientName: string, authorizationNumber: string, treatmentItems: any[], invoiceNumber: string): Promise<GAClaimResponse> {
     try {
-      console.log('Submitting GA claim for member:', claim.memberNumber);
+      console.log('Submitting GA claim for patient:', patientName);
       
       // Store claim in our database
       const { data, error } = await supabase
         .from('insurance_claims')
         .insert({
-          patient_id: claim.memberNumber,
-          patient_name: 'GA Member', // Would be filled from member verification
-          insurance_provider: 'GA',
+          patient_id: patientId,
+          patient_name: patientName,
+          insurance_provider: 'GA Insurance',
           claim_status: 'submitted',
+          patient_signature: 'Digital signature captured',
           treatment_details: {
-            authorizationNumber: claim.authorizationNumber,
-            treatments: claim.treatments,
-            invoiceNumber: claim.invoiceNumber
+            authorizationNumber: authorizationNumber,
+            treatments: treatmentItems,
+            invoiceNumber: invoiceNumber
           }
         })
         .select()
@@ -204,7 +205,7 @@ export const gaInsuranceService = {
 
       // Simulate claim submission
       const claimNumber = `GA-CLAIM-${Date.now()}`;
-      const totalAmount = claim.treatments.reduce((sum, treatment) => sum + treatment.amount, 0);
+      const totalAmount = treatmentItems.reduce((sum: number, treatment: any) => sum + treatment.cost, 0);
       const approvedAmount = Math.floor(totalAmount * 0.8); // 80% approval simulation
 
       return {

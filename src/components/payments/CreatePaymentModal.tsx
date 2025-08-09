@@ -42,7 +42,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
         if (latestConsultation) {
           setConsultation(latestConsultation);
           // Compose treatment name and total from consultation
-          const items = Array.isArray(latestConsultation.treatmentItems) ? latestConsultation.treatmentItems : [];
+          const items = Array.isArray(latestConsultation.treatment_items) ? latestConsultation.treatment_items : [];
           const treatmentNameStr = items.length > 0
             ? items.map(item => `${item.name} - TSh ${item.cost.toLocaleString()}${item.duration ? ` (${item.duration})` : ''}`).join(' • ')
             : latestConsultation.diagnosis || 'General consultation';

@@ -62,15 +62,15 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       setConsultationData({
         symptoms: activeConsultation.symptoms || '',
         examination: activeConsultation.examination || '',
-        vitalSigns: activeConsultation.vitalSigns || {},
-        diagnosis: activeConsultation.diagnosis || '',
-        diagnosisType: activeConsultation.diagnosisType || 'clinical',
-        treatmentPlan: activeConsultation.treatmentPlan || '',
-        prescriptions: activeConsultation.prescriptions || '',
-        followUpInstructions: activeConsultation.followUpInstructions || '',
-        nextAppointment: activeConsultation.nextAppointment || '',
-        estimatedCost: activeConsultation.estimatedCost || 0,
-        treatmentItems: activeConsultation.treatmentItems || []
+        vital_signs: activeConsultation?.vital_signs || {},
+        diagnosis: activeConsultation?.diagnosis || '',
+        diagnosis_type: activeConsultation?.diagnosis_type || 'clinical',
+        treatment_plan: activeConsultation?.treatment_plan || '',
+        prescriptions: activeConsultation?.prescriptions || '',
+        follow_up_instructions: activeConsultation?.follow_up_instructions || '',
+        next_appointment: activeConsultation?.next_appointment || '',
+        estimated_cost: activeConsultation?.estimated_cost || 0,
+        treatment_items: activeConsultation?.treatment_items || []
       });
     }
   }, [activeConsultation]);
@@ -189,9 +189,9 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
           consultationData.examination && `Examination: ${consultationData.examination}`,
           consultationData.diagnosis && `Diagnosis: ${consultationData.diagnosis}`,
           consultationData.prescriptions && `Prescriptions: ${consultationData.prescriptions}`,
-          consultationData.followUpInstructions && `Follow-up: ${consultationData.followUpInstructions}`
+          consultationData.follow_up_instructions && `Follow-up: ${consultationData.follow_up_instructions}`
         ].filter(Boolean).join('\n\n'),
-        treatment: consultationData.treatmentPlan || 'Treatment plan documented',
+        treatment: consultationData.treatment_plan || 'Treatment plan documented',
         doctor: userProfile.name || userProfile.email
       };
       
@@ -206,11 +206,11 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
         procedure: consultationData.diagnosis || 'General consultation',
         notes: [
           consultationData.examination && `Examination: ${consultationData.examination}`,
-          consultationData.treatmentPlan && `Treatment Plan: ${consultationData.treatmentPlan}`,
+          consultationData.treatment_plan && `Treatment Plan: ${consultationData.treatment_plan}`,
           consultationData.prescriptions && `Prescriptions: ${consultationData.prescriptions}`,
           consultationData.diagnosis && `Diagnosis: ${consultationData.diagnosis}`
         ].filter(Boolean).join('\n\n') || 'Consultation completed',
-        followUp: consultationData.followUpInstructions || '',
+        followUp: consultationData.follow_up_instructions || '',
         doctor: userProfile.name || userProfile.email
       };
       
@@ -244,11 +244,11 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
           // Fetch the latest consultation data to ensure all treatments are included
           const latestConsultation = await supabaseConsultationService.getConsultation(activeConsultation.id);
           let items: any[] = [];
-          if (latestConsultation && Array.isArray(latestConsultation.treatmentItems)) {
-            items = latestConsultation.treatmentItems;
-          } else if (latestConsultation && typeof latestConsultation.treatmentItems === 'string') {
+          if (latestConsultation && Array.isArray(latestConsultation.treatment_items)) {
+            items = latestConsultation.treatment_items;
+          } else if (latestConsultation && typeof latestConsultation.treatment_items === 'string') {
             try {
-              items = JSON.parse(latestConsultation.treatmentItems);
+              items = JSON.parse(latestConsultation.treatment_items);
             } catch (e) {
               items = [];
             }
@@ -283,7 +283,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
             payment_method: patient?.patientType || 'cash',
             insurance_provider: patient?.insurance || 'N/A',
             collected_by: userProfile.name || userProfile.email,
-            notes: `Treatment: ${latestConsultation?.treatmentPlan}`,
+            notes: `Treatment: ${latestConsultation?.treatment_plan}`,
             appointment_id: selectedAppointment,
             consultation_id: activeConsultation.id
           };
@@ -304,7 +304,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
           doctorName: userProfile.name || userProfile.email,
           consultationId: activeConsultation.id,
           diagnosis: consultationData.diagnosis,
-          estimatedCost: consultationData.estimatedCost,
+          estimatedCost: consultationData.estimated_cost,
           appointmentId: selectedAppointment || undefined
         });
         
@@ -316,13 +316,13 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       }
 
       // Notify admin for payment collection if needed
-      if (consultationData.diagnosis && consultationData.treatmentPlan) {
+      if (consultationData.diagnosis && consultationData.treatment_plan) {
         try {
           await adminNotificationService.notifyAdminForPaymentCollection({
             patientId: patientId,
             patientName: patientName,
             diagnosis: consultationData.diagnosis,
-            estimatedCost: consultationData.estimatedCost || 50000,
+            estimatedCost: consultationData.estimated_cost || 50000,
             consultationId: activeConsultation.id,
             appointmentId: selectedAppointment || undefined
           });
@@ -440,7 +440,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
 
   return (
     <div className="space-y-6">
-      {activeConsultation.appointmentId && (
+      {activeConsultation.appointment_id && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -481,7 +481,7 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
         patientId={patientId}
         consultationStatus={activeConsultation?.status}
         onSendToXRay={handleSendToXRay}
-        xrayResult={activeConsultation?.xrayResult ?? null}
+        xrayResult={activeConsultation?.xray_result ?? null}
         selectedAppointment={selectedAppointment || ''}
         patientType={patient?.patientType}
         patientInsurance={patient?.insurance}

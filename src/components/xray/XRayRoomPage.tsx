@@ -42,7 +42,7 @@ export const XRayRoomPage: React.FC = () => {
         const uniquePatientsMap = new Map<string, WaitingPatient>();
 
         for (const consultation of consultations) {
-          const patientIdFromConsultation = consultation.patientId;
+          const patientIdFromConsultation = consultation.patient_id;
           const consultationId = consultation.id;
 
           console.log('🔥 XRayRoomPage: Processing consultation:', {

@@ -76,7 +76,7 @@ export const supabaseConsultationService = {
       if (error) throw error;
       
       console.log('Consultation started with ID:', data.id);
-      return data as Consultation;
+      return data as unknown as Consultation;
     } catch (error) {
       console.error('Error starting consultation:', error);
       throw error;
@@ -105,7 +105,7 @@ export const supabaseConsultationService = {
       }
       
       console.log('Active consultation found:', data);
-      return data as Consultation;
+      return data as unknown as Consultation;
     } catch (error) {
       console.error('Error fetching active consultation:', error);
       throw error;
@@ -166,7 +166,7 @@ export const supabaseConsultationService = {
       if (error) throw error;
       
       console.log('Fetched consultations:', data);
-      return data as Consultation[];
+      return data as unknown as Consultation[];
     } catch (error) {
       console.error('Error fetching consultations:', error);
       throw error;
@@ -183,7 +183,7 @@ export const supabaseConsultationService = {
         .single();
 
       if (error) throw error;
-      return data as Consultation;
+      return data as unknown as Consultation;
     } catch (error) {
       console.error('Error fetching consultation:', error);
       throw error;
@@ -199,7 +199,7 @@ export const supabaseConsultationService = {
         .order('started_at', { ascending: false });
 
       if (error) throw error;
-      return data as Consultation[];
+      return data as unknown as Consultation[];
     } catch (error) {
       console.error('Error fetching all consultations:', error);
       throw error;
@@ -216,7 +216,7 @@ export const supabaseConsultationService = {
         .order('started_at', { ascending: false });
 
       if (error) throw error;
-      return data as Consultation[];
+      return data as unknown as Consultation[];
     } catch (error) {
       console.error('Error fetching waiting X-ray consultations:', error);
       throw error;
@@ -235,7 +235,7 @@ export const supabaseConsultationService = {
         .maybeSingle();
 
       if (error) throw error;
-      return data as Consultation | null;
+      return data as unknown as Consultation | null;
     } catch (error) {
       console.error('Error fetching latest consultation by appointment ID:', error);
       throw error;
