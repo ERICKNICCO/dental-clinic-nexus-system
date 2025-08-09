@@ -7,13 +7,27 @@ import { useSidebarCollapseOnMobile } from '../hooks/useSidebarCollapseOnMobile'
 
 const PaymentPage = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { userProfile } = useAuth();
+  const { userProfile, loading } = useAuth();
 
   useSidebarCollapseOnMobile(setIsSidebarCollapsed);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex h-screen overflow-hidden">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Only admin can access payments
   if (userProfile?.role !== 'admin') {

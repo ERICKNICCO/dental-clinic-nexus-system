@@ -21,7 +21,6 @@ import CreatePaymentModal from './payments/CreatePaymentModal';
 import ClaimFormModal from './payments/ClaimFormModal';
 import CashPaymentReceipt from './payments/CashPaymentReceipt';
 import { supabaseConsultationService } from '../services/supabaseConsultationService';
-import _ from 'lodash';
 import { toSentenceCase } from '@/lib/utils';
 import { useAppointments } from '../hooks/useAppointments';
 
@@ -75,10 +74,13 @@ const PaymentList = () => {
   const loadPayments = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Loading payments...');
       const allPayments = await paymentService.getAllPayments();
+      console.log('✅ Payments loaded:', allPayments.length);
       setPayments(allPayments);
     } catch (error) {
-      console.error('Error loading payments:', error);
+      console.error('❌ Error loading payments:', error);
+      // Don't throw error, just log it to prevent app crash
     } finally {
       setLoading(false);
     }
@@ -129,7 +131,10 @@ const PaymentList = () => {
     return (
       <div className="bg-white rounded-lg shadow">
         <div className="flex items-center justify-center h-64">
-          <span className="ml-2">Loading payment data...</span>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading payment data...</p>
+          </div>
         </div>
       </div>
     );
