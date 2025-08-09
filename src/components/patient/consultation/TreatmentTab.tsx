@@ -82,32 +82,34 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     setSelectedTreatments(updatedTreatments);
     
     const treatmentTexts = updatedTreatments.map(t => 
-      `• ${toSentenceCase(t.name)} - ${supabaseTreatmentPricingService.formatPrice(t.basePrice)} (${t.duration} min)`
+      `• ${toSentenceCase(t.name)} x ${t.quantity || 1} - ${supabaseTreatmentPricingService.formatPrice(t.basePrice * (t.quantity || 1))} (${t.duration} min)`
     );
     const newPlan = treatmentTexts.join('\n');
     setLocalTreatmentPlan(newPlan);
-    onUpdateField('treatmentPlan', newPlan); // Update parent immediately
+    onUpdateField('treatment_plan', newPlan);
     
     // Update estimated cost
-    const totalCost = updatedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-    onUpdateField('estimatedCost', totalCost.toString());
+    const totalCost = updatedTreatments.reduce((sum, t) => sum + (t.basePrice * (t.quantity || 1)), 0);
+    onUpdateField('estimated_cost', totalCost.toString());
     
     // Update treatment items
-    onUpdateField('treatmentItems', JSON.stringify(updatedTreatments.map(t => ({
+    onUpdateField('treatment_items', JSON.stringify(updatedTreatments.map(t => ({
       name: t.name,
-      cost: t.basePrice,
-      duration: t.duration
+      cost: t.basePrice * (t.quantity || 1),
+      duration: t.duration,
+      quantity: t.quantity || 1,
+      unit_cost: t.basePrice
     }))));
   };
 
-  const totalCost = selectedTreatments.reduce((sum, treatment) => sum + treatment.basePrice, 0);
+  const totalCost = selectedTreatments.reduce((sum, treatment) => sum + (treatment.basePrice * (treatment.quantity || 1)), 0);
 
   // Effect to update estimated cost whenever treatments change
   useEffect(() => {
     if (selectedTreatments.length > 0) {
-      const totalCost = selectedTreatments.reduce((sum, t) => sum + t.basePrice, 0);
-      console.log('TreatmentTab useEffect - updating estimated cost:', totalCost);
-      onUpdateField('estimatedCost', totalCost.toString());
+      const total = selectedTreatments.reduce((sum, t) => sum + (t.basePrice * (t.quantity || 1)), 0);
+      console.log('TreatmentTab useEffect - updating estimated cost:', total);
+      onUpdateField('estimated_cost', total.toString());
     }
   }, [selectedTreatments, onUpdateField]);
 
@@ -182,7 +184,7 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
           placeholder="Describe the treatment plan or use the cost display below to add treatments..."
           value={localTreatmentPlan}
           onChange={(e) => setLocalTreatmentPlan(e.target.value)}
-          onBlur={() => onUpdateField('treatmentPlan', localTreatmentPlan)}
+          onBlur={() => onUpdateField('treatment_plan', localTreatmentPlan)}
           rows={6}
         />
       </div>
