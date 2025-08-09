@@ -164,9 +164,10 @@ const ConsultationWorkflow: React.FC<ConsultationWorkflowProps> = ({ patientId, 
       console.log('User Profile:', userProfile);
       
       // Update appointment status to Completed if appointment exists
-      if (selectedAppointment) {
+      const apptId = selectedAppointment || activeConsultation.appointment_id || undefined;
+      if (apptId) {
         try {
-          await supabaseAppointmentService.updateAppointment(selectedAppointment, { status: 'Completed' });
+          await supabaseAppointmentService.updateAppointment(apptId, { status: 'Completed' });
           console.log('Appointment status updated to Completed');
           if (refreshAppointments) {
             await refreshAppointments();
