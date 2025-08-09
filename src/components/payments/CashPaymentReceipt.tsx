@@ -29,9 +29,12 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Receipt-${payment.patient_name.replace(/\s+/g, '-')}-${payment.payment_date}`,
+    documentTitle: `Receipt-${payment?.patient_name?.replace(/\s+/g, '-') || 'Unknown'}-${payment?.payment_date || 'Unknown'}`,
     onAfterPrint: () => {
       console.log('Receipt printed successfully');
+    },
+    onPrintError: (error) => {
+      console.error('Print error:', error);
     }
   });
 
@@ -44,20 +47,31 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
     logo: '/lovable-uploads/7894f073-6ef4-4509-aa4c-9dc1418c0e33.png'
   };
 
-  // Calculate totals and breakdown
+  // Calculate totals and breakdown with safety checks
   const calculateBreakdown = () => {
-    const subtotal = payment.total_amount;
+    if (!payment) {
+      return {
+        subtotal: 0,
+        discountAmount: 0,
+        discountPercent: 0,
+        finalTotal: 0,
+        amountPaid: 0,
+        balance: 0
+      };
+    }
+
+    const subtotal = payment.total_amount || 0;
     const discountAmount = payment.discount_amount || 0;
     const discountPercent = payment.discount_percent || 0;
-    const finalTotal = payment.final_total || payment.total_amount - discountAmount;
+    const finalTotal = payment.final_total || subtotal - discountAmount;
     
     return {
       subtotal,
       discountAmount,
       discountPercent,
       finalTotal,
-      amountPaid: payment.amount_paid,
-      balance: finalTotal - payment.amount_paid
+      amountPaid: payment.amount_paid || 0,
+      balance: finalTotal - (payment.amount_paid || 0)
     };
   };
 
@@ -108,7 +122,7 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
           {/* Receipt Header */}
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-2">PAYMENT RECEIPT</h2>
-            <p className="text-sm text-gray-600">Receipt No: RCP-{payment.id.substring(0, 8).toUpperCase()}</p>
+            <p className="text-sm text-gray-600">Receipt No: RCP-{payment?.id?.substring(0, 8)?.toUpperCase() || 'N/A'}</p>
             <p className="text-sm text-gray-600">Date: {currentDate.toLocaleDateString('en-GB')} {currentDate.toLocaleTimeString()}</p>
           </div>
 
@@ -117,26 +131,26 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
             <div className="bg-gray-50 p-4 rounded">
               <h3 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide">Patient Information</h3>
               <div className="space-y-2 text-sm">
-                <div><span className="font-medium">Name:</span> {payment.patient_name.toUpperCase()}</div>
-                <div><span className="font-medium">Patient ID:</span> {payment.patient_id}</div>
-                <div><span className="font-medium">Payment Date:</span> {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : 'N/A'}</div>
+                <div><span className="font-medium">Name:</span> {payment?.patient_name?.toUpperCase() || 'N/A'}</div>
+                <div><span className="font-medium">Patient ID:</span> {payment?.patient_id || 'N/A'}</div>
+                <div><span className="font-medium">Payment Date:</span> {payment?.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : 'N/A'}</div>
               </div>
             </div>
             
             <div className="bg-gray-50 p-4 rounded">
               <h3 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide">Payment Information</h3>
               <div className="space-y-2 text-sm">
-                <div><span className="font-medium">Payment Method:</span> {payment.payment_method.replace('_', ' ').toUpperCase()}</div>
+                <div><span className="font-medium">Payment Method:</span> {payment?.payment_method?.replace('_', ' ')?.toUpperCase() || 'N/A'}</div>
                 <div><span className="font-medium">Status:</span> 
                   <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                    payment.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-                    payment.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                    payment?.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                    payment?.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-red-100 text-red-800'
                   }`}>
-                    {payment.payment_status.toUpperCase()}
+                    {payment?.payment_status?.toUpperCase() || 'UNKNOWN'}
                   </span>
                 </div>
-                {payment.collected_by && (
+                {payment?.collected_by && (
                   <div><span className="font-medium">Collected By:</span> {payment.collected_by}</div>
                 )}
               </div>
@@ -166,9 +180,9 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
                     ))
                   ) : (
                     <tr className="border-t border-gray-200">
-                      <td className="p-3">{payment.treatment_name}</td>
+                      <td className="p-3">{payment?.treatment_name || 'N/A'}</td>
                       <td className="p-3 text-center">1</td>
-                      <td className="p-3 text-right font-medium">{payment.total_amount.toLocaleString()}</td>
+                      <td className="p-3 text-right font-medium">{(payment?.total_amount || 0).toLocaleString()}</td>
                     </tr>
                   )}
                 </tbody>
@@ -221,7 +235,7 @@ const CashPaymentReceipt: React.FC<CashPaymentReceiptProps> = ({
           </div>
 
           {/* Notes */}
-          {payment.notes && (
+          {payment?.notes && (
             <div className="mb-6">
               <h3 className="font-semibold text-gray-800 mb-2 text-sm uppercase tracking-wide">Notes</h3>
               <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">{payment.notes}</p>
