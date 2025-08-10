@@ -99,6 +99,20 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
     toast({ title: 'Benefits fetched' });
   };
 
+  const onTestConnectivity = async () => {
+    try {
+      const [ipRes, tokenRes] = await Promise.all([
+        supabase.functions.invoke('smart-ga', { body: { action: 'get_egress_ip' } }),
+        supabase.functions.invoke('smart-ga', { body: { action: 'get_token' } }),
+      ]);
+      const ip = ipRes.data?.ip || 'unknown';
+      const tokenOk = tokenRes.data?.ok === true;
+      toast({ title: 'Connectivity', description: `Edge IP: ${ip} • Token: ${tokenOk ? 'OK' : 'Failed'}` });
+    } catch (e: any) {
+      toast({ title: 'Connectivity error', description: String(e?.message || e), variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-4 space-y-3">
@@ -120,6 +134,7 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
           <Button onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
           <Button variant="secondary" onClick={onVerify}>Verify Member</Button>
           <Button variant="outline" onClick={onBenefits}>Get Benefits</Button>
+          <Button variant="ghost" onClick={onTestConnectivity}>Test Connection</Button>
         </div>
       </Card>
 

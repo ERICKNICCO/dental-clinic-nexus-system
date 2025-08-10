@@ -334,6 +334,17 @@ serve(async (req) => {
       return json({ ok: true, data });
     }
 
+    // Return the current egress IP of this Edge Function (for allowlisting)
+    if (action === "get_egress_ip") {
+      try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const ipData = await res.json();
+        return json({ ok: true, ip: ipData?.ip, smartBaseUrl: BASE_URL });
+      } catch (e) {
+        return json({ ok: false, error: String((e as any)?.message || e) }, 500);
+      }
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (error) {
     console.error("smart-ga error:", error);
