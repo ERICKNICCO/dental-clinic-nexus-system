@@ -29,7 +29,7 @@ export const paymentService = {
       style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount) + ' Tsh';
+    }).format(amount);
   },
 
   // Get all payments
@@ -84,6 +84,7 @@ export const paymentService = {
             payment_date: new Date().toISOString() // Set current date as payment_date
           }
         ])
+        .select()
         .single();
 
       if (error) {
@@ -105,6 +106,7 @@ export const paymentService = {
         .from('payments')
         .update(updates)
         .eq('id', id)
+        .select()
         .single();
 
       if (error) {
@@ -182,6 +184,7 @@ export const paymentService = {
           notes: notes,
         })
         .eq('id', paymentId)
+        .select()
         .single();
 
       if (updateError) {
