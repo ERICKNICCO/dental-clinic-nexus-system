@@ -66,15 +66,20 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
   };
 
   const onVerify = async () => {
-    if (!data.insurance_member_id) {
-      return toast({ title: 'Missing member number', description: 'Enter insurance_member_id first', variant: 'destructive' });
+    const patientNumber = data.smart_patient_number || data.insurance_member_id;
+    if (!patientNumber) {
+      return toast({ title: 'Missing identifier', description: 'Enter smart_patient_number or member number', variant: 'destructive' });
     }
-    const res = await gaInsuranceService.verifyMember({
-      memberNumber: data.insurance_member_id,
-      patientDetails: { name: patientName, dateOfBirth: '1900-01-01', idNumber: patientId }
+    const { data: resp, error } = await supabase.functions.invoke('smart-ga', {
+      body: { action: 'verify_member', patientNumber }
     });
-    setVerification(res);
-    toast({ title: res.isValid ? 'Member verified' : 'Verification failed' });
+    if (error) return toast({ title: 'Verification error', description: error.message, variant: 'destructive' });
+    setVerification(resp);
+    if (resp?.ok === false) {
+      toast({ title: 'Verification failed', description: String(resp?.error || resp?.data?.body || 'Unknown error'), variant: 'destructive' });
+    } else {
+      toast({ title: 'Member verified' });
+    }
   };
 
   const onBenefits = async () => {
@@ -86,7 +91,11 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
       body: { action: 'get_benefits', patientNumber }
     });
     if (error) return toast({ title: 'Benefits error', description: error.message, variant: 'destructive' });
-    setBenefits(resp?.data || resp);
+    const inner = resp?.data ?? resp;
+    if (inner?.ok === false) {
+      return toast({ title: 'Benefits error', description: String(inner?.body || inner?.error || 'Unknown error'), variant: 'destructive' });
+    }
+    setBenefits(inner?.data ?? inner);
     toast({ title: 'Benefits fetched' });
   };
 

@@ -133,20 +133,33 @@ function buildApiUrl(path: string, params?: Record<string, string | number | boo
 
 async function fetchJson(path: string, params?: Record<string, unknown>) {
   const { token, type } = await getAccessToken();
-  const url = buildApiUrl(path, params as Record<string, string>);
+  const finalParams = {
+    payer_code: DEFAULT_PAYER_CODE,
+    provider_code: DEFAULT_PROVIDER_CODE,
+    sp_id: DEFAULT_SP_ID,
+    ...(params || {}),
+  } as Record<string, string>;
+  const url = buildApiUrl(path, finalParams);
   const res = await fetch(url, {
     headers: { Authorization: `${type} ${token}` },
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`SMART API ${path} failed: ${res.status} ${txt}`);
+    return { ok: false, status: res.status, body: txt };
   }
-  return res.json();
+  const json = await res.json();
+  return { ok: true, data: json };
 }
 
 async function postJson(path: string, body: unknown, params?: Record<string, unknown>) {
   const { token, type } = await getAccessToken();
-  const url = buildApiUrl(path, params as Record<string, string>);
+  const finalParams = {
+    payer_code: DEFAULT_PAYER_CODE,
+    provider_code: DEFAULT_PROVIDER_CODE,
+    sp_id: DEFAULT_SP_ID,
+    ...(params || {}),
+  } as Record<string, string>;
+  const url = buildApiUrl(path, finalParams);
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -157,9 +170,10 @@ async function postJson(path: string, body: unknown, params?: Record<string, unk
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`SMART API POST ${path} failed: ${res.status} ${txt}`);
+    return { ok: false, status: res.status, body: txt };
   }
-  return res.json();
+  const json = await res.json();
+  return { ok: true, data: json };
 }
 
 serve(async (req) => {
@@ -178,49 +192,50 @@ serve(async (req) => {
     }
 
     if (action === "verify_member") {
-      const patientNumber = payload?.patientNumber as string;
-      const sessionId = payload?.sessionId as string | undefined;
-      if (!patientNumber) return json({ error: "patientNumber is required" }, 400);
+      try {
+        const patientNumber = payload?.patientNumber as string;
+        const sessionId = payload?.sessionId as string | undefined;
+        if (!patientNumber) return json({ ok: false, error: "patientNumber is required" });
 
-      // If sessionId not provided, try to get a pending visit to obtain sessionId
-      let effectiveSessionId = sessionId;
-      if (!effectiveSessionId) {
-        try {
-          const visitResp = await fetchJson("/api/visit", {
+        // If sessionId not provided, try to get a pending visit to obtain sessionId
+        let effectiveSessionId = sessionId;
+        if (!effectiveSessionId) {
+          const visitResp: any = await fetchJson("/api/visit", {
             patientNumber,
             patient_number: patientNumber,
             sessionStatus: "PENDING",
             session_status: "PENDING",
           });
-          // Try to read sessionId field from response
-          effectiveSessionId = visitResp?.sessionId ?? visitResp?.data?.sessionId ?? visitResp?.id ?? undefined;
-        } catch (_) {
-          // ignore; proceed without sessionId
+          if (visitResp?.ok) {
+            const d = visitResp.data;
+            effectiveSessionId = d?.sessionId ?? d?.session_id ?? d?.id ?? undefined;
+          }
         }
-      }
 
-      const member = await fetchJson("/api/member", {
-        patientNumber,
-        patient_number: patientNumber,
-        sessionId: effectiveSessionId,
-        session_id: effectiveSessionId,
-      });
-
-      let benefits: unknown = null;
-      try {
-        benefits = await fetchJson("/api/benefits", {
+        const memberResp: any = await fetchJson("/api/member", {
           patientNumber,
           patient_number: patientNumber,
           sessionId: effectiveSessionId,
           session_id: effectiveSessionId,
         });
-      } catch (_) {
-        // benefits optional
-      }
+        if (memberResp?.ok === false) return json({ ok: false, error: memberResp.body, status: memberResp.status, sessionId: effectiveSessionId });
 
-      // Attempt to summarize minimal structure needed by UI
-      const coverageInfo = { dentalCoverage: true };
-      return json({ ok: true, member, benefits, coverageInfo, sessionId: effectiveSessionId });
+        const benefitsResp: any = await fetchJson("/api/benefits", {
+          patientNumber,
+          patient_number: patientNumber,
+          sessionId: effectiveSessionId,
+          session_id: effectiveSessionId,
+        });
+
+        return json({
+          ok: true,
+          member: memberResp?.data ?? memberResp,
+          benefits: benefitsResp?.data ?? benefitsResp,
+          sessionId: effectiveSessionId,
+        });
+      } catch (e) {
+        return json({ ok: false, error: String((e as any)?.message || e) });
+      }
     }
 
     if (action === "get_benefits") {
