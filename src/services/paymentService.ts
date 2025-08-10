@@ -160,13 +160,19 @@ export const paymentService = {
         throw new Error('Payment not found');
       }
 
-      // Calculate the new amount paid and the remaining balance
-      const newAmountPaid = (existingPayment.amount_paid || 0) + amountPaid;
-      const remainingBalance = existingPayment.total_amount - newAmountPaid;
+      // Calculate totals and cap overpayments gracefully
+      const baseTotal = Number(existingPayment.final_total) > 0
+        ? Number(existingPayment.final_total)
+        : Number(existingPayment.total_amount) || 0;
+
+      const alreadyPaid = Number(existingPayment.amount_paid) || 0;
+      const remainingBefore = Math.max(baseTotal - alreadyPaid, 0);
+      const amountToApply = Math.max(Math.min(Number(amountPaid) || 0, remainingBefore), 0);
+      const newAmountPaid = Math.min(alreadyPaid + amountToApply, baseTotal);
 
       // Determine the new payment status
       let newPaymentStatus: 'pending' | 'partial' | 'paid' = 'pending';
-      if (newAmountPaid >= existingPayment.total_amount) {
+      if (newAmountPaid >= baseTotal) {
         newPaymentStatus = 'paid';
       } else if (newAmountPaid > 0) {
         newPaymentStatus = 'partial';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -47,11 +47,31 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     setLoading(true);
     try {
       console.log('🔥 RecordPaymentModal: Recording payment for ID:', selectedPayment);
-      console.log('🔥 RecordPaymentModal: Amount to record:', amount, 'Payment method:', paymentMethod);
-      
+
+      const selected = payments.find(p => p.id === selectedPayment);
+      if (!selected) {
+        toast.error('Selected payment not found');
+        setLoading(false);
+        return;
+      }
+      const baseTotal = (Number(selected.final_total) > 0 ? Number(selected.final_total) : Number(selected.total_amount)) || 0;
+      const remaining = Math.max(baseTotal - (Number(selected.amount_paid) || 0), 0);
+      if (remaining <= 0) {
+        toast.info('This payment is already fully paid.');
+        setLoading(false);
+        return;
+      }
+
+      let amountToSend = Math.round(amount);
+      if (amountToSend > remaining) {
+        toast.info(`Amount exceeds remaining balance. It will be capped to ${paymentService.formatPrice(remaining)}.`);
+        amountToSend = remaining;
+      }
+
+      console.log('🔥 RecordPaymentModal: Amount to record (final):', amountToSend, 'Payment method:', paymentMethod);
       const updatedPayment = await paymentService.recordPayment(
         selectedPayment,
-        Math.round(amount),
+        amountToSend,
         paymentMethod,
         userProfile.name || userProfile.email,
         notes
@@ -101,6 +121,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
+          <DialogDescription>Record a cash, card, bank transfer, or insurance payment and update the patient balance.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -110,11 +131,15 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                 <SelectValue placeholder="Select a payment to record" />
               </SelectTrigger>
               <SelectContent>
-                {pendingPayments.map((payment) => (
-                  <SelectItem key={payment.id} value={payment.id}>
-                    {payment.patient_name} - {payment.treatment_name} (Balance: {paymentService.formatPrice(payment.total_amount - payment.amount_paid)})
-                  </SelectItem>
-                ))}
+                {pendingPayments.map((payment) => {
+                  const base = (Number(payment.final_total) > 0 ? Number(payment.final_total) : Number(payment.total_amount)) || 0;
+                  const balance = Math.max(base - (Number(payment.amount_paid) || 0), 0);
+                  return (
+                    <SelectItem key={payment.id} value={payment.id}>
+                      {payment.patient_name} - {payment.treatment_name} (Balance: {paymentService.formatPrice(balance)})
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
