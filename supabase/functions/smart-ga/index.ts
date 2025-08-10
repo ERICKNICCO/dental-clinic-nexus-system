@@ -188,7 +188,9 @@ serve(async (req) => {
         try {
           const visitResp = await fetchJson("/api/visit", {
             patientNumber,
+            patient_number: patientNumber,
             sessionStatus: "PENDING",
+            session_status: "PENDING",
           });
           // Try to read sessionId field from response
           effectiveSessionId = visitResp?.sessionId ?? visitResp?.data?.sessionId ?? visitResp?.id ?? undefined;
@@ -199,14 +201,18 @@ serve(async (req) => {
 
       const member = await fetchJson("/api/member", {
         patientNumber,
+        patient_number: patientNumber,
         sessionId: effectiveSessionId,
+        session_id: effectiveSessionId,
       });
 
       let benefits: unknown = null;
       try {
         benefits = await fetchJson("/api/benefits", {
           patientNumber,
+          patient_number: patientNumber,
           sessionId: effectiveSessionId,
+          session_id: effectiveSessionId,
         });
       } catch (_) {
         // benefits optional
@@ -221,7 +227,7 @@ serve(async (req) => {
       const patientNumber = payload?.patientNumber as string;
       const sessionId = payload?.sessionId as string | undefined;
       if (!patientNumber) return json({ error: "patientNumber is required" }, 400);
-      const data = await fetchJson("/api/benefits", { patientNumber, sessionId });
+      const data = await fetchJson("/api/benefits", { patientNumber, patient_number: patientNumber, sessionId, session_id: sessionId });
       return json({ ok: true, data });
     }
 
@@ -231,7 +237,7 @@ serve(async (req) => {
       const patientNumber = payload?.patientNumber as string;
       const status = payload?.sessionStatus as string | undefined;
       if (!patientNumber) return json({ error: "patientNumber is required" }, 400);
-      const data = await fetchJson("/api/visit", { patientNumber, sessionStatus: status ?? "PENDING" });
+      const data = await fetchJson("/api/visit", { patientNumber, patient_number: patientNumber, sessionStatus: status ?? "PENDING", session_status: (status ?? "PENDING") });
       return json({ ok: true, data });
     }
 
