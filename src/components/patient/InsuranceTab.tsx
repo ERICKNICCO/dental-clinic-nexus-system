@@ -16,6 +16,7 @@ interface PatientInsuranceData {
   insurance?: string | null;
   insurance_member_id?: string | null;
   smart_patient_number?: string | null;
+  patient_id?: string | null;
 }
 
 export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientName }) => {
@@ -31,13 +32,17 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
       setLoading(true);
       const { data, error } = await supabase
         .from('patients')
-        .select('insurance, insurance_member_id, smart_patient_number')
+        .select('insurance, insurance_member_id, smart_patient_number, patient_id')
         .eq('id', patientId)
         .maybeSingle();
       if (error) {
         toast({ title: 'Failed to load insurance data', description: error.message, variant: 'destructive' });
       } else {
-        setData(data || {});
+        const loaded = (data || {}) as PatientInsuranceData;
+        if (!loaded.smart_patient_number && loaded.patient_id) {
+          loaded.smart_patient_number = loaded.patient_id; // default to clinic ID e.g., SD-25-88413
+        }
+        setData(loaded);
       }
       setLoading(false);
     };
