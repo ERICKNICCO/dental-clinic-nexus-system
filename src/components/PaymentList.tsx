@@ -77,6 +77,21 @@ const PaymentList = () => {
     }
   };
 
+  // Number formatting without currency suffix for TZ
+  const formatNumber = (amount: number): string => new Intl.NumberFormat('en-TZ', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number(amount) || 0);
+
+  // Get display items from consultation or fallback to parsing text
+  const getItemsForPayment = (payment: Payment): { name: string; cost: number }[] => {
+    const id = payment.consultation_id as string | undefined;
+    if (id && consultationTreatments[id]?.length) return consultationTreatments[id]!;
+    if (payment.treatment_name) return parseTreatmentPlan(payment.treatment_name);
+    return [];
+  };
+
   useEffect(() => {
     loadPayments();
   }, []);
@@ -333,19 +348,26 @@ const PaymentList = () => {
                       <TableCell className="font-medium">{payment.patient_name.toUpperCase()}</TableCell>
                       <TableCell>
                         <ul className="list-disc list-inside space-y-1">
-                          {payment.treatment_name
-                            ? payment.treatment_name.split(' • ').map((t, idx) => {
-                                const cleaned = t.replace(/\s*\([^)]*min\)/gi, '').trim();
-                                return <li key={idx}>{toSentenceCase(cleaned)}</li>;
-                              })
-                            : <li>-</li>
+                          {(getItemsForPayment(payment)).length > 0
+                            ? getItemsForPayment(payment).map((it, idx) => (
+                                <li key={idx} className="flex justify-between gap-2">
+                                  <span>{toSentenceCase(it.name)}</span>
+                                  <span className="tabular-nums font-medium">{formatNumber(it.cost)}</span>
+                                </li>
+                              ))
+                            : (
+                              payment.treatment_name ? payment.treatment_name.split(' • ').map((t, idx) => {
+                                  const cleaned = t.replace(/\s*\([^)]*min\)/gi, '').trim();
+                                  return <li key={idx}>{toSentenceCase(cleaned)}</li>;
+                                }) : <li>-</li>
+                            )
                           }
                         </ul>
                       </TableCell>
-                      <TableCell className="font-semibold">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.baseTotal; })())}</TableCell>
-                      <TableCell className="font-semibold text-amber-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.discountValue; })())}</TableCell>
-                      <TableCell className="font-semibold text-green-600">{paymentService.formatPrice(payment.amount_paid)}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
+                      <TableCell className="font-semibold">{formatNumber((() => { const a = computeDisplayAmounts(payment); return a.baseTotal; })())}</TableCell>
+                      <TableCell className="font-semibold text-amber-600">{formatNumber((() => { const a = computeDisplayAmounts(payment); return a.discountValue; })())}</TableCell>
+                      <TableCell className="font-semibold text-green-600">{formatNumber(payment.amount_paid)}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{formatNumber((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(payment.payment_status)}>
                           {payment.payment_status === 'claim_submitted' ? 'Claimed' : payment.payment_status.charAt(0).toUpperCase() + payment.payment_status.slice(1)}
@@ -423,17 +445,24 @@ const PaymentList = () => {
                       <TableCell className="font-medium">{payment.patient_name.toUpperCase()}</TableCell>
                       <TableCell>
                         <ul className="list-disc list-inside space-y-1">
-                          {payment.treatment_name
-                            ? payment.treatment_name.split(' • ').map((t, idx) => {
-                                const cleaned = t.replace(/\s*\([^)]*min\)/gi, '').trim();
-                                return <li key={idx}>{toSentenceCase(cleaned)}</li>;
-                              })
-                            : <li>-</li>
+                          {(getItemsForPayment(payment)).length > 0
+                            ? getItemsForPayment(payment).map((it, idx) => (
+                                <li key={idx} className="flex justify-between gap-2">
+                                  <span>{toSentenceCase(it.name)}</span>
+                                  <span className="tabular-nums font-medium">{formatNumber(it.cost)}</span>
+                                </li>
+                              ))
+                            : (
+                              payment.treatment_name ? payment.treatment_name.split(' • ').map((t, idx) => {
+                                  const cleaned = t.replace(/\s*\([^)]*min\)/gi, '').trim();
+                                  return <li key={idx}>{toSentenceCase(cleaned)}</li>;
+                                }) : <li>-</li>
+                            )
                           }
                         </ul>
                       </TableCell>
-                      <TableCell className="font-semibold text-green-600">{paymentService.formatPrice(payment.amount_paid)}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
+                      <TableCell className="font-semibold text-green-600">{formatNumber(payment.amount_paid)}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{formatNumber((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
                       <TableCell>
                         <Badge className={getMethodColor(payment.payment_method)}>
                           {payment.payment_method.replace('_', ' ').charAt(0).toUpperCase() + payment.payment_method.replace('_', ' ').slice(1)}
@@ -514,19 +543,26 @@ const PaymentList = () => {
                       <TableCell className="font-medium">{payment.patient_name.toUpperCase()}</TableCell>
                       <TableCell>
                         <ul className="list-disc list-inside space-y-1">
-                          {payment.treatment_name
-                            ? payment.treatment_name.split(' • ').map((t, idx) => {
-                                const cleaned = t.replace(/\s*\([^)]*min\)/gi, '').trim();
-                                return <li key={idx}>{toSentenceCase(cleaned)}</li>;
-                              })
-                            : <li>-</li>
+                          {(getItemsForPayment(payment)).length > 0
+                            ? getItemsForPayment(payment).map((it, idx) => (
+                                <li key={idx} className="flex justify-between gap-2">
+                                  <span>{toSentenceCase(it.name)}</span>
+                                  <span className="tabular-nums font-medium">{formatNumber(it.cost)}</span>
+                                </li>
+                              ))
+                            : (
+                              payment.treatment_name ? payment.treatment_name.split(' • ').map((t, idx) => {
+                                  const cleaned = t.replace(/\s*\([^)]*min\)/gi, '').trim();
+                                  return <li key={idx}>{toSentenceCase(cleaned)}</li>;
+                                }) : <li>-</li>
+                            )
                           }
                         </ul>
                       </TableCell>
-                      <TableCell className="font-semibold">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.baseTotal; })())}</TableCell>
-                      <TableCell className="font-semibold text-amber-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.discountValue; })())}</TableCell>
-                      <TableCell className="font-semibold text-green-600">{paymentService.formatPrice(payment.amount_paid)}</TableCell>
-                      <TableCell className="font-semibold text-red-600">{paymentService.formatPrice((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
+                      <TableCell className="font-semibold">{formatNumber((() => { const a = computeDisplayAmounts(payment); return a.baseTotal; })())}</TableCell>
+                      <TableCell className="font-semibold text-amber-600">{formatNumber((() => { const a = computeDisplayAmounts(payment); return a.discountValue; })())}</TableCell>
+                      <TableCell className="font-semibold text-green-600">{formatNumber(payment.amount_paid)}</TableCell>
+                      <TableCell className="font-semibold text-red-600">{formatNumber((() => { const a = computeDisplayAmounts(payment); return a.finalTotal - payment.amount_paid; })())}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(payment.payment_status)}>
                           {payment.payment_status === 'claim_submitted' ? 'Claimed' : payment.payment_status.charAt(0).toUpperCase() + payment.payment_status.slice(1)}
