@@ -686,6 +686,7 @@ export type Database = {
           patient_id: string
           patient_type: string
           phone: string | null
+          smart_patient_number: string | null
           updated_at: string
         }
         Insert: {
@@ -705,6 +706,7 @@ export type Database = {
           patient_id: string
           patient_type: string
           phone?: string | null
+          smart_patient_number?: string | null
           updated_at?: string
         }
         Update: {
@@ -724,6 +726,7 @@ export type Database = {
           patient_id?: string
           patient_type?: string
           phone?: string | null
+          smart_patient_number?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1041,6 +1044,7 @@ export type Database = {
           insurance_provider: string | null
           is_active: boolean
           name: string
+          smart_item_code: string | null
           updated_at: string
         }
         Insert: {
@@ -1053,6 +1057,7 @@ export type Database = {
           insurance_provider?: string | null
           is_active?: boolean
           name: string
+          smart_item_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -1065,6 +1070,7 @@ export type Database = {
           insurance_provider?: string | null
           is_active?: boolean
           name?: string
+          smart_item_code?: string | null
           updated_at?: string
         }
         Relationships: []
