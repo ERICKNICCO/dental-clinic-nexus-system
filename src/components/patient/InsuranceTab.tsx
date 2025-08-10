@@ -71,7 +71,7 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
       return toast({ title: 'Missing identifier', description: 'Enter smart_patient_number or member number', variant: 'destructive' });
     }
     const { data: resp, error } = await supabase.functions.invoke('smart-ga', {
-      body: { action: 'verify_member', patientNumber }
+      body: { action: 'verify_member', patientNumber, memberNumber: data.insurance_member_id }
     });
     if (error) return toast({ title: 'Verification error', description: error.message, variant: 'destructive' });
     setVerification(resp);

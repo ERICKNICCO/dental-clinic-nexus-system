@@ -193,13 +193,14 @@ serve(async (req) => {
 
     if (action === "verify_member") {
       try {
-        const patientNumber = payload?.patientNumber as string;
+        const patientNumber = payload?.patientNumber as string | undefined;
+        const memberNumber = payload?.memberNumber as string | undefined;
         const sessionId = payload?.sessionId as string | undefined;
-        if (!patientNumber) return json({ ok: false, error: "patientNumber is required" });
+        if (!patientNumber && !memberNumber) return json({ ok: false, error: "patientNumber or memberNumber is required" });
 
-        // If sessionId not provided, try to get a pending visit to obtain sessionId
+        // Try to get a session only if we have patientNumber
         let effectiveSessionId = sessionId;
-        if (!effectiveSessionId) {
+        if (!effectiveSessionId && patientNumber) {
           const visitResp: any = await fetchJson("/api/visit", {
             patientNumber,
             patient_number: patientNumber,
@@ -215,6 +216,8 @@ serve(async (req) => {
         const memberResp: any = await fetchJson("/api/member", {
           patientNumber,
           patient_number: patientNumber,
+          memberNumber,
+          member_number: memberNumber,
           sessionId: effectiveSessionId,
           session_id: effectiveSessionId,
         });
@@ -223,6 +226,8 @@ serve(async (req) => {
         const benefitsResp: any = await fetchJson("/api/benefits", {
           patientNumber,
           patient_number: patientNumber,
+          memberNumber,
+          member_number: memberNumber,
           sessionId: effectiveSessionId,
           session_id: effectiveSessionId,
         });
