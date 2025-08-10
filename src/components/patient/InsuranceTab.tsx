@@ -26,6 +26,7 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
   const [data, setData] = useState<PatientInsuranceData>({});
   const [verification, setVerification] = useState<any | null>(null);
   const [benefits, setBenefits] = useState<any | null>(null);
+  const [conn, setConn] = useState<{ ip?: string; tokenOk?: boolean; smartBaseUrl?: string; error?: string } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -107,8 +108,11 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
       ]);
       const ip = ipRes.data?.ip || 'unknown';
       const tokenOk = tokenRes.data?.ok === true;
+      const smartBaseUrl = ipRes.data?.smartBaseUrl as string | undefined;
+      setConn({ ip, tokenOk, smartBaseUrl, error: undefined });
       toast({ title: 'Connectivity', description: `Edge IP: ${ip} • Token: ${tokenOk ? 'OK' : 'Failed'}` });
     } catch (e: any) {
+      setConn({ error: String(e?.message || e) });
       toast({ title: 'Connectivity error', description: String(e?.message || e), variant: 'destructive' });
     }
   };
@@ -137,6 +141,28 @@ export const InsuranceTab: React.FC<InsuranceTabProps> = ({ patientId, patientNa
           <Button variant="ghost" onClick={onTestConnectivity}>Test Connection</Button>
         </div>
       </Card>
+
+      {conn && (
+        <Card className="p-4">
+          <h3 className="font-medium mb-2">Connectivity</h3>
+          <div className="text-sm space-y-2">
+            <div className="flex items-center gap-2">
+              <span>Edge IP:</span>
+              <code className="px-1 py-0.5 rounded bg-accent">{conn.ip || 'unknown'}</code>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => conn?.ip && navigator.clipboard.writeText(conn.ip!)}
+              >
+                Copy IP
+              </Button>
+            </div>
+            <div>Token: {conn?.tokenOk ? 'OK' : 'Failed'}</div>
+            {conn?.smartBaseUrl && <div>SMART Base URL: <code className="px-1 py-0.5 rounded bg-accent">{conn.smartBaseUrl}</code></div>}
+            {conn?.error && <div className="text-destructive">Error: {conn.error}</div>}
+          </div>
+        </Card>
+      )}
 
       {verification && (
         <Card className="p-4">
