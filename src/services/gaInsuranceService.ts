@@ -79,47 +79,62 @@ export const gaInsuranceService = {
   async verifyMember(request: GAVerificationRequest): Promise<GAVerificationResponse> {
     try {
       console.log('Verifying GA member:', request.memberNumber);
-      
-      // Simulate GA API call - in production, this would be an actual API call
-      // For now, we'll simulate based on member number pattern
-      const isValidMember = /^GA\d{8}$/.test(request.memberNumber);
-      
-      if (!isValidMember) {
+
+      // Call Supabase Edge Function that integrates with SMART (GA)
+      const { data, error } = await supabase.functions.invoke('smart-ga', {
+        body: {
+          action: 'verify_member',
+          patientNumber: request.memberNumber,
+          // Optionally pass sessionId if already captured from card tap flow
+          sessionId: undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.ok) {
         return {
           isValid: false,
           memberDetails: {
             name: '',
             memberNumber: request.memberNumber,
             scheme: '',
-            status: 'inactive'
+            status: 'inactive',
           },
           benefits: {
             dentalCoverage: false,
             annualLimit: 0,
             usedAmount: 0,
             remainingAmount: 0,
-            copaymentPercentage: 0
+            copaymentPercentage: 0,
           },
-          error: 'Invalid member number format'
+          error: data?.error || 'Verification failed',
         };
       }
 
-      // Simulate successful verification
+      // Attempt to map SMART response
+      const member = data.member || {};
+      const benefits = data.benefits || {};
+
+      const coPay = Number(benefits?.co_pay_amount ?? benefits?.copay ?? 20) || 20;
+      const annualLimit = Number(benefits?.amount ?? benefits?.annual_limit ?? 500000) || 500000;
+      const usedAmount = Number(benefits?.used ?? 0) || 0;
+      const remainingAmount = Math.max(annualLimit - usedAmount, 0);
+
       return {
         isValid: true,
         memberDetails: {
-          name: request.patientDetails.name,
+          name: member?.patient_name || request.patientDetails.name,
           memberNumber: request.memberNumber,
-          scheme: 'GA Comprehensive',
-          status: 'active'
+          scheme: member?.medical_aid_plan || 'GA Smart',
+          status: 'active',
         },
         benefits: {
           dentalCoverage: true,
-          annualLimit: 500000, // TSH 500,000
-          usedAmount: Math.floor(Math.random() * 200000), // Random used amount
-          remainingAmount: 300000,
-          copaymentPercentage: 20 // 20% copayment
-        }
+          annualLimit,
+          usedAmount,
+          remainingAmount,
+          copaymentPercentage: coPay,
+        },
       };
     } catch (error) {
       console.error('Error verifying GA member:', error);
@@ -129,16 +144,16 @@ export const gaInsuranceService = {
           name: '',
           memberNumber: request.memberNumber,
           scheme: '',
-          status: 'inactive'
+          status: 'inactive',
         },
         benefits: {
           dentalCoverage: false,
           annualLimit: 0,
           usedAmount: 0,
           remainingAmount: 0,
-          copaymentPercentage: 0
+          copaymentPercentage: 0,
         },
-        error: 'Verification service unavailable'
+        error: 'Verification service unavailable',
       };
     }
   },
