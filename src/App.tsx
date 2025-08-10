@@ -21,6 +21,7 @@ import './App.css';
 import { XRayRoomPage } from './components/xray/XRayRoomPage';
 import NotificationTest from './components/NotificationTest';
 import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
+import GASmartTestPage from './pages/GASmartTestPage';
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,13 @@ function AppRoutes() {
       <Route path="/notification-test" element={
         <ProtectedRoute>
           <NotificationTest />
+        </ProtectedRoute>
+      } />
+      <Route path="/ga-test" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={["admin","doctor"]}>
+            <GASmartTestPage />
+          </RoleBasedRoute>
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />
