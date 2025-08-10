@@ -13,6 +13,7 @@ import { useSupabasePatients } from '../../hooks/useSupabasePatients';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabaseAppointmentService } from '../../services/supabaseAppointmentService';
+import { InsuranceTab } from './InsuranceTab';
 
 const PatientFileContent: React.FC = () => {
   const { patientId: routePatientId } = useParams<{ patientId: string }>();
@@ -221,7 +222,7 @@ const PatientFileContent: React.FC = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="consultation" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="consultation" className="gap-2">
             <Stethoscope className="w-4 h-4" />
             Consultation
@@ -241,6 +242,10 @@ const PatientFileContent: React.FC = () => {
           <TabsTrigger value="appointments" className="gap-2">
             <Calendar className="w-4 h-4" />
             Appointments
+          </TabsTrigger>
+          <TabsTrigger value="insurance" className="gap-2">
+            <CreditCard className="w-4 h-4" />
+            Insurance
           </TabsTrigger>
         </TabsList>
 
@@ -276,6 +281,10 @@ const PatientFileContent: React.FC = () => {
 
         <TabsContent value="appointments">
           <AppointmentHistory patientId={patient?.id || ''} />
+        </TabsContent>
+
+        <TabsContent value="insurance">
+          <InsuranceTab patientId={patient?.id || ''} patientName={patient?.name || ''} />
         </TabsContent>
       </Tabs>
     </div>
