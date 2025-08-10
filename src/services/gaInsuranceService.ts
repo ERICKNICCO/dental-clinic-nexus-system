@@ -235,26 +235,84 @@ export const gaInsuranceService = {
     }
   },
 
-  // Check claim status
-  async checkClaimStatus(claimNumber: string): Promise<GAClaimResponse> {
+  // Check claim status via SMART
+  async checkClaimStatus(claimId: string): Promise<GAClaimResponse> {
     try {
-      console.log('Checking GA claim status:', claimNumber);
-      
-      // Simulate claim status check
-      const statuses: Array<'submitted' | 'processing' | 'approved' | 'rejected'> = 
-        ['submitted', 'processing', 'approved'];
-      const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-
+      const { data, error } = await supabase.functions.invoke('smart-ga', {
+        body: { action: 'claim_status', claimId },
+      });
+      if (error) throw error;
+      const statusData = data?.data || data;
       return {
-        claimNumber,
-        status: randomStatus,
-        approvedAmount: randomStatus === 'approved' ? 80000 : 0,
-        paymentDate: randomStatus === 'approved' ? new Date().toISOString() : undefined
+        claimNumber: String(claimId),
+        status: (statusData?.status || 'processing') as GAClaimResponse['status'],
+        approvedAmount: Number(statusData?.approved_amount ?? 0),
+        paymentDate: statusData?.payment_date,
+        rejectionReason: statusData?.rejection_reason,
       };
     } catch (error) {
       console.error('Error checking GA claim status:', error);
       throw error;
     }
+  },
+
+  // SMART visit/session helpers
+  async getSession(patientNumber: string) {
+    const { data, error } = await supabase.functions.invoke('smart-ga', {
+      body: { action: 'get_session', patientNumber }
+    });
+    if (error) throw error;
+    return data?.data || data;
+  },
+
+  async linkSession(visitNumber: string, sessionId: string) {
+    const { data, error } = await supabase.functions.invoke('smart-ga', {
+      body: { action: 'link_session', visitNumber, sessionId }
+    });
+    if (error) throw error;
+    return data?.data || data;
+  },
+
+  // ICD-10 diagnosis posting
+  async postDiagnosis(diagnosis: any) {
+    const { data, error } = await supabase.functions.invoke('smart-ga', {
+      body: { action: 'post_diagnosis', diagnosis }
+    });
+    if (error) throw error;
+    return data?.data || data;
+  },
+
+  // Final claim submission using SMART
+  async submitFinalClaim(claim: any) {
+    const { data, error } = await supabase.functions.invoke('smart-ga', {
+      body: { action: 'submit_final_claim', claim }
+    });
+    if (error) throw error;
+    return data?.data || data;
+  },
+
+  async submitInterimClaim(claim: any) {
+    const { data, error } = await supabase.functions.invoke('smart-ga', {
+      body: { action: 'submit_interim_claim', claim }
+    });
+    if (error) throw error;
+    return data?.data || data;
+  },
+
+  async submitAdmission(admission: any) {
+    const { data, error } = await supabase.functions.invoke('smart-ga', {
+      body: { action: 'submit_admission', admission }
+    });
+    if (error) throw error;
+    return data?.data || data;
+  },
+
+  async submitDischarge(discharge: any) {
+    const { data, error } = await supabase.functions.invoke('smart-ga', {
+      body: { action: 'submit_discharge', discharge }
+    });
+    if (error) throw error;
+    return data?.data || data;
   },
 
   // Calculate copayment for GA treatments
