@@ -53,14 +53,6 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
       const updatedTreatments = [...selectedTreatments, { ...treatment, quantity }];
       setSelectedTreatments(updatedTreatments);
       
-      const treatmentText = `${toSentenceCase(treatment.name)} x ${quantity} - ${supabaseTreatmentPricingService.formatPrice(treatment.basePrice * quantity)} (${treatment.duration} min)`;
-      const currentPlan = localTreatmentPlan || '';
-      const newPlan = currentPlan 
-        ? `${currentPlan}\n• ${treatmentText}`
-        : `• ${treatmentText}`;
-      
-      setLocalTreatmentPlan(newPlan);
-      onUpdateField('treatment_plan', newPlan); // Update parent immediately
       
       // Update estimated cost
       const totalCost = updatedTreatments.reduce((sum, t) => sum + (t.basePrice * (t.quantity || 1)), 0);
@@ -81,12 +73,6 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
     const updatedTreatments = selectedTreatments.filter(t => t.id !== treatmentId);
     setSelectedTreatments(updatedTreatments);
     
-    const treatmentTexts = updatedTreatments.map(t => 
-      `• ${toSentenceCase(t.name)} x ${t.quantity || 1} - ${supabaseTreatmentPricingService.formatPrice(t.basePrice * (t.quantity || 1))} (${t.duration} min)`
-    );
-    const newPlan = treatmentTexts.join('\n');
-    setLocalTreatmentPlan(newPlan);
-    onUpdateField('treatment_plan', newPlan);
     
     // Update estimated cost
     const totalCost = updatedTreatments.reduce((sum, t) => sum + (t.basePrice * (t.quantity || 1)), 0);
@@ -202,7 +188,7 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
       {/* Selected Treatments */}
       {selectedTreatments.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-base font-medium">Selected Treatments:</h3>
+          <h3 className="text-base font-medium">Treatment Items</h3>
           <div className="space-y-3">
             {selectedTreatments.map((treatment) => (
               <div key={treatment.id} className="flex justify-between items-center py-2">
