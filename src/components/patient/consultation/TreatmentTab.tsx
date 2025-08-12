@@ -150,104 +150,106 @@ const TreatmentTab: React.FC<TreatmentTabProps> = ({
   };
 
   return (
-    <div className="space-y-6 mt-6">
+    <div className="space-y-6">
       {/* Patient Payment Type Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-blue-600" />
-          <span className="font-medium text-blue-800">
+      <div className="flex items-start gap-2 mb-6">
+        <DollarSign className="h-5 w-5 text-blue-600 mt-0.5" />
+        <div>
+          <div className="font-semibold text-blue-600">
             Patient Payment Type: {getPaymentTypeDisplay()}
-          </span>
+          </div>
+          <div className="text-sm text-blue-500">
+            Treatment prices shown are specific to this payment type
+          </div>
         </div>
-        <p className="text-sm text-blue-600 mt-1">
-          Treatment prices shown are specific to this payment type
-        </p>
       </div>
 
       {/* Treatment Plan */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <Label htmlFor="treatmentPlan">Treatment Plan</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCostDisplay(!showCostDisplay)}
-            className="flex items-center gap-2"
-          >
-            <DollarSign className="h-4 w-4" />
-            {showCostDisplay ? 'Hide' : 'Show'} Treatment Costs
-          </Button>
-        </div>
+      <div className="space-y-3">
+        <Label htmlFor="treatmentPlan" className="text-base font-medium">Treatment Plan</Label>
         <Textarea
           id="treatmentPlan"
-          placeholder="Describe the treatment plan or use the cost display below to add treatments..."
+          placeholder="Describe the treatment plan..."
           value={localTreatmentPlan}
           onChange={(e) => setLocalTreatmentPlan(e.target.value)}
           onBlur={() => onUpdateField('treatment_plan', localTreatmentPlan)}
-          rows={6}
+          rows={4}
+          className="resize-none"
         />
       </div>
 
-      {/* Treatment Cost Display */}
-      {showCostDisplay && (
+      {/* Info banner for pricing */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-blue-700">
+          <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+          </div>
+          <span className="text-sm font-medium">
+            Showing prices for: {getPaymentTypeDisplay()} patients
+          </span>
+        </div>
+      </div>
+
+      {/* Always show Treatment Pricing */}
+      <div className="space-y-4">
         <TreatmentCostDisplay 
           onAddTreatmentToPlan={handleAddTreatmentToPlan}
           patientInsurance={getActualInsuranceProvider()}
           patientType={patientType}
         />
-      )}
+      </div>
 
-      {/* Cost Summary */}
+      {/* Selected Treatments */}
       {selectedTreatments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Selected Treatments & Cost Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {selectedTreatments.map((treatment) => (
-                <div key={treatment.id} className="flex justify-between items-center">
-                  <span>{treatment.name}</span>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">
-                      {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveTreatment(treatment.id)}
-                      className="text-red-600 hover:text-red-700 px-2"
-                    >
-                      Remove
-                    </Button>
-                  </div>
+        <div className="space-y-4">
+          <h3 className="text-base font-medium">Selected Treatments:</h3>
+          <div className="space-y-3">
+            {selectedTreatments.map((treatment) => (
+              <div key={treatment.id} className="flex justify-between items-center py-2">
+                <div className="flex-1">
+                  <div className="font-medium">{treatment.name}</div>
+                  <div className="text-sm text-gray-500">({treatment.duration} min)</div>
                 </div>
-              ))}
-              <div className="border-t pt-2 flex justify-between items-center font-semibold">
-                <span>Total Estimated Cost ({getPaymentTypeDisplay()}):</span>
-                <span className="text-lg text-green-600">
-                  {supabaseTreatmentPricingService.formatPrice(totalCost)}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-green-600">
+                    {supabaseTreatmentPricingService.formatPrice(treatment.basePrice * (treatment.quantity || 1))}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveTreatment(treatment.id)}
+                    className="text-red-600 hover:text-red-700 h-8 px-2"
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
-              <p className="text-xs text-gray-500">
-                This cost estimate will be used for payment record creation
-              </p>
+            ))}
+          </div>
+          
+          {/* Total Cost */}
+          <div className="border-t pt-4">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-medium">Total Estimated Cost:</span>
+              <span className="text-xl font-bold text-green-600">
+                {supabaseTreatmentPricingService.formatPrice(totalCost)}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Prescriptions */}
-      <div>
-        <Label htmlFor="prescriptions">Prescriptions</Label>
+      <div className="space-y-3">
+        <Label htmlFor="prescriptions" className="text-base font-medium">Prescriptions</Label>
         <Textarea
           id="prescriptions"
-          placeholder="List medications and dosages..."
+          placeholder="Enter prescriptions..."
           value={localPrescriptions}
           onChange={(e) => setLocalPrescriptions(e.target.value)}
           onBlur={() => onUpdateField('prescriptions', localPrescriptions)}
           rows={4}
+          className="resize-none"
         />
       </div>
     </div>
