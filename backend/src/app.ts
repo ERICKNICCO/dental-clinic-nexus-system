@@ -91,7 +91,12 @@ export const app = express();
 
 // Initialize WhatsApp Client (Option B)
 if (process.env.NODE_ENV !== 'test') {
-  initializeWhatsApp();
+  try {
+    initializeWhatsApp();
+  } catch (error) {
+    console.error('⚠️ Failed to initialize WhatsApp client:', error);
+    console.log('📱 WhatsApp notifications will be unavailable, but the backend will continue to run.');
+  }
 }
 
 
