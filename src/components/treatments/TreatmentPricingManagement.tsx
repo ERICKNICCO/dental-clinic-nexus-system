@@ -15,6 +15,7 @@ import { useToast } from '../../hooks/use-toast';
 import { importGAPricing } from '../../utils/importGAPricing';
 import { importJubileePricing } from '../../utils/importJubileePricing';
 import { toSentenceCase } from '../../lib/utils';
+import { getJubileeProcedureCodeForTreatment } from '../../services/jubileeTreatmentCodes';
 
 const TreatmentPricingManagement: React.FC = () => {
   const [treatments, setTreatments] = useState<TreatmentPricing[]>([]);
@@ -54,10 +55,12 @@ const TreatmentPricingManagement: React.FC = () => {
 
   const paymentMethods = [
     { code: 'cash', name: 'Cash' },
-    { code: 'NHIF', name: 'NHIF' },
+    // NHIF is the technical code; Strategis is the business name
+    { code: 'NHIF', name: 'Strategis' },
     { code: 'GA', name: 'GA Insurance' },
     { code: 'JUBILEE', name: 'Jubilee Insurance' },
-    { code: 'MO', name: 'MO Insurance' }
+    { code: 'MO', name: 'MO Insurance' },
+    { code: 'ASSEMBLE', name: 'Assemble' },
   ];
 
   useEffect(() => {
@@ -247,16 +250,23 @@ const TreatmentPricingManagement: React.FC = () => {
   };
 
   const getTreatmentsByPaymentMethod = (paymentMethod: string) => {
-    return treatments.filter(t => t.insuranceProvider === paymentMethod);
+    // Use the same normalization logic as the Supabase service so that
+    // minor variations like "CASH", "cash " etc. are grouped correctly.
+    const target = supabaseTreatmentPricingService.normalizeInsuranceProvider(paymentMethod);
+    return treatments.filter(
+      (t) =>
+        supabaseTreatmentPricingService.normalizeInsuranceProvider(t.insuranceProvider) === target,
+    );
   };
 
   const getPaymentMethodColor = (provider: string) => {
     switch (provider) {
       case 'cash': return 'bg-green-100 text-green-800';
-      case 'NHIF': return 'bg-blue-100 text-blue-800';
+      case 'NHIF': return 'bg-blue-100 text-blue-800';        // Strategis
       case 'GA': return 'bg-purple-100 text-purple-800';
       case 'JUBILEE': return 'bg-orange-100 text-orange-800';
       case 'MO': return 'bg-indigo-100 text-indigo-800';
+      case 'ASSEMBLE': return 'bg-teal-100 text-teal-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -286,7 +296,10 @@ const TreatmentPricingManagement: React.FC = () => {
             No treatments found for {paymentMethodInfo?.name}.
           </p>
           <div className="flex justify-center gap-2">
-            <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={handleAddNew}
+              className="bg-[#d8ae2d] hover:bg-[#c39b28] text-white"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Treatment for {paymentMethodInfo?.name}
             </Button>
@@ -322,6 +335,7 @@ const TreatmentPricingManagement: React.FC = () => {
             <TableHead>Treatment Name</TableHead>
             <TableHead>Category</TableHead>
             {paymentMethod === 'NHIF' && <TableHead>Code</TableHead>}
+            {paymentMethod === 'JUBILEE' && <TableHead>Code</TableHead>}
             <TableHead>Price</TableHead>
             {paymentMethod !== 'NHIF' && <TableHead>Description</TableHead>}
             <TableHead className="text-right">Actions</TableHead>
@@ -336,6 +350,11 @@ const TreatmentPricingManagement: React.FC = () => {
               code = result.code;
               desc = result.description;
             }
+            const jubileeProcCode =
+              paymentMethod === 'JUBILEE'
+                ? getJubileeProcedureCodeForTreatment(treatment.name)
+                : '';
+
             return (
             <TableRow key={treatment.id}>
                 <TableCell className="font-medium">{toSentenceCase(treatment.name)}</TableCell>
@@ -343,6 +362,7 @@ const TreatmentPricingManagement: React.FC = () => {
                   <Badge variant="secondary">{toSentenceCase(treatment.category)}</Badge>
               </TableCell>
                 {paymentMethod === 'NHIF' && <TableCell>{code}</TableCell>}
+                {paymentMethod === 'JUBILEE' && <TableCell>{jubileeProcCode}</TableCell>}
               <TableCell className="font-semibold">
                 {supabaseTreatmentPricingService.formatPrice(treatment.basePrice)}
               </TableCell>
@@ -395,7 +415,10 @@ const TreatmentPricingManagement: React.FC = () => {
           <p className="text-gray-600">Manage treatment prices for different payment methods</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            onClick={handleAddNew}
+            className="bg-[#d8ae2d] hover:bg-[#c39b28] text-white"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Treatment
           </Button>
@@ -411,7 +434,8 @@ const TreatmentPricingManagement: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            {/* 6 payment methods: Cash, Strategis, GA, Jubilee, MO, Assemble */}
+            <TabsList className="grid w-full grid-cols-6">
               {paymentMethods.map((method) => (
                 <TabsTrigger key={method.code} value={method.code} className="text-sm">
                   {method.name}

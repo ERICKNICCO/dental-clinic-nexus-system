@@ -13,15 +13,26 @@ import PaymentPage from './pages/PaymentPage';
 import TreatmentPricingPage from './pages/TreatmentPricingPage';
 import ReportPage from './pages/ReportPage';
 import SchedulePage from './pages/SchedulePage';
-import InventoryPage from './pages/InventoryPage';
+import GAPatientBenefitsPage from './pages/GAPatientBenefitsPage';
+import GASmartTestPage from './pages/GASmartTestPage';
+
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
 import './App.css';
 import { XRayRoomPage } from './components/xray/XRayRoomPage';
 import NotificationTest from './components/NotificationTest';
+import { EmailNotificationTest } from './components/EmailNotificationTest';
 import DoctorAppointmentsPage from './pages/DoctorAppointmentsPage';
-import GASmartTestPage from './pages/GASmartTestPage';
+import NotificationsPage from './pages/NotificationsPage';
+import AdminInsuranceClaimsPage from './pages/AdminInsuranceClaimsPage';
+import { LeaveManagementPage } from './components/leave/LeaveManagementPage';
+import { MusicPlayerPage } from './components/music/MusicPlayerPage';
+import { MusicProvider } from './contexts/MusicContext';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
+import StaffRegisterPage from './pages/StaffRegisterPage';
+import UserManagementPage from './pages/UserManagementPage';
 
 const queryClient = new QueryClient();
 
@@ -30,6 +41,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<StaffRegisterPage />} />
       <Route path="/" element={
         <ProtectedRoute>
           <Index />
@@ -37,14 +49,14 @@ function AppRoutes() {
       } />
       <Route path="/appointments" element={
         <ProtectedRoute>
-          <RoleBasedRoute allowedRoles={['admin', 'staff', 'doctor']}>
+          <RoleBasedRoute allowedRoles={['admin', 'receptionist', 'dentist']}>
             <AppointmentPage />
           </RoleBasedRoute>
         </ProtectedRoute>
       } />
       <Route path="/schedule" element={
         <ProtectedRoute>
-          <RoleBasedRoute allowedRoles={['admin', 'doctor']}>
+          <RoleBasedRoute allowedRoles={['admin', 'dentist', 'receptionist']}>
             <SchedulePage />
           </RoleBasedRoute>
         </ProtectedRoute>
@@ -64,6 +76,11 @@ function AppRoutes() {
           <PatientFilePage />
         </ProtectedRoute>
       } />
+      <Route path="/patients/:patientId/consultation" element={
+        <ProtectedRoute>
+          <PatientFilePage />
+        </ProtectedRoute>
+      } />
       <Route path="/treatments" element={
         <ProtectedRoute>
           <TreatmentPage />
@@ -71,14 +88,14 @@ function AppRoutes() {
       } />
       <Route path="/payments" element={
         <ProtectedRoute>
-          <RoleBasedRoute allowedRoles={['admin']}>
+          <RoleBasedRoute allowedRoles={['admin', 'receptionist', 'finance_manager']}>
             <PaymentPage />
           </RoleBasedRoute>
         </ProtectedRoute>
       } />
       <Route path="/pricing" element={
         <ProtectedRoute>
-          <RoleBasedRoute allowedRoles={['admin', 'doctor']}>
+          <RoleBasedRoute allowedRoles={['admin', 'dentist', 'receptionist', 'finance_manager']}>
             <TreatmentPricingPage />
           </RoleBasedRoute>
         </ProtectedRoute>
@@ -90,16 +107,21 @@ function AppRoutes() {
           </RoleBasedRoute>
         </ProtectedRoute>
       } />
-      <Route path="/inventory" element={
+      <Route path="/ga-insurance" element={
         <ProtectedRoute>
-          <RoleBasedRoute allowedRoles={['admin']}>
-            <InventoryPage />
-          </RoleBasedRoute>
+          <GAPatientBenefitsPage />
         </ProtectedRoute>
       } />
+
+      <Route path="/ga-test" element={
+        <ProtectedRoute>
+          <GASmartTestPage />
+        </ProtectedRoute>
+      } />
+
       <Route path="/xray-room" element={
         <ProtectedRoute>
-          <RoleBasedRoute allowedRoles={['radiologist']}>
+          <RoleBasedRoute allowedRoles={['technician', 'dentist', 'admin']}>
             <XRayRoomPage />
           </RoleBasedRoute>
         </ProtectedRoute>
@@ -109,10 +131,45 @@ function AppRoutes() {
           <NotificationTest />
         </ProtectedRoute>
       } />
-      <Route path="/ga-test" element={
+      <Route path="/email-test" element={
         <ProtectedRoute>
-          <RoleBasedRoute allowedRoles={["admin","doctor"]}>
-            <GASmartTestPage />
+          <EmailNotificationTest />
+        </ProtectedRoute>
+      } />
+      <Route path="/notifications" element={
+        <ProtectedRoute>
+          <NotificationsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/leave" element={
+        <ProtectedRoute>
+          <LeaveManagementPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/music" element={
+        <ProtectedRoute>
+          <MusicPlayerPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/insurance-claims" element={
+        <RoleBasedRoute allowedRoles={['admin', 'receptionist', 'finance_manager']}>
+          <AdminInsuranceClaimsPage />
+        </RoleBasedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <ProfilePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/settings" element={
+        <ProtectedRoute>
+          <SettingsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/users" element={
+        <ProtectedRoute>
+          <RoleBasedRoute allowedRoles={['admin']}>
+            <UserManagementPage />
           </RoleBasedRoute>
         </ProtectedRoute>
       } />
@@ -125,12 +182,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <div className="App">
-            <AppRoutes />
-          </div>
-        </Router>
-        <Toaster />
+        <MusicProvider>
+          <Router>
+            <div className="App">
+              <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+                <AppRoutes />
+              </React.Suspense>
+            </div>
+          </Router>
+          <Toaster />
+        </MusicProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
